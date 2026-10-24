@@ -2,6 +2,18 @@
   "name": "sorteador-universal",
   "main": "src/worker.js",
   "compatibility_date": "2026-10-24",
-  "assets": {"directory": "./public", "binding": "ASSETS", "run_worker_first": ["/api/*"]},
-  "d1_databases": [{"binding": "DB", "database_name": "sorteador-universal", "database_id": "COLE_AQUI_O_DATABASE_ID"}]
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/api/*"
+    ]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "sorteador-universal-db",
+      "database_id": "24fe67dc-7003-4557-9de0-cf6658e713c2"
+    }
+  ]
 }
