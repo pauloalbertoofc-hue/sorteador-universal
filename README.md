@@ -45,3 +45,13 @@ No painel de desenvolvedor do Mercado Pago, configure a URL do webhook como `htt
 - Não existe fluxo de recuperação de senha, confirmação de e-mail, proteção contra força bruta, nem painel administrativo.
 - Os anúncios de terceiros e tratamento de dados pessoais exigem revisão de privacidade/consentimento e termos de serviço.
 - Para produção, acrescentar monitoramento, testes automatizados, política de retenção e rotina de suporte/cancelamento.
+
+
+## Atualização 2.0.2 — publicidade e assinatura
+
+- Removidos os botões públicos de ocultar e reexibir anúncios.
+- A antiga preferência local `su-ads-hidden` não é mais consultada.
+- Os anúncios são mostrados por padrão, inclusive quando o serviço de contas está indisponível.
+- Apenas uma resposta `/api/me` autenticada com `subscription.active: true` oculta os anúncios.
+- A cobrança ainda precisa ser configurada no servidor e no provedor; não há pagamento ativo nesta versão.
+- A apresentação dos banners mantém dimensões 320x50 e 300x250.
