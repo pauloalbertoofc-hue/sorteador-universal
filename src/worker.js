@@ -8,7 +8,8 @@ async function pbkdf(password,salt){const key=await crypto.subtle.importKey('raw
 function equal(a,b){if(typeof a!=='string'||typeof b!=='string'||a.length!==b.length)return false;let v=0;for(let i=0;i<a.length;i++)v|=a.charCodeAt(i)^b.charCodeAt(i);return v===0}
 function sessionCookie(value,age){return `su_session=${value}; Path=/api; HttpOnly; Secure; SameSite=Strict; Max-Age=${age}`}
 async function readBody(req){const text=await req.text();if(text.length>12000)throw Error('payload_too_large');return JSON.parse(text)}
-async function auth(req,env){const token=req.headers.get('cookie')?.match(/(?:^|;\s*)su_session=([0-9a-f]{64})/)?.[1];if(!token)return null;return env.DB.prepare('SELECT users.id, users.email, sessions.token_hash FROM sessions JOIN users ON users.id=sessions.user_id WHERE sessions.token_hash=? AND sessions.expires_at>?').bind(await sha(token),Date.now()).first()}
+async function auth(req,env){const token=req.headers.get('cookie')?.match(/(?:^|;\s*)su_session=([0-9a-f]{64})(?=;|$)/)?.[1];if(!token)return null;return env.DB.prepare('SELECT users.id, users.email, sessions.token_hash FROM sessions JOIN users ON users.id=sessions.user_id WHERE sessions.token_hash=? AND sessions.expires_at>?').bind(await sha(token),Date.now()).first()}
+// Session expiry is Unix time in milliseconds, matching Date.now() in auth().
 async function createSession(env,id){const token=random(32);await env.DB.prepare('INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(?,?,?)').bind(await sha(token),id,Date.now()+30*86400000).run();return sessionCookie(token,30*86400)}
 function originOk(req){const origin=req.headers.get('origin');return !!origin&&origin===new URL(req.url).origin}
 async function mpGet(env,id){const r=await fetch(`https://api.mercadopago.com/preapproval/${encodeURIComponent(id)}`,{headers:{authorization:`Bearer ${env.MP_ACCESS_TOKEN}`}});if(!r.ok)throw Error('mp_fetch_failed');return r.json()}

@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sorteador-universal-preview-db-admin",
+  "compatibility_date": "2026-10-24",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "sorteador-universal-preview-db",
+      "database_id": "9701cfcf-9c77-4b09-8411-0f4a13f8c584",
+      "migrations_dir": "migrations/preview"
+    }
+  ]
+}
