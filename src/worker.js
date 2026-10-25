@@ -4,7 +4,7 @@ const fail=(error,status=400)=>json({error},status);
 const hex=b=>[...b].map(x=>x.toString(16).padStart(2,'0')).join('');
 const random=n=>hex(crypto.getRandomValues(new Uint8Array(n)));
 async function sha(s){return hex(new Uint8Array(await crypto.subtle.digest('SHA-256',enc.encode(s))))}
-async function pbkdf(password,salt){const key=await crypto.subtle.importKey('raw',enc.encode(password),'PBKDF2',false,['deriveBits']);return hex(new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',salt:enc.encode(salt),iterations:310000,hash:'SHA-256'},key,256)))}
+async function pbkdf(password,salt){const key=await crypto.subtle.importKey('raw',enc.encode(password),'PBKDF2',false,['deriveBits']);return hex(new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',salt:enc.encode(salt),iterations:100000,hash:'SHA-256'},key,256)))}
 function equal(a,b){if(typeof a!=='string'||typeof b!=='string'||a.length!==b.length)return false;let v=0;for(let i=0;i<a.length;i++)v|=a.charCodeAt(i)^b.charCodeAt(i);return v===0}
 function sessionCookie(value,age){return `su_session=${value}; Path=/api; HttpOnly; Secure; SameSite=Strict; Max-Age=${age}`}
 async function readBody(req){const text=await req.text();if(text.length>12000)throw Error('payload_too_large');return JSON.parse(text)}
@@ -20,7 +20,7 @@ async function api(req,env,url){const path=url.pathname,method=req.method;
  if(!env.DB)return fail('Banco D1 não conectado.',503);
  if(!['GET','POST','DELETE'].includes(method))return fail('Método não permitido',405);
  if(method!=='GET'&&!originOk(req)&&path!=='/api/webhooks/mercadopago')return fail('Origem inválida',403);
- if(path==='/api/health'&&method==='GET')return json({ok:true,version:'2.0.0'});
+ if(path==='/api/health'&&method==='GET')return json({ok:true,version:'2.0.4'});
  if(path==='/api/register'&&method==='POST'){
   const {email,password}=await readBody(req);const e=String(email||'').trim().toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)||e.length>254||typeof password!=='string'||password.length<10||password.length>128)return fail('E-mail ou senha inválidos (mínimo 10 caracteres).');
   const salt=random(16),hash=await pbkdf(password,salt),id=crypto.randomUUID();try{

@@ -63,3 +63,7 @@ Cloudflare Workers, sem imprimir corpo de requisições, senhas, cookies ou toke
 Após publicar, abra Workers & Pages > sorteador-universal > Observability > Live
 e tente criar uma conta. Verifique a mensagem de erro e não compartilhe segredos.
 Não execute novamente migrações de criação de tabelas já existentes.
+
+## Versão 2.0.4 — correção do cadastro
+
+Corrige a incompatibilidade da API WebCrypto PBKDF2 com o limite de 100.000 iterações do Cloudflare Workers. A rotina agora usa PBKDF2-HMAC-SHA256 com salt aleatório de 16 bytes e 100.000 iterações. O esquema de armazenamento anterior foi preservado; não há necessidade de recriar tabelas. Como o banco de produção ainda tinha zero usuários na verificação anterior, não há hashes antigos a migrar. Não compartilhar senhas nos logs.
