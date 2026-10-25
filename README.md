@@ -55,3 +55,11 @@ No painel de desenvolvedor do Mercado Pago, configure a URL do webhook como `htt
 - Apenas uma resposta `/api/me` autenticada com `subscription.active: true` oculta os anúncios.
 - A cobrança ainda precisa ser configurada no servidor e no provedor; não há pagamento ativo nesta versão.
 - A apresentação dos banners mantém dimensões 320x50 e 300x250.
+
+
+## Diagnóstico da autenticação (2.0.3)
+Esta versão registra erros de execução da API com prefixo `[SU_API]` no console do
+Cloudflare Workers, sem imprimir corpo de requisições, senhas, cookies ou tokens.
+Após publicar, abra Workers & Pages > sorteador-universal > Observability > Live
+e tente criar uma conta. Verifique a mensagem de erro e não compartilhe segredos.
+Não execute novamente migrações de criação de tabelas já existentes.

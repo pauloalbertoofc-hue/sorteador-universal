@@ -23,7 +23,16 @@ async function api(req,env,url){const path=url.pathname,method=req.method;
  if(path==='/api/health'&&method==='GET')return json({ok:true,version:'2.0.0'});
  if(path==='/api/register'&&method==='POST'){
   const {email,password}=await readBody(req);const e=String(email||'').trim().toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)||e.length>254||typeof password!=='string'||password.length<10||password.length>128)return fail('E-mail ou senha inválidos (mínimo 10 caracteres).');
-  const salt=random(16),hash=await pbkdf(password,salt),id=crypto.randomUUID();try{await env.DB.prepare('INSERT INTO users(id,email,password_hash) VALUES(?,?,?)').bind(id,e,`pbkdf2$${salt}$${hash}`).run()}catch{return fail('E-mail já cadastrado',409)}return json({ok:true},201,{'set-cookie':await createSession(env,id)});
+  const salt=random(16),hash=await pbkdf(password,salt),id=crypto.randomUUID();try{
+   await env.DB.prepare('INSERT INTO users(id,email,password_hash) VALUES(?,?,?)')
+     .bind(id,e,`pbkdf2$${salt}$${hash}`).run();
+  }catch(error){
+   if (/UNIQUE constraint failed: users.email/i.test(String(error?.message||'')))
+     return fail('E-mail já cadastrado',409);
+   console.error('[SU_API] Falha no INSERT de users', {type:error?.name||'Error', message:String(error?.message||'').slice(0,250)});
+   return fail('Não foi possível concluir o cadastro',500);
+  }
+  return json({ok:true},201,{'set-cookie':await createSession(env,id)});
  }
  if(path==='/api/login'&&method==='POST'){
   const {email,password}=await readBody(req);if(typeof password!=='string'||password.length>128)return fail('Credenciais inválidas',401);const user=await env.DB.prepare('SELECT id,password_hash FROM users WHERE email=?').bind(String(email||'').trim().toLowerCase()).first();if(!user||!user.password_hash?.startsWith('pbkdf2$'))return fail('Credenciais inválidas',401);const [,salt,hash]=user.password_hash.split('$');if(!equal(await pbkdf(password,salt),hash))return fail('Credenciais inválidas',401);return json({ok:true},200,{'set-cookie':await createSession(env,user.id)});
@@ -58,4 +67,12 @@ async function api(req,env,url){const path=url.pathname,method=req.method;
  }
  return fail('Rota não encontrada',404);
 }
-export default {async fetch(req,env){const url=new URL(req.url);if(url.pathname.startsWith('/api/')){try{return await api(req,env,url)}catch(e){return fail('Erro interno ao processar solicitação',500)}}return env.ASSETS.fetch(req)}};
+export default {async fetch(req,env){const url=new URL(req.url);if(url.pathname.startsWith('/api/')){try{return await api(req,env,url)}catch(e){
+   // Nunca registrar corpo da requisição, cookies, senhas ou credenciais.
+   console.error('[SU_API] Exceção', {
+     route:url.pathname,
+     type:e?.name||'Error',
+     message:String(e?.message||'Sem detalhes').slice(0,300)
+   });
+   return fail('Erro interno ao processar solicitação',500);
+  }}return env.ASSETS.fetch(req)}};
