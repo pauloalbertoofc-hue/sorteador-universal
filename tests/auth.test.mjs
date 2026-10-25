@@ -382,3 +382,66 @@ test('browser: checkout prevents concurrent clicks and exposes provider failure'
   await expect(page.locator('#accountCheckout')).toBeEnabled();
   await expect(page.locator('#proStudio')).toBeHidden();
 });
+
+test('browser: cancelling renewal preserves Pro and hidden ads across reload, with an explicit paid deadline', async t => {
+  const {context, page} = await newPage(t);
+  await fill(page, account()); await page.locator('#accountRegister').click();
+  await expect(page.locator('#accountMember')).toBeVisible();
+  const real = await (await context.request.get(base + '/api/me')).json();
+  const now = Date.now(), until = new Date(now + 86400000).toISOString();
+  let sub = {active: true, status: 'authorized', renewal_status: 'active', access_status: 'pro_active', access_until: until, verified_at: now, can_cancel: true};
+  let holdNext=false,release;
+  await context.route('**/api/me', async route => {
+    const snapshot=structuredClone(sub);
+    if(holdNext){holdNext=false;await new Promise(resolve=>{release=resolve})}
+    return route.fulfill({json: {...real, subscription:snapshot, billing: {configured: false}}});
+  });
+  await context.route('**/api/subscription/cancel', route => {
+    sub = {...sub, status: 'cancelled', renewal_status: 'cancelled', access_status: 'pro_cancelled', can_cancel: false};
+    return route.fulfill({json: {ok: true, subscription: sub}});
+  });
+  await page.locator('#accountRefresh').click();
+  await expect(page.locator('#proStudio')).toBeVisible();
+  await page.clock.install({time:new Date(now)});
+  await page.clock.fastForward(20000);
+  holdNext=true;
+  await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
+  await expect.poll(()=>!!release).toBe(true);
+  page.on('dialog', dialog => dialog.accept());
+  await page.locator('#accountCancel').click();
+  await expect(page.locator('#accountMessage')).toContainText('Você continuará com acesso Pro até');
+  await expect(page.locator('#billingState')).toContainText('Não haverá renovação automática');
+  await expect(page.locator('#subscriptionState')).toHaveText('Pro disponível — renovação cancelada');
+  const late=page.waitForResponse(response=>response.url()===base+'/api/me');
+  release();await late;
+  await expect(page.locator('#subscriptionState')).toHaveText('Pro disponível — renovação cancelada');
+  await expect(page.locator('#adArea')).toBeHidden();
+  await expect(page.locator('#accountCancel')).toBeHidden();
+  await expect(page.locator('#accountCheckout')).toBeDisabled();
+  await page.reload();
+  await expect(page.locator('#proStudio')).toBeVisible();
+  await expect(page.locator('#adArea')).toBeHidden();
+  await expect(page.locator('#subscriptionState')).toHaveText('Pro disponível — renovação cancelada');
+  await expect(page.locator('#billingState')).toContainText(new Date(until).toLocaleDateString('pt-BR'));
+});
+
+test('browser: controlled expiry closes Pro and restores ads without a page reload', async t => {
+  const {context, page} = await newPage(t);
+  await fill(page, account()); await page.locator('#accountRegister').click();
+  await expect(page.locator('#accountMember')).toBeVisible();
+  const real = await (await context.request.get(base + '/api/me')).json();
+  const now = Date.parse('2026-01-15T12:00:00Z'), until = new Date(now + 60000).toISOString();
+  await page.clock.install({time: new Date(now)}); await page.clock.pauseAt(new Date(now + 1000));
+  let sub = {active: true, status: 'cancelled', renewal_status: 'cancelled', access_status: 'pro_cancelled', access_until: until, verified_at: now, can_cancel: false};
+  await context.route('**/api/me', route => route.fulfill({json: {...real, subscription: sub, billing: {configured: false}}}));
+  await page.locator('#accountRefresh').click();
+  await expect(page.locator('#proStudio')).toBeVisible();
+  await expect(page.locator('#adArea')).toBeHidden();
+  await page.clock.fastForward(59999);
+  await expect(page.locator('#proStudio')).toBeVisible();
+  sub = {...sub, active: false, access_status: 'expired', verified_at: now + 60000};
+  await page.clock.fastForward(1);
+  await expect(page.locator('#proStudio')).toBeHidden();
+  await expect(page.locator('#adArea')).toBeVisible();
+  await expect(page.locator('#subscriptionState')).toHaveText('Período Pro encerrado — renovação cancelada');
+});

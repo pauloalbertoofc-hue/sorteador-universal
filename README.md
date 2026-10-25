@@ -196,3 +196,11 @@ integração inicial descritas acima são histórico; o estado atual, migrations
 secrets, testes e pendências de homologação estão em
 [docs/BILLING_IMPLEMENTATION.md](docs/BILLING_IMPLEMENTATION.md). Não ativar
 cobranças reais com base apenas nos testes simulados.
+
+## Cancelamento da renovação e período pago
+
+Cancelar a renovação agora preserva o Pro até o fim do mês pago e verificado,
+sem reativar a recorrência. A autorização continua consultando o pagamento real,
+inclusive para detectar reembolsos/estornos. A política, testes com relógio
+controlado e pendências de homologação estão em
+[docs/CANCELLATION_POLICY.md](docs/CANCELLATION_POLICY.md).

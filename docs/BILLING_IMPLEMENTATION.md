@@ -1,3 +1,7 @@
+> Atualização da política: a versão inicial deste relatório foi complementada por
+> [CANCELLATION_POLICY.md](CANCELLATION_POLICY.md); o cancelamento não retira mais
+> um período pago válido. Os 42 testes abaixo descrevem a entrega inicial.
+
 # Sorteador Universal Pro — relatório de implementação e homologação
 
 Data: 25/10/2026. Repositório: pauloalbertoofc-hue/sorteador-universal.
@@ -79,7 +83,9 @@ pagamento vinculado em GET /v1/payments/{id}. Confere approved, BRL 4,90, vended
 payer_id da assinatura e ausência de valor reembolsado. A última cobrança já
 vencida deve estar processed/approved; falha recente suspende acesso mesmo se
 uma cobrança anterior ainda se sobrepuser. Período vencido, pagamento recusado,
-reembolsado, assinatura pausada/cancelada ou indisponibilidade negam Pro.
+reembolsado, assinatura pausada ou indisponibilidade negam Pro. Assinatura
+cancelada conserva somente o período pago ainda comprovadamente válido, conforme
+[política atual de cancelamento](CANCELLATION_POLICY.md).
 
 O período é um mês civil a partir de debit_date, com ajuste para o último dia
 do mês, limitado por end_date quando presente. Aprovação tardia não estende o
@@ -113,9 +119,11 @@ para essa tabela; nenhuma rotina de limpeza remota foi executada.
 
 Cancelamento é POST autenticado com proteção de origem, confirmação visual e
 verificação de titularidade/vendedor antes de PUT status=cancelled. O servidor
-reconsulta para confirmar. A política implementada encerra o Pro imediatamente
-após cancelamento, sem iniciar reembolso. Ajustar termos comerciais antes de
-produção se desejar manter acesso até o fim do período pago. Cancelamento e
+reconsulta para confirmar. A política atual mantém o Pro até o término do período pago e novamente
+verificado, sem iniciar reembolso nem renovar a recorrência. O cancelamento
+remoto é imediato; o direito de acesso é separado e expira automaticamente.
+Ver [CANCELLATION_POLICY.md](CANCELLATION_POLICY.md) para os novos campos, relógio
+controlado e limitações de homologação. Cancelamento e
 validação de assinaturas existentes não dependem de BILLING_ENABLED=true; essa
 chave controla apenas novas contratações e o botão de compra.
 

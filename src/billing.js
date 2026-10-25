@@ -48,11 +48,11 @@ export const mpGet = (env, id) => {
 function schedule(value) {
   return value && value.frequency === 1 && value.frequency_type === 'months' && value.currency_id === 'BRL' && cents(value.transaction_amount) === PRICE && !value.free_trial && !value.repetitions;
 }
-async function context(env) {
+async function context(env, requireActive = false) {
   if (!billingConfigured(env)) throw new BillingError('Pagamento ainda não configurado.');
   const seller = await mp(env, '/users/me');
   const plan = await mp(env, `/preapproval_plan/${encodeURIComponent(env.MP_PLAN_ID)}`);
-  if (!sameId(plan.id, env.MP_PLAN_ID) || !sameId(plan.collector_id, seller.id) || plan.status !== 'active' || !schedule(plan.auto_recurring)) {
+  if (!sameId(plan.id, env.MP_PLAN_ID) || !sameId(plan.collector_id, seller.id) || !(requireActive ? ['active'] : ['active', 'inactive']).includes(plan.status) || !schedule(plan.auto_recurring)) {
     throw new BillingError('O plano precisa ser conferido pelo responsável antes de novas assinaturas.');
   }
   return {seller, plan};
@@ -106,7 +106,10 @@ async function paidPeriod(env, sub) {
   if (results.some(item => !Number.isFinite(date(item.debit_date)))) denied();
   const due = results.filter(item => date(item.debit_date) <= now).sort((a, b) => date(b.debit_date) - date(a.debit_date));
   if (!due.length) return {active: false, status: 'payment_pending'};
-  const charge = due[0];
+  // Unpaid attempts do not erase an already settled period after renewal ends.
+  // Still fetch the selected settled payment below; a failed validation has no fallback.
+  const charge = sub.status === 'cancelled' ? due.find(item => item.status === 'processed' && item.payment?.status === 'approved') : due[0];
+  if (!charge) return {active: false, status: 'payment_pending'};
   if (due.filter(item => date(item.debit_date) === date(charge.debit_date)).length !== 1) throw new BillingError('Cobranças simultâneas requerem reconciliação.', 502);
   if (!sameId(charge.preapproval_id, sub.id)) denied();
   if (charge.status !== 'processed' || charge.payment?.status !== 'approved') return {active: false, status: 'payment_pending'};
@@ -117,37 +120,51 @@ async function paidPeriod(env, sub) {
   const approved = date(payment.date_approved), debit = date(charge.debit_date);
   if (!Number.isFinite(approved) || approved > now || !Number.isFinite(debit) || debit > now) denied();
   // Never extend a period merely because a late retry was approved today.
-  const until = Math.min(plusMonth(debit), sub.auto_recurring.end_date ? date(sub.auto_recurring.end_date) : Infinity);
+  // Cancelling the recurring contract does not shorten a settled monthly payment.
+  // Contract end_date is not a refund or a paid-period boundary.
+  const until = plusMonth(debit);
   return {active: until > now, status: until > now ? 'authorized' : 'expired', current_period_end: new Date(until).toISOString()};
+}
+function entitlement(renewal, state) {
+  const now = Date.now(), until = state.current_period_end;
+  const active = state.active === true && Number.isFinite(date(until)) && date(until) > now;
+  const expired = !!until && date(until) <= now;
+  return {
+    active, status: renewal,
+    renewal_status: renewal === 'authorized' ? 'active' : renewal,
+    access_status: active ? (renewal === 'cancelled' ? 'pro_cancelled' : 'pro_active') : expired ? 'expired' : state.status === 'unverified' ? 'unverified' : 'free',
+    ...(until ? {access_until: until, current_period_end: until} : {}),
+    verified_at: now, can_cancel: ['authorized', 'pending', 'paused'].includes(renewal)
+  };
 }
 export async function syncSubscription(env, user, sub, ctx, fence) {
   owned(sub, user, ctx, sub.id);
   const existing = await local(env, user.id);
   if (existing?.mp_subscription_id && existing.mp_subscription_id !== sub.id) denied();
   let state = {active: false, status: sub.status};
-  if (sub.status === 'authorized') state = await paidPeriod(env, sub);
+  if (['authorized', 'cancelled'].includes(sub.status)) state = await paidPeriod(env, sub);
   await fence();
   // Conditional write is a fence even if a process stalls beyond its lease.
   await fence.write(`INSERT INTO subscriptions(id,user_id,mp_subscription_id,mp_plan_id,status,amount_cents,currency,current_period_end)
     SELECT ?,?,?,?,?,490,'BRL',? WHERE $LEASE ON CONFLICT(user_id) DO UPDATE SET status=excluded.status,mp_plan_id=excluded.mp_plan_id,
     current_period_end=excluded.current_period_end,updated_at=CURRENT_TIMESTAMP
     WHERE subscriptions.mp_subscription_id=excluded.mp_subscription_id AND $LEASE`, [crypto.randomUUID(), user.id, sub.id, ctx.plan.id, sub.status, state.current_period_end || null]);
-  return {...state, can_cancel: sub.status !== 'cancelled'};
+  return entitlement(sub.status, state);
 }
 export async function subscriptionState(env, user) {
   const row = await local(env, user.id);
-  if (!row?.mp_subscription_id) return {active: false, status: 'free', can_cancel: false};
-  if (!billingConfigured(env)) return {active: false, status: 'unverified', can_cancel: !!env.MP_ACCESS_TOKEN};
+  if (!row?.mp_subscription_id) return {active: false, status: 'free', renewal_status: 'none', access_status: 'free', verified_at: Date.now(), can_cancel: false};
+  if (!billingConfigured(env)) return {active: false, status: 'unverified', renewal_status: 'unverified', access_status: 'unverified', can_cancel: !!env.MP_ACCESS_TOKEN};
   try {
     return await withLock(env, user.id, async fence => {
       const ctx = await context(env), sub = owned(await mpGet(env, row.mp_subscription_id), user, ctx, row.mp_subscription_id);
       return syncSubscription(env, user, sub, ctx, fence);
     });
-  } catch { return {active: false, status: 'unverified', can_cancel: true}; }
+  } catch { return {active: false, status: 'unverified', renewal_status: 'unverified', access_status: 'unverified', can_cancel: true}; }
 }
 export async function billingInfo(env) {
   if (env.BILLING_ENABLED !== 'true' || !billingConfigured(env)) return {configured: false, amount_cents: PRICE, currency: 'BRL', interval: 'month'};
-  try { await context(env); return {configured: true, amount_cents: PRICE, currency: 'BRL', interval: 'month'}; }
+  try { await context(env, true); return {configured: true, amount_cents: PRICE, currency: 'BRL', interval: 'month'}; }
   catch { return {configured: false, amount_cents: PRICE, currency: 'BRL', interval: 'month'}; }
 }
 async function bindPending(env, user, sub, ctx, fence) {
@@ -170,12 +187,14 @@ async function recover(env, user, ctx) {
 export async function checkout(env, user) {
   if (env.BILLING_ENABLED !== 'true' || !billingConfigured(env)) throw new BillingError('Pagamento ainda não configurado.');
   return withLock(env, user.id, async fence => {
-    const ctx = await context(env);
+    const ctx = await context(env, true);
     const row = await local(env, user.id);
     if (row?.mp_subscription_id) {
       const sub = owned(await mpGet(env, row.mp_subscription_id), user, ctx, row.mp_subscription_id);
       if (sub.status === 'pending') return {checkout_url: checkoutUrl(sub)};
       if (sub.status !== 'cancelled') throw new BillingError('Você já possui uma assinatura. Consulte ou cancele seu plano antes de contratar novamente.', 409);
+      const remaining = await syncSubscription(env, user, sub, ctx, fence);
+      if (remaining.active) throw new BillingError('Você mantém acesso Pro até o fim do período pago. Aguarde o vencimento para contratar novamente.', 409);
       await fence();
       await fence.write("UPDATE subscriptions SET status='cancelled' WHERE user_id=? AND mp_subscription_id=? AND $LEASE", [user.id, sub.id]);
       row.status = 'cancelled';
@@ -212,8 +231,15 @@ export async function cancelSubscription(env, user) {
     const confirmed = await mpGet(env, sub.id);
     if (confirmed.status !== 'cancelled' || confirmed.external_reference !== user.id || !sameId(confirmed.collector_id, seller.id) || !sameId(confirmed.id, sub.id)) throw new BillingError('Cancelamento ainda não confirmado. Consulte novamente.', 502);
     await fence();
-    await fence.write("UPDATE subscriptions SET status='cancelled',current_period_end=NULL,updated_at=CURRENT_TIMESTAMP WHERE user_id=? AND mp_subscription_id=? AND $LEASE", [user.id, sub.id]);
-    return {ok: true, subscription: {active: false, status: 'cancelled', can_cancel: false}};
+    await fence.write("UPDATE subscriptions SET status='cancelled',updated_at=CURRENT_TIMESTAMP WHERE user_id=? AND mp_subscription_id=? AND $LEASE", [user.id, sub.id]);
+    // The provider has stopped recurrence. Payment verification may independently fail.
+    try {
+      const ctx = await context(env);
+      owned(confirmed, user, ctx, sub.id);
+      return {ok: true, subscription: await syncSubscription(env, user, confirmed, ctx, fence)};
+    } catch {
+      return {ok: true, subscription: {active: false, status: 'cancelled', renewal_status: 'cancelled', access_status: 'unverified', verified_at: Date.now(), can_cancel: false}};
+    }
   });
 }
 const hex = buffer => [...new Uint8Array(buffer)].map(n => n.toString(16).padStart(2, '0')).join('');

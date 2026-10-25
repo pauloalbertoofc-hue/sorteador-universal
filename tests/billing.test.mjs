@@ -6,7 +6,7 @@ import {Miniflare, convertV4MiniflareOptions} from 'miniflare';
 
 const PLAN = 'a'.repeat(32), ORIGIN = 'https://sorteador.example.test', SECRET = 'synthetic-webhook-secret';
 const schedule = () => ({frequency: 1, frequency_type: 'months', currency_id: 'BRL', transaction_amount: 4.9});
-let mf, db, user, cookie, subs, charges, payments, created, fail, ambiguous, delay, planOverride, gate;
+let mf, db, user, cookie, subs, charges, payments, created, fail, ambiguous, delay, planOverride, gate, clock, cancellations, paymentUnavailable, credentials;
 const response = (value, status = 200) => new Response(JSON.stringify(value), {status, headers: {'content-type': 'application/json'}});
 async function provider(req) {
   const u = new URL(req.url);
@@ -30,10 +30,11 @@ async function provider(req) {
   if (u.pathname.startsWith('/preapproval/')) {
     const sub = subs.get(u.pathname.split('/').at(-1));
     if (!sub) return response({}, 404);
-    if (req.method === 'PUT') {assert.deepEqual(await req.json(), {status: 'cancelled'}); sub.status = 'cancelled';}
+    if (req.method === 'PUT') {cancellations++; assert.deepEqual(await req.json(), {status: 'cancelled'}); sub.status = 'cancelled';}
     return response(sub);
   }
   if (u.pathname === '/authorized_payments/search') {
+    if(paymentUnavailable)return response({},503);
     const results = charges.filter(c => c.preapproval_id === u.searchParams.get('preapproval_id'));
     return response({paging: {total: results.length}, results: results.slice(Number(u.searchParams.get('offset')), Number(u.searchParams.get('offset')) + 100)});
   }
@@ -42,13 +43,14 @@ async function provider(req) {
   throw Error(`Unexpected provider route: ${req.method} ${u.pathname}`);
 }
 async function request(path, body, headers = {}) {
-  return mf.dispatchFetch(ORIGIN + path, {method: body ? 'POST' : 'GET', headers: {cookie, origin: ORIGIN, 'content-type': 'application/json', ...headers}, ...(body ? {body: JSON.stringify(body)} : {})});
+  return mf.dispatchFetch(ORIGIN + path, {method: body ? 'POST' : 'GET', headers: {cookie, 'x-test-clock': String(clock), origin: ORIGIN, 'content-type': 'application/json', ...headers}, ...(body ? {body: JSON.stringify(body)} : {})});
 }
+async function signIn(){const r=await request('/api/login',credentials);assert.equal(r.status,200);cookie=r.headers.get('set-cookie').split(';')[0];}
 async function start() {
   const r = await request('/api/checkout', {}); assert.equal(r.status, 200, await r.clone().text());
   const id = new URL((await r.json()).checkout_url).searchParams.get('preapproval_id'); return subs.get(id);
 }
-function approve(sub, {paymentStatus = 'approved', debit = Date.now() - 1000, refund = 0} = {}) {
+function approve(sub, {paymentStatus = 'approved', debit = clock - 1000, refund = 0} = {}) {
   sub.status = 'authorized';
   const id = String(payments.size + 1000);
   payments.set(id, {id: Number(id), status: paymentStatus, collector_id: 123, payer: {id: 456}, currency_id: 'BRL', transaction_amount: 4.9, transaction_amount_refunded: refund, date_approved: new Date(debit).toISOString(), external_reference: user.id});
@@ -56,7 +58,7 @@ function approve(sub, {paymentStatus = 'approved', debit = Date.now() - 1000, re
   return payments.get(id);
 }
 async function event(sub, options = {}) {
-  const resource = options.id || sub.id, ts = options.ts || String(Date.now()), rid = options.rid || randomUUID();
+  const resource = options.id || sub.id, ts = options.ts || String(clock), rid = options.rid || randomUUID();
   const sig = createHmac('sha256', SECRET).update(`id:${resource.toLowerCase()};request-id:${rid};ts:${ts};`).digest('hex');
   const headers = {'x-request-id': rid, 'x-signature': `ts=${ts},v1=${options.bad ? 'f'.repeat(64) : sig}`};
   const body = {type: options.type || 'subscription_preapproval', data: {id: resource}, ...(options.body || {})};
@@ -67,7 +69,7 @@ async function me() {const r = await request('/api/me'); assert.equal(r.status, 
 
 before(async () => {
   mf = new Miniflare(convertV4MiniflareOptions({name: 'billing-tests',
-    modules: [{type: 'ESModule', path: 'src/worker.js'}, {type: 'ESModule', path: 'src/billing.js'}],
+    modules: [{type: 'ESModule', path: 'tests/fixtures/clock-worker.js'}, {type: 'ESModule', path: 'src/worker.js'}, {type: 'ESModule', path: 'src/billing.js'}],
     compatibilityDate: '2026-10-24', d1Databases: ['DB'], outboundService: provider,
     bindings: {BILLING_ENABLED: 'true', MP_ACCESS_TOKEN: 'synthetic-test-token', MP_PLAN_ID: PLAN, MP_WEBHOOK_SECRET: SECRET, PUBLIC_SITE_URL: ORIGIN}
   }));
@@ -79,8 +81,9 @@ before(async () => {
 });
 after(async () => mf?.dispose());
 beforeEach(async () => {
-  subs = new Map(); charges = []; payments = new Map(); created = 0; fail = false; ambiguous = false; delay = false; planOverride = {}; gate = null;
-  const r = await mf.dispatchFetch(ORIGIN + '/api/register', {method: 'POST', headers: {origin: ORIGIN, 'content-type': 'application/json'}, body: JSON.stringify({email: `${randomUUID()}@example.test`, password: randomUUID()})});
+  subs = new Map(); charges = []; payments = new Map(); created = 0; fail = false; ambiguous = false; delay = false; planOverride = {}; gate = null; clock = Date.parse('2026-01-15T12:00:00.000Z'); cancellations = 0; paymentUnavailable = false;
+  credentials={email: `${randomUUID()}@example.test`,password:randomUUID()};
+  const r = await mf.dispatchFetch(ORIGIN + '/api/register', {method: 'POST', headers: {origin: ORIGIN, 'x-test-clock': String(clock), 'content-type': 'application/json'}, body: JSON.stringify(credentials)});
   assert.equal(r.status, 201); cookie = r.headers.get('set-cookie').split(';')[0];
   user = (await me()).user;
 });
@@ -132,10 +135,10 @@ test('wrong user, plan, currency, amount and collector are rejected even if stor
     assert.equal((await request('/api/lists')).status, 403);
   }
 });
-test('rejected, refunded, expired, paused and cancelled subscriptions revoke Pro', async () => {
-  for (const kind of ['rejected', 'refunded', 'expired', 'paused', 'cancelled']) {
+test('rejected, refunded, expired and paused subscriptions revoke Pro', async () => {
+  for (const kind of ['rejected', 'refunded', 'expired', 'paused']) {
     if (subs.size) {subs.clear(); charges = []; payments.clear(); await db.prepare('DELETE FROM subscriptions WHERE user_id=?').bind(user.id).run(); await db.prepare('DELETE FROM billing_checkout WHERE user_id=?').bind(user.id).run();}
-    const sub = await start(); approve(sub, {paymentStatus: kind === 'rejected' ? 'rejected' : 'approved', refund: kind === 'refunded' ? 4.9 : 0, debit: kind === 'expired' ? Date.now() - 40 * 86400000 : Date.now() - 1000});
+    const sub = await start(); approve(sub, {paymentStatus: kind === 'rejected' ? 'rejected' : 'approved', refund: kind === 'refunded' ? 4.9 : 0, debit: kind === 'expired' ? clock - 40 * 86400000 : clock - 1000});
     if (['paused', 'cancelled'].includes(kind)) sub.status = kind;
     assert.equal((await me()).subscription.active, false, kind);
     assert.equal((await request('/api/lists')).status, 403, kind);
@@ -155,14 +158,15 @@ test('signed webhook reconciles canonical resources; duplicate deliveries are id
 test('invalid signatures, stale timestamps and resource substitution are rejected', async () => {
   const sub = await start();
   assert.equal((await send(await event(sub, {bad: true}))).status, 401);
-  assert.equal((await send(await event(sub, {ts: String(Date.now() - 600000)}))).status, 401);
+  assert.equal((await send(await event(sub, {ts: String(clock - 600000)}))).status, 401);
   const evt = await event(sub); evt.body.data.id = 'other'; assert.equal((await send(evt)).status, 400);
 });
-test('out-of-order notifications cannot reactivate a cancelled subscription', async () => {
+test('out-of-order notifications preserve cancelled renewal and only the verified paid period', async () => {
   const sub = await start(); approve(sub); const old = await event(sub, {body: {status: 'authorized'}});
   sub.status = 'cancelled'; assert.equal((await send(await event(sub))).status, 200);
   assert.equal((await send(old)).status, 200);
-  assert.equal((await me()).subscription.active, false);
+  assert.equal((await me()).subscription.active, true);
+  assert.equal((await me()).subscription.renewal_status, 'cancelled');
   assert.equal((await db.prepare('SELECT status FROM subscriptions WHERE user_id=?').bind(user.id).first()).status, 'cancelled');
 });
 test('webhook for another subscription or user cannot replace the local binding', async () => {
@@ -180,13 +184,15 @@ test('authorized-payment and payment events recheck current canonical subscripti
 test('cancel uses authenticated ownership and confirms provider state; subsequent checkout is a new generation', async () => {
   const sub = await start(); approve(sub);
   assert.equal((await request('/api/subscription/cancel', {})).status, 200);
-  assert.equal(sub.status, 'cancelled'); assert.equal((await me()).subscription.active, false);
-  await start(); assert.equal(created, 2);
+  assert.equal(sub.status, 'cancelled'); assert.equal((await me()).subscription.active, true);
+  assert.equal((await request('/api/checkout', {})).status,409);
+  clock=Date.parse((await me()).subscription.access_until);
+  await signIn(); await start(); assert.equal(created, 2);
 });
 test('cross-origin cancellation and anonymous checkout are forbidden', async () => {
   await start();
   assert.equal((await request('/api/subscription/cancel', {}, {origin: 'https://attacker.example'})).status, 403);
-  const r = await mf.dispatchFetch(ORIGIN + '/api/checkout', {method: 'POST', headers: {origin: ORIGIN}, body: '{}'}); assert.equal(r.status, 401);
+  const r = await mf.dispatchFetch(ORIGIN + '/api/checkout', {method: 'POST', headers: {origin: ORIGIN, 'x-test-clock': String(clock)}, body: '{}'}); assert.equal(r.status, 401);
 });
 
 
@@ -195,7 +201,7 @@ test('lease fencing prevents a stale process from overwriting the replacement ow
   gate = () => new Promise(resolve => {release = resolve;});
   const pending = request('/api/checkout', {});
   while (!release) await new Promise(resolve => setTimeout(resolve, 5));
-  await db.prepare('UPDATE billing_locks SET owner=?,expires_at=? WHERE user_id=?').bind('replacement-owner', Date.now() + 120000, user.id).run();
+  await db.prepare('UPDATE billing_locks SET owner=?,expires_at=? WHERE user_id=?').bind('replacement-owner', clock + 120000, user.id).run();
   release();
   assert.equal((await pending).status, 409);
   assert.equal(await db.prepare('SELECT id FROM subscriptions WHERE user_id=?').bind(user.id).first(), null);
@@ -205,8 +211,8 @@ test('lease fencing prevents a stale process from overwriting the replacement ow
 });
 
 test('newer failed invoice revokes access even when an older paid period overlaps', async () => {
-  const sub = await start(); approve(sub, {debit: Date.now() - 86400000});
-  approve(sub, {paymentStatus: 'rejected', debit: Date.now() - 1000});
+  const sub = await start(); approve(sub, {debit: clock - 86400000});
+  approve(sub, {paymentStatus: 'rejected', debit: clock - 1000});
   assert.equal((await me()).subscription.active, false);
   assert.equal((await request('/api/lists')).status, 403);
 });
@@ -221,8 +227,128 @@ test('an invoice tied to another subscription or an altered payment never grants
 
 test('payment history is paginated and the current paid period is found beyond older invoices', async () => {
   const sub = await start();
-  for (let i = 101; i >= 1; i--) approve(sub, {debit: Date.now() - i * 32 * 86400000});
+  for (let i = 101; i >= 1; i--) approve(sub, {debit: clock - i * 32 * 86400000});
   approve(sub);
   assert.equal((await me()).subscription.active, true);
   assert.equal((await request('/api/lists')).status, 200);
+});
+
+test('paid cancellation preserves access with a separate cancelled renewal and cached date is not proof', async () => {
+  const sub = await start(); approve(sub, {debit: Date.parse('2026-01-01T12:00:00Z')});
+  const r = await request('/api/subscription/cancel', {}), result = await r.json();
+  assert.equal(r.status, 200);
+  assert.equal(result.subscription.active, true);
+  assert.equal(result.subscription.status, 'cancelled');
+  assert.equal(result.subscription.renewal_status, 'cancelled');
+  assert.equal(result.subscription.access_status, 'pro_cancelled');
+  assert.equal(result.subscription.access_until, '2026-02-01T12:00:00.000Z');
+  assert.equal((await request('/api/lists', {name: 'Paid remaining', items: ['A']})).status, 201);
+  assert.equal((await request('/api/lists')).status, 200);
+  assert.equal((await me()).subscription.active, true);
+  assert.equal(cancellations, 1);
+  const again=await request('/api/subscription/cancel',{});
+  assert.equal((await again.json()).subscription.access_until,result.subscription.access_until);
+  assert.equal(cancellations,1);
+  // Even a wildly extended stored deadline is ignored.
+  await db.prepare('UPDATE subscriptions SET current_period_end=? WHERE user_id=?').bind('2099-01-01T00:00:00Z', user.id).run();
+  clock = Date.parse('2026-02-01T11:59:59.999Z');
+  assert.equal((await me()).subscription.active, true);
+  clock++;
+  assert.equal((await me()).subscription.active, false);
+  assert.equal((await me()).subscription.access_status, 'expired');
+  assert.equal((await request('/api/lists')).status, 403);
+  assert.equal((await request('/api/lists', {name: 'Denied', items: ['A']})).status, 403);
+  clock++;
+  assert.equal((await me()).subscription.active, false);
+  assert.equal(created, 1); assert.equal(cancellations, 1);
+});
+
+test('cancellation before first payment and after rejected payment never grants a free period', async () => {
+  const sub = await start();
+  let r = await request('/api/subscription/cancel', {});
+  assert.equal((await r.json()).subscription.active, false);
+  assert.equal((await me()).subscription.access_status, 'free');
+  assert.equal((await request('/api/lists')).status, 403);
+  const next = await start(); approve(next, {paymentStatus: 'rejected'});
+  r = await request('/api/subscription/cancel', {});
+  assert.equal((await r.json()).subscription.active, false);
+  assert.equal((await me()).subscription.active, false);
+  assert.equal(sub.status, 'cancelled'); assert.equal(next.status, 'cancelled');
+});
+
+test('refund, chargeback and payment cancellation after subscription cancellation revoke access', async () => {
+  const sub = await start(), payment = approve(sub);
+  await request('/api/subscription/cancel', {});
+  for (const status of ['refunded', 'charged_back', 'cancelled', 'rejected']) {
+    payment.status = status;
+    assert.equal((await me()).subscription.active, false, status);
+    assert.equal((await request('/api/lists')).status, 403, status);
+  }
+  payment.status = 'approved'; payment.transaction_amount_refunded = 4.9;
+  assert.equal((await me()).subscription.active, false);
+});
+
+test('duplicate and delayed webhooks cannot extend cancelled access or undo a refund', async () => {
+  const sub = await start(), payment = approve(sub);
+  const old = await event(sub, {body: {status: 'authorized'}});
+  await request('/api/subscription/cancel', {});
+  const cancelled = await event(sub);
+  assert.equal((await send(cancelled)).status, 200);
+  assert.equal((await (await send(cancelled)).json()).duplicate, true);
+  const until = (await me()).subscription.access_until;
+  clock += 1000;
+  assert.equal((await send(old)).status, 200);
+  assert.equal((await me()).subscription.access_until, until);
+  assert.equal((await me()).subscription.renewal_status, 'cancelled');
+  payment.status = 'charged_back';
+  assert.equal((await send(await event(sub, {id: String(payment.id), type: 'payment'}))).status, 200);
+  assert.equal((await me()).subscription.active, false);
+  assert.equal((await (await send(old)).json()).duplicate, true);
+  assert.equal((await me()).subscription.active, false);
+});
+
+test('provider outage after confirmed cancellation fails closed without pretending recurrence continued', async () => {
+  const sub = await start(); approve(sub);
+  paymentUnavailable = true;
+  const r = await request('/api/subscription/cancel', {}), result = await r.json();
+  assert.equal(r.status, 200); assert.equal(sub.status, 'cancelled');
+  assert.equal(result.subscription.renewal_status, 'cancelled');
+  assert.equal(result.subscription.access_status, 'unverified'); assert.equal(result.subscription.active, false);
+  assert.equal((await request('/api/lists')).status, 403);
+  paymentUnavailable = false; assert.equal((await me()).subscription.active, true);
+  fail = true; assert.equal((await me()).subscription.active, false);
+});
+
+test('cancellation end_date cannot erase a settled month and retired plan can still prove an existing entitlement', async () => {
+  const sub = await start(); approve(sub, {debit: Date.parse('2026-01-01T12:00:00Z')});
+  await request('/api/subscription/cancel', {});
+  sub.auto_recurring.end_date = new Date(clock).toISOString();
+  planOverride = {status: 'inactive'};
+  const result = (await me()).subscription;
+  assert.equal(result.active, true); assert.equal(result.access_until, '2026-02-01T12:00:00.000Z');
+  assert.equal((await me()).billing.configured, false);
+  sub.external_reference = randomUUID(); assert.equal((await me()).subscription.active, false);
+});
+
+test('cancelled period clamps January 31 to February 28 and stops exactly at the boundary', async () => {
+  clock = Date.parse('2026-02-01T12:00:00Z');
+  await signIn();
+  const sub = await start(); approve(sub, {debit: Date.parse('2026-01-31T12:00:00Z')});
+  await request('/api/subscription/cancel', {});
+  assert.equal((await me()).subscription.access_until, '2026-02-28T12:00:00.000Z');
+  clock = Date.parse('2026-02-28T11:59:59.999Z'); assert.equal((await me()).subscription.active, true);
+  clock++; assert.equal((await me()).subscription.active, false);
+});
+
+test('an unpaid later attempt does not erase a different verified paid period after cancellation', async () => {
+  const sub = await start();
+  approve(sub, {debit: Date.parse('2026-01-01T12:00:00Z')});
+  approve(sub, {paymentStatus: 'rejected', debit: Date.parse('2026-01-14T12:00:00Z')});
+  const result = await (await request('/api/subscription/cancel', {})).json();
+  assert.equal(result.subscription.active, true);
+  assert.equal(result.subscription.access_until, '2026-02-01T12:00:00.000Z');
+  assert.equal((await request('/api/lists')).status, 200);
+  clock = Date.parse('2026-02-01T12:00:00Z');
+  assert.equal((await me()).subscription.active, false);
+  assert.equal(created, 1); assert.equal(cancellations, 1);
 });
