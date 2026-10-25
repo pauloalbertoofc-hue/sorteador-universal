@@ -178,3 +178,11 @@ Application e o envio em Network sem copiar ou compartilhar seu valor.
 `/api/me` deve vir da rede e não aparecer em Cache Storage. A validação nesta
 branch é local; não comprova que a nova versão já foi publicada. Continuam
 válidas as limitações de produção e assinaturas descritas acima no README.
+
+## Workers Builds Previews e D1 separado
+
+A configuração atual de `wrangler preview`, o bootstrap SQL exclusivo da prévia,
+os comandos de migration e o estado dos acessos/builds estão documentados em
+[docs/PREVIEW_RUNBOOK.md](docs/PREVIEW_RUNBOOK.md). Esta seção complementa a
+correção de autenticação acima: os testes agora usam a migration de prévia, e
+não apenas o antigo fixture local. O banco de produção permanece inalterado.
