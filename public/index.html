@@ -56,9 +56,9 @@
 }
 </style>
 </head><body><main class="wrap"><div class="top"><div class="brand"><div class="logo">✦</div>Sorteador Universal</div><div class="pill">Versão 2.0.2 · Instalável · Pro em preparação</div></div><header><h1>Deixe o acaso decidir.</h1><p>Quatro ferramentas de sorteio. Sem cadastro, sem complicação.</p></header><nav class="tabs" aria-label="Tipos de sorteio"><button class="tab active" data-tab="numbers"># Números</button><button class="tab" data-tab="names">◉ Nomes</button><button class="tab" data-tab="teams">♧ Equipes</button><button class="tab" data-tab="dice">⚄ Dados</button></nav><section class="install-section" id="instalacao" style="margin:0 0 20px;padding:18px 20px;border:1px solid #344153;border-radius:16px;background:#161f2b"><strong style="display:block;margin-bottom:8px">Leve o Sorteador no bolso</strong><p style="margin:0 0 12px;color:#a8b5c8">Instale gratuitamente na tela inicial e use seus sorteios mesmo sem internet, depois do primeiro carregamento.</p><button class="secondary" id="installApp" type="button" hidden>Instalar aplicativo ↗</button><p id="installHelp" style="margin:8px 0 0;color:#a8b5c8;font-size:.9rem">No Android, abra o menu ⋮ do navegador e toque em “Instalar aplicativo” ou “Adicionar à tela inicial”. No iPhone, use Compartilhar → Adicionar à Tela de Início.</p></section><section class="panel"><h2 id="heading">Sortear números</h2><div class="muted" id="description">Escolha um intervalo e gere números aleatórios.</div><div id="form"></div><div class="buttons"><button class="action" id="draw">Sortear agora →</button><button class="secondary" id="copy" hidden>Copiar resultado</button></div><div class="wheel-zone" id="wheelZone" hidden><div class="wheel-stage"><div class="wheel-pointer" aria-hidden="true"></div><div class="wheel-disc" id="wheelDisc" aria-hidden="true"></div><div class="wheel-hub" aria-hidden="true"></div></div><p class="wheel-note" id="wheelNote">Adicione nomes e gire a roleta.</p><button class="secondary" id="spin" type="button">Girar roleta ↻</button></div><div id="error" class="error" role="alert" aria-live="polite"></div><div id="result" class="result" aria-live="polite"><span class="small">Seu resultado aparecerá aqui</span></div></section><aside class="ad-slot" aria-label="Publicidade" id="adArea"><div class="ad-heading"><strong>Publicidade</strong><span>Os anúncios ajudam a manter o Sorteador Universal gratuito.</span></div><div class="ad-units" id="adUnits"><div class="ad-unit"><span class="ad-label">Publicidade · 320 × 50</span><div id="adBannerSmall"></div></div><div class="ad-unit"><span class="ad-label">Publicidade · 300 × 250</span><div id="adBannerLarge"></div></div></div><p class="ad-privacy-note">Publicidade fornecida por terceiros. <a href="#privacidade">Saiba como seus dados podem ser tratados</a>. Assinantes Pro ativos navegam sem anúncios.</p></aside><section class="account-panel" id="conta"><div class="account-top"><div><span class="pro-kicker">SORTEADOR PRO</span><h2>Minha conta</h2><p>Entre para consultar sua assinatura e desbloquear o Estúdio Pro.</p></div><strong>R$ 4,90/mês</strong></div>
-<p class="account-note">Pagamentos ainda não habilitados: é necessário configurar o servidor e o provedor de cobrança. Não informe dados de cartão neste aplicativo.</p>
+<p class="account-note">Pro por R$ 4,90/mês, com cobrança recorrente. A contratação, quando disponível, ocorre no checkout do Mercado Pago. Não informe dados de cartão neste aplicativo.</p>
 <div id="accountGuest"><div class="account-form"><label>E-mail<input id="accountEmail" type="email" autocomplete="email" placeholder="voce@exemplo.com"></label><label>Senha<input id="accountPassword" type="password" autocomplete="current-password" minlength="10" placeholder="Mínimo de 10 caracteres"></label></div><div class="account-actions"><button class="secondary" id="accountLogin" type="button">Entrar</button><button class="secondary" id="accountRegister" type="button">Criar conta</button></div></div>
-<div id="accountMember" hidden><p id="accountIdentity"></p><p id="subscriptionState"></p><div class="account-actions"><button class="secondary" id="accountCheckout" type="button" disabled>Assinar Pro — em preparação</button><button class="secondary" id="accountLogout" type="button">Sair</button></div></div>
+<div id="accountMember" hidden><p id="accountIdentity"></p><p id="subscriptionState"></p><p id="billingState" class="account-note"></p><div class="account-actions"><button class="secondary" id="accountCheckout" type="button" disabled>Assinar Pro — R$ 4,90/mês</button><button class="secondary" id="accountRefresh" type="button">Consultar plano e cobrança</button><button class="secondary" id="accountCancel" type="button" hidden>Cancelar assinatura</button><button class="secondary" id="accountLogout" type="button">Sair</button></div></div>
 <p id="accountMessage" role="status" aria-live="polite"></p>
 <div id="proStudio" hidden><h3>Estúdio Pro</h3><p>Salve listas de participantes e reutilize suas configurações. O acesso será liberado automaticamente quando uma assinatura válida for confirmada pelo servidor.</p>
 <label>Nome da lista <input id="presetName" maxlength="60" placeholder="Ex.: Minha turma"></label><div class="account-actions"><button class="secondary" id="savePreset">Salvar configuração</button><button class="secondary" id="loadPreset">Carregar</button><button class="secondary" id="deletePreset">Excluir</button></div><select id="presetSelect"><option value="">Selecione uma lista</option></select>
@@ -71,14 +71,26 @@ const installButton=document.querySelector('#installApp');const installHelp=docu
 </script><script>
 (()=>{'use strict';
 const $=id=>document.getElementById(id),API='/api',msg=t=>$('accountMessage').textContent=t;
-let me=null,busy=false,refreshVersion=0;
+let me=null,busy=false,refreshVersion=0,accountData={},lastBillingRefresh=0;
+const subscriptionLabels={free:'Plano gratuito',inactive:'Plano gratuito',pending:'Aguardando contratação no Mercado Pago',authorized:'Assinatura Pro ativa',payment_pending:'Pagamento pendente ou recusado — Pro indisponível',paused:'Assinatura pausada',cancelled:'Assinatura cancelada',expired:'Período pago encerrado',unverified:'Não foi possível validar a cobrança — Pro indisponível'};
+function billingButtons(){
+ const sub=accountData.subscription||{},configured=accountData.billing?.configured===true;
+ $('accountCheckout').disabled=busy||!me||!configured||sub.active===true||!['free','inactive','pending','cancelled',undefined].includes(sub.status);
+ $('accountCheckout').textContent=sub.status==='pending'?'Continuar contratação no Mercado Pago':'Assinar Pro — R$ 4,90/mês';
+ $('accountCancel').hidden=!sub.can_cancel;
+ $('accountCancel').disabled=busy;
+ $('accountRefresh').disabled=busy;
+}
 function renderAccount(data){
+ accountData=data;
  me=data.user||null;
  const active=!!me&&data.subscription?.active===true;
  $('accountGuest').hidden=!!me;
  $('accountMember').hidden=!me;
  $('accountIdentity').textContent=me?.email||'';
- $('subscriptionState').textContent=active?'Assinatura Pro ativa':'Sem assinatura Pro ativa';
+ $('subscriptionState').textContent=active?'Assinatura Pro ativa':(subscriptionLabels[data.subscription?.status]||'Sem assinatura Pro ativa');
+ $('billingState').textContent=(data.billing?.configured?'R$ 4,90 por mês, com renovação automática. Cancele quando quiser; o cancelamento encerra o acesso Pro.':'Novas contratações indisponíveis. Consulte seu plano para verificar uma assinatura existente.')+(data.subscription?.current_period_end?' Período verificado até '+new Date(data.subscription.current_period_end).toLocaleDateString('pt-BR')+'.':'');
+ billingButtons();
  $('proStudio').hidden=!active;
  window.suSetAdsVisible?.(!active);
 }
@@ -94,12 +106,14 @@ async function request(path,options={}){
 }
 async function refresh(){
  const version=++refreshVersion,data=await request('/me');
+ lastBillingRefresh=Date.now();
  if(version===refreshVersion)renderAccount(data);
  return data;
 }
 function setBusy(value){
  busy=value;
  for(const id of ['accountLogin','accountRegister','accountLogout'])$(id).disabled=value;
+ billingButtons();
 }
 async function auth(path){
  if(busy)return;
@@ -129,6 +143,30 @@ $('accountLogout').onclick=async()=>{
   msg('Você saiu da sua conta.');
  }catch(e){msg(e.message)}finally{setBusy(false)}
 };
+$('accountCheckout').onclick=async()=>{
+ if(busy||$('accountCheckout').disabled)return;
+ setBusy(true);msg('Preparando contratação mensal de R$ 4,90 no Mercado Pago…');
+ try{
+  const data=await request('/checkout',{method:'POST',body:'{}'}),url=new URL(data.checkout_url);
+  if(url.protocol!=='https:'||!['www.mercadopago.com.br','sandbox.mercadopago.com.br'].includes(url.hostname)||url.pathname!=='/subscriptions/checkout'||url.username||url.password||url.port)throw Error('Endereço de checkout inválido.');
+  location.assign(url.href);
+ }catch(e){msg(e.message);setBusy(false)}
+};
+$('accountRefresh').onclick=async()=>{
+ if(busy)return;setBusy(true);msg('Consultando o estado real da assinatura…');
+ try{await refresh();msg('Plano e cobrança atualizados.')}catch(e){unavailable(e)}finally{setBusy(false)}
+};
+$('accountCancel').onclick=async()=>{
+ if(busy||!confirm('Cancelar a cobrança recorrente? Após a confirmação, o acesso Pro será encerrado.'))return;
+ setBusy(true);msg('Solicitando cancelamento ao Mercado Pago…');
+ try{await request('/subscription/cancel',{method:'POST',body:'{}'});await refresh();msg('Cancelamento confirmado. Não haverá novas renovações desta assinatura.')}catch(e){msg(e.message)}finally{setBusy(false)}
+};
+async function refreshOnReturn(){
+ if(!me||busy||Date.now()-lastBillingRefresh<10000)return;
+ try{await refresh()}catch(e){unavailable(e)}
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshOnReturn()});
+window.addEventListener('pageshow',event=>{if(event.persisted){setBusy(false);lastBillingRefresh=0;refreshOnReturn()}});
 const KEY='su-pro-presets-v2',modes=['numbers','names','teams','dice'],fields={numbers:['min','max','qty','unique'],names:['items','winners','removeDup'],teams:['players','teamcount'],dice:['sides','dicecount']};
 const presets=()=>{try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch{return []}};
 function store(a){localStorage.setItem(KEY,JSON.stringify(a));populate()}
@@ -140,6 +178,9 @@ function download(text){const url=URL.createObjectURL(new Blob([text],{type:'app
 $('exportPresets').onclick=()=>{if(!$('proStudio').hidden)download(JSON.stringify({version:1,presets:presets()}))};
 $('importPresets').onclick=()=>$('presetFile').click();
 $('presetFile').onchange=async e=>{if($('proStudio').hidden)return;const f=e.target.files?.[0];if(!f||f.size>1000000)return msg('Arquivo inválido ou grande demais.');try{const data=JSON.parse(await f.text());if(!Array.isArray(data.presets))throw Error();const a=data.presets.filter(p=>p&&typeof p.name==='string'&&modes.includes(p.mode)&&p.values&&typeof p.values==='object').slice(0,100).map(p=>({id:crypto.randomUUID(),name:p.name.slice(0,60),mode:p.mode,values:Object.fromEntries(fields[p.mode].filter(id=>Object.hasOwn(p.values,id)).map(id=>[id,typeof p.values[id]==='boolean'?p.values[id]:String(p.values[id]).slice(0,100000)]))}));store(a);msg(a.length+' listas importadas.')}catch{msg('Arquivo inválido.')}};
-populate();refresh().catch(e=>{if(refreshVersion===1)unavailable(e)});
+populate();
+const returned=new URL(location.href);
+if(returned.searchParams.get('billing')==='return'){returned.searchParams.delete('billing');window.history.replaceState(null,'',returned.href);msg('Consultando sua assinatura. O retorno do checkout não confirma o pagamento.')}
+refresh().catch(e=>{if(refreshVersion===1)unavailable(e)});
 })();
 </script></body></html>

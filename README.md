@@ -186,3 +186,13 @@ os comandos de migration e o estado dos acessos/builds estão documentados em
 [docs/PREVIEW_RUNBOOK.md](docs/PREVIEW_RUNBOOK.md). Esta seção complementa a
 correção de autenticação acima: os testes agora usam a migration de prévia, e
 não apenas o antigo fixture local. O banco de produção permanece inalterado.
+
+## Implementação de cobrança recorrente — homologação pendente
+
+A integração foi ampliada com validação de plano/pagamento, proteção contra
+contratações duplicadas, reconciliação de webhooks e autorização canônica das
+listas Pro. A cobrança permanece **desabilitada por padrão**. As limitações da
+integração inicial descritas acima são histórico; o estado atual, migrations,
+secrets, testes e pendências de homologação estão em
+[docs/BILLING_IMPLEMENTATION.md](docs/BILLING_IMPLEMENTATION.md). Não ativar
+cobranças reais com base apenas nos testes simulados.
