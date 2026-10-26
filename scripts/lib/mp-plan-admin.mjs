@@ -1,10 +1,11 @@
+import {TransportError,networkFailure} from './mp-admin-transport.mjs';
 const API = 'https://api.mercadopago.com';
 const PLAN_ID = /^[a-f0-9]{32}$/i;
 export const EXPECTED = Object.freeze({name: 'Sorteador Universal Pro', reference: 'SORTEADOR-PRO-MENSAL', application: '4465213801165623'});
 export class AdminError extends Error {
-  constructor(code, message) {super(message);this.code=code;}
+  constructor(code, message, diagnostics) {super(message);this.code=code;if(diagnostics)this.diagnostics=diagnostics;}
 }
-const abort = (code, message) => {throw new AdminError(code,message);};
+const abort = (code, message, diagnostics) => {throw new AdminError(code,message,diagnostics);};
 const validId = value => (typeof value==='string'&&/^[1-9]\d*$/.test(value))||(typeof value==='number'&&Number.isSafeInteger(value)&&value>0);
 const normalized = value => typeof value==='string'?value.normalize('NFC').trim().replace(/\s+/g,' ').toLocaleLowerCase('pt-BR'):'';
 export function adminClient(env, fetchImpl=fetch) {
@@ -13,15 +14,16 @@ export function adminClient(env, fetchImpl=fetch) {
   if(!['test','production'].includes(environment))abort('missing_environment','Defina MP_ENVIRONMENT=test ou production. A ferramenta executa somente GET em ambos.');
   if(environment==='production'&&env.MP_ACCESS_TOKEN.startsWith('TEST-'))abort('environment_mismatch','Credencial de teste incompatível com a seleção de produção.');
   async function get(path){
+    const stage=path==='/users/me'?'identity':path.startsWith('/preapproval_plan/search')?'search':'plan_detail';
     if(!/^\/users\/me$|^\/preapproval_plan\/search\?limit=50&offset=\d+$|^\/preapproval_plan\/[a-f0-9]{32}$/i.test(path))abort('unsafe_path','Operação administrativa não permitida.');
     if(Date.now()>=deadline)abort('deadline_exceeded','Limite de dois minutos atingido; nenhum ID foi selecionado.');
     let response;
     try{response=await fetchImpl(API+path,{method:'GET',redirect:'manual',signal:AbortSignal.timeout(Math.min(8000,Math.max(1,deadline-Date.now()))),headers:{authorization:`Bearer ${env.MP_ACCESS_TOKEN}`,accept:'application/json'}})}
-    catch{abort('network_error','Não foi possível consultar Mercado Pago. Nenhuma operação financeira foi executada.');}
-    if([401,403].includes(response.status))abort('authentication_denied','Credencial recusada ou sem acesso ao recurso (HTTP 401/403). Confira conta, aplicação e ambiente.');
+    catch(error){throw networkFailure(error,env,stage);}
+    if([401,403].includes(response.status))abort('authentication_denied','Consulta bloqueada (HTTP 401/403). Confira credencial, permissão, ambiente e política de rede.',{stage,http_status:response.status});
     if(response.status===404)abort('not_visible','Recurso não visível para essa credencial. Isso não prova que esteja ausente em outra conta ou ambiente.');
     if(!response.ok)abort('api_error',`Mercado Pago indisponível ou consulta recusada (HTTP ${response.status}).`);
-    let data;try{data=await response.json()}catch{abort('incomplete_response','Resposta inválida ou incompleta do provedor.');}
+    let data;try{data=await response.json()}catch(error){if(error instanceof SyntaxError)abort('incomplete_response','Resposta inválida ou incompleta do provedor.');throw networkFailure(error,env,stage);}
     if(!data||typeof data!=='object'||Array.isArray(data))abort('incomplete_response','Resposta inválida ou incompleta do provedor.');
     return data;
   }
@@ -86,5 +88,5 @@ export async function verifyPlan(env,{fetchImpl=fetch}={}){
   return {outcome:'verified',environment:client.environment,environment_evidence:'account_tags',live_mode_checked:check.live_mode_checked,reference_checked:check.reference_checked};
 }
 export function safeError(error){
-  return error instanceof AdminError?{code:error.code,message:error.message}:{code:'unexpected_error',message:'Consulta interrompida. Não compartilhe a credencial nem a resposta bruta do provedor.'};
+  return error instanceof TransportError?{code:error.code,message:error.message,diagnostics:error.diagnostics}:error instanceof AdminError?{code:error.code,message:error.message,...(error.diagnostics?{diagnostics:error.diagnostics}:{})}:{code:'unexpected_error',message:'Consulta interrompida. Não compartilhe a credencial nem a resposta bruta do provedor.'};
 }

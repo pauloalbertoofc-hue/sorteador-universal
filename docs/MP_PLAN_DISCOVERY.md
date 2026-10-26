@@ -1,3 +1,6 @@
+> Atualização de transporte: as CLIs usam proxy nativo e diagnósticos sanitizados;
+> consulte [MP_NETWORK_DIAGNOSIS.md](MP_NETWORK_DIAGNOSIS.md) se curl funcionar e Node falhar.
+
 # Relatório técnico — descoberta administrativa do plano Mercado Pago
 
 Repositório: pauloalbertoofc-hue/sorteador-universal.

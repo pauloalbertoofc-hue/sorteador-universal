@@ -212,3 +212,11 @@ MP_ACCESS_TOKEN injetado com segurança e MP_ENVIRONMENT explícito. O comando
 `billing:verify-plan` compartilha as validações e também exige o ambiente.
 Nenhum comando altera MP_PLAN_ID de produção ou habilita pagamentos. Veja o
 [relatório e instruções de execução segura](docs/MP_PLAN_DISCOVERY.md).
+
+## Node falha, mas curl funciona
+
+As CLIs administrativas agora respeitam proxy HTTP/HTTPS/NO_PROXY e emitem
+causas sanitizadas de DNS, TLS, timeout e CONNECT. Use Node 24.14+ para o suporte
+automático de proxy e execute `npm run billing:network-check` sem token para
+isolar o transporte. Veja [MP_NETWORK_DIAGNOSIS.md](docs/MP_NETWORK_DIAGNOSIS.md)
+para instruções Windows, segurança de certificados e limites da validação real.
