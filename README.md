@@ -204,3 +204,11 @@ sem reativar a recorrência. A autorização continua consultando o pagamento re
 inclusive para detectar reembolsos/estornos. A política, testes com relógio
 controlado e pendências de homologação estão em
 [docs/CANCELLATION_POLICY.md](docs/CANCELLATION_POLICY.md).
+
+## Localizar o plano existente sem criar cobranças
+
+`npm run billing:find-plan` pesquisa planos exclusivamente por GET, com
+MP_ACCESS_TOKEN injetado com segurança e MP_ENVIRONMENT explícito. O comando
+`billing:verify-plan` compartilha as validações e também exige o ambiente.
+Nenhum comando altera MP_PLAN_ID de produção ou habilita pagamentos. Veja o
+[relatório e instruções de execução segura](docs/MP_PLAN_DISCOVERY.md).

@@ -209,7 +209,8 @@ plano. Se o painel não mostrar o ID, listar/consultar os planos da conta pela
 API oficial e conferir nome, moeda, valor, recorrência e collector_id. Não criar
 plano automaticamente para contornar um ID desconhecido.
 
-Com MP_ACCESS_TOKEN injetado com segurança no terminal e MP_PLAN_ID definido:
+Com MP_ACCESS_TOKEN injetado com segurança no terminal, MP_PLAN_ID definido
+e MP_ENVIRONMENT=test ou production explicitamente selecionado para a conta:
 
 ```sh
 npm run billing:verify-plan
@@ -299,3 +300,7 @@ explícitos e não concedem Pro em produção. Há três tabelas incrementais no
 SQL remoto pendente, preflight somente leitura, PR/push a conferir no relatório
 final. Não remover registros de intenção ou controles de assinatura para
 contornar falhas. Não fazer merge, deploy de produção ou cobranças sem aprovação.
+
+A descoberta e a verificação administrativa agora compartilham critérios de
+identidade/comércio e ambiente. Ver [MP_PLAN_DISCOVERY.md](MP_PLAN_DISCOVERY.md)
+para localizar o ID existente sem criar planos ou cobranças.

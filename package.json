@@ -6,11 +6,12 @@
   "scripts": {
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",
-    "check": "node --check src/worker.js && node --check src/billing.js && node --check scripts/verify-mp-plan.mjs",
+    "check": "node --check src/worker.js && node --check src/billing.js && node --check scripts/verify-mp-plan.mjs && node --check scripts/find-mp-plan.mjs && node --check scripts/lib/mp-plan-admin.mjs",
     "test": "node --test --test-concurrency=1 tests/*.test.mjs",
     "db:preview:local": "wrangler d1 migrations apply DB --local --config wrangler.preview-db.jsonc",
     "db:preview:remote": "wrangler d1 migrations apply DB --remote --config wrangler.preview-db.jsonc",
-    "billing:verify-plan": "node scripts/verify-mp-plan.mjs"
+    "billing:verify-plan": "node scripts/verify-mp-plan.mjs",
+    "billing:find-plan": "node scripts/find-mp-plan.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",
