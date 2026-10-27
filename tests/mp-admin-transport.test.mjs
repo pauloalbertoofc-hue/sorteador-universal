@@ -107,6 +107,13 @@ test('real CLI finds the unique plan through a TLS-verified local CONNECT proxy;
 test('body transfer timeout is a transport error, while endpoint HTTP denial identifies its stage',async()=>{
  const {findPlan}=await import('../scripts/lib/mp-plan-admin.mjs');
  const env={MP_ACCESS_TOKEN:TOKEN,MP_ENVIRONMENT:'production'};
- await assert.rejects(findPlan(env,{fetchImpl:async()=>({ok:true,status:200,json:async()=>{throw Object.assign(Error(TOKEN),{code:'UND_ERR_BODY_TIMEOUT'})}})}),e=>e.code==='network_timeout'&&e.diagnostics.stage==='identity'&&safe(e));
+ await assert.rejects(findPlan(env,{fetchImpl:async()=>({ok:true,status:200,json:async()=>{throw Object.assign(Error(TOKEN),{code:'UND_ERR_BODY_TIMEOUT'})}})}),e=>e.code==='network_timeout'&&e.diagnostics.stage==='identity_body'&&safe(e));
  await assert.rejects(findPlan(env,{fetchImpl:async()=>new Response('{}',{status:403})}),e=>e.code==='authentication_denied'&&e.diagnostics.http_status===403&&e.diagnostics.stage==='identity'&&safe(e));
+});
+
+test('request failure, body failure and invalid JSON have separate sanitized stages',async()=>{
+ const {findPlan}=await import('../scripts/lib/mp-plan-admin.mjs');
+ const env={MP_ACCESS_TOKEN:TOKEN,MP_ENVIRONMENT:'production'};
+ await assert.rejects(findPlan(env,{fetchImpl:async()=>{throw Object.assign(Error(TOKEN),{code:'ENOTFOUND'});}}),e=>e.code==='dns_error'&&e.diagnostics.stage==='identity_request'&&safe(e));
+ await assert.rejects(findPlan(env,{fetchImpl:async()=>new Response('not-json',{status:200})}),e=>e.code==='incomplete_response'&&e.diagnostics.stage==='identity_json'&&safe(e));
 });
