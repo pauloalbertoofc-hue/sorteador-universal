@@ -19,11 +19,16 @@ export function adminClient(env, fetchImpl=fetch) {
     if(Date.now()>=deadline)abort('deadline_exceeded','Limite de dois minutos atingido; nenhum ID foi selecionado.');
     let response;
     try{response=await fetchImpl(API+path,{method:'GET',redirect:'manual',signal:AbortSignal.timeout(Math.min(8000,Math.max(1,deadline-Date.now()))),headers:{authorization:`Bearer ${env.MP_ACCESS_TOKEN}`,accept:'application/json'}})}
-    catch(error){throw networkFailure(error,env,stage);}
+    catch(error){throw networkFailure(error,env,stage+'_request');}
     if([401,403].includes(response.status))abort('authentication_denied','Consulta bloqueada (HTTP 401/403). Confira credencial, permissão, ambiente e política de rede.',{stage,http_status:response.status});
     if(response.status===404)abort('not_visible','Recurso não visível para essa credencial. Isso não prova que esteja ausente em outra conta ou ambiente.');
     if(!response.ok)abort('api_error',`Mercado Pago indisponível ou consulta recusada (HTTP ${response.status}).`);
-    let data;try{data=await response.json()}catch(error){if(error instanceof SyntaxError)abort('incomplete_response','Resposta inválida ou incompleta do provedor.');throw networkFailure(error,env,stage);}
+    let data;
+    try{data=await response.json()}
+    catch(error){
+      if(error instanceof SyntaxError)abort('incomplete_response','Resposta JSON inválida do provedor.',{stage:stage+'_json'});
+      throw networkFailure(error,env,stage+'_body');
+    }
     if(!data||typeof data!=='object'||Array.isArray(data))abort('incomplete_response','Resposta inválida ou incompleta do provedor.');
     return data;
   }
