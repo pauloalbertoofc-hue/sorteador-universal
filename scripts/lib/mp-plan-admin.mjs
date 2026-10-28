@@ -22,7 +22,7 @@ export function adminClient(env, fetchImpl=fetch) {
     catch(error){
       // Only fetch/transport failures are classified as network errors. Preserve
       // unexpected application exceptions as a distinct, sanitized diagnostic.
-      if(error instanceof TypeError || error?.name==='AbortError' || error?.name==='TimeoutError' || error?.cause?.code){
+      if(error instanceof TypeError || error?.name==='AbortError' || error?.name==='TimeoutError' || typeof error?.code==='string' || error?.cause?.code){
         throw networkFailure(error,env,stage+'_request');
       }
       abort('request_exception','A consulta falhou antes de receber uma resposta HTTP; examine a implementação do cliente.',{stage:stage+'_request',exception_type:typeof error?.name==='string'&&/^[A-Za-z]{1,48}$/.test(error.name)?error.name:'UnknownError'});
