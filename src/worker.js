@@ -62,7 +62,20 @@ async function api(req,env,url){const path=url.pathname,method=req.method;
  return fail('Rota não encontrada',404);
 }
 export default {async fetch(req,env){const url=new URL(req.url);if(url.pathname.startsWith('/api/')){try{return await api(req,env,url)}catch(e){
-   if(e instanceof BillingError)return fail(e.message,e.status);
+   if(e instanceof BillingError){
+     if(url.pathname==='/api/webhooks/mercadopago' && e.message==='Webhook indisponível.'){
+       // Diagnostics expose only validation outcomes, never secret values or request data.
+       let validSite=false;
+       try {const u=new URL(env.PUBLIC_SITE_URL);validSite=u.protocol==='https:'&&!u.username&&!u.password&&u.pathname==='/'&&!u.search&&!u.hash;} catch {}
+       console.warn('[SU_BILLING] webhook_configuration_invalid',{
+         access_token_present:typeof env.MP_ACCESS_TOKEN==='string'&&env.MP_ACCESS_TOKEN.length>0,
+         webhook_secret_present:typeof env.MP_WEBHOOK_SECRET==='string'&&env.MP_WEBHOOK_SECRET.length>0,
+         plan_id_valid:/^[a-f0-9]{32}$/i.test(env.MP_PLAN_ID||''),
+         public_site_url_valid:validSite
+       });
+     }
+     return fail(e.message,e.status);
+   }
    // Nunca registrar corpo da requisição, cookies, senhas ou credenciais.
    console.error('[SU_API] Exceção', {
      route:url.pathname,
