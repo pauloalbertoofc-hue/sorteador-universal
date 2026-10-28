@@ -43,12 +43,12 @@ async function fill(page, credentials) {
 before(async () => {
   // Real workerd + isolated, in-memory D1. Never touches production or local dev state.
   mf = new Miniflare(convertV4MiniflareOptions({
-    name: 'auth-tests', modules: true, scriptPath: 'src/worker.js',
+    name: 'auth-tests', modules: [{type: 'ESModule', path: 'src/worker.js'}, {type: 'ESModule', path: 'src/billing.js'}],
     compatibilityDate: '2026-10-24', d1Databases: ['DB']
   }));
   await mf.ready;
   db = await mf.getD1Database('DB');
-  for (const file of ['migrations/preview/0001_initial.sql']) {
+  for (const file of ['migrations/preview/0001_initial.sql', 'migrations/preview/0002_billing_safety.sql']) {
     const sql = (await readFile(file, 'utf8')).replace(/^--.*$/gm, '');
     for (const statement of sql.split(';').filter(s => s.trim())) await db.prepare(statement).run();
   }
@@ -342,4 +342,106 @@ test('browser: only an authenticated, active Pro response hides ads', async t =>
   await page.reload();
   await expect(page.locator('#adArea')).toBeVisible();
   await expect(page.locator('#proStudio')).toBeHidden();
+});
+
+test('browser: checkout return preserves login and never treats a success URL as payment', async t => {
+  const {context, page} = await newPage(t), credentials = account();
+  await fill(page, credentials); await page.locator('#accountRegister').click();
+  await expect(page.locator('#accountMember')).toBeVisible();
+  const direct = await context.request.get(base + '/api/me'), real = await direct.json();
+  await context.route('**/api/me', route => route.fulfill({json: {...real, billing: {configured: true}, subscription: {active: false, status: 'free'}}}));
+  await page.locator('#accountRefresh').click();
+  await expect(page.locator('#accountCheckout')).toBeEnabled();
+  await context.route('**/api/checkout', route => route.fulfill({json: {checkout_url: 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_id=synthetic'}}));
+  await context.route('https://www.mercadopago.com.br/subscriptions/checkout?*', route => route.fulfill({contentType: 'text/html', body: `<script>location.replace(${JSON.stringify(base + '/?billing=return&status=approved')})</script>`}));
+  await page.locator('#accountCheckout').click();
+  await expect(page.locator('#accountIdentity')).toHaveText(credentials.email);
+  await expect(page.locator('#accountGuest')).toBeHidden();
+  await expect(page.locator('#proStudio')).toBeHidden();
+  await expect(page.locator('#adArea')).toBeVisible();
+  const serverMe = await context.request.get(base + '/api/me');
+  assert.equal((await serverMe.json()).user.email, credentials.email);
+});
+
+test('browser: checkout prevents concurrent clicks and exposes provider failure', async t => {
+  const {context, page} = await newPage(t);
+  await fill(page, account()); await page.locator('#accountRegister').click();
+  await expect(page.locator('#accountMember')).toBeVisible();
+  const real = await (await context.request.get(base + '/api/me')).json();
+  await context.route('**/api/me', route => route.fulfill({json: {...real, billing: {configured: true}, subscription: {active: false, status: 'free'}}}));
+  await page.locator('#accountRefresh').click(); await expect(page.locator('#accountCheckout')).toBeEnabled();
+  let release, calls = 0;
+  await context.route('**/api/checkout', async route => {
+    calls++; await new Promise(resolve => {release = resolve;});
+    await route.fulfill({status: 502, json: {error: 'Mercado Pago temporariamente indisponível'}});
+  });
+  await page.locator('#accountCheckout').click();
+  await expect(page.locator('#accountCheckout')).toBeDisabled();
+  await expect.poll(() => calls).toBe(1); release();
+  await expect(page.locator('#accountMessage')).toContainText('Mercado Pago temporariamente indisponível');
+  await expect(page.locator('#accountCheckout')).toBeEnabled();
+  await expect(page.locator('#proStudio')).toBeHidden();
+});
+
+test('browser: cancelling renewal preserves Pro and hidden ads across reload, with an explicit paid deadline', async t => {
+  const {context, page} = await newPage(t);
+  await fill(page, account()); await page.locator('#accountRegister').click();
+  await expect(page.locator('#accountMember')).toBeVisible();
+  const real = await (await context.request.get(base + '/api/me')).json();
+  const now = Date.now(), until = new Date(now + 86400000).toISOString();
+  let sub = {active: true, status: 'authorized', renewal_status: 'active', access_status: 'pro_active', access_until: until, verified_at: now, can_cancel: true};
+  let holdNext=false,release;
+  await context.route('**/api/me', async route => {
+    const snapshot=structuredClone(sub);
+    if(holdNext){holdNext=false;await new Promise(resolve=>{release=resolve})}
+    return route.fulfill({json: {...real, subscription:snapshot, billing: {configured: false}}});
+  });
+  await context.route('**/api/subscription/cancel', route => {
+    sub = {...sub, status: 'cancelled', renewal_status: 'cancelled', access_status: 'pro_cancelled', can_cancel: false};
+    return route.fulfill({json: {ok: true, subscription: sub}});
+  });
+  await page.locator('#accountRefresh').click();
+  await expect(page.locator('#proStudio')).toBeVisible();
+  await page.clock.install({time:new Date(now)});
+  await page.clock.fastForward(20000);
+  holdNext=true;
+  await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
+  await expect.poll(()=>!!release).toBe(true);
+  page.on('dialog', dialog => dialog.accept());
+  await page.locator('#accountCancel').click();
+  await expect(page.locator('#accountMessage')).toContainText('Você continuará com acesso Pro até');
+  await expect(page.locator('#billingState')).toContainText('Não haverá renovação automática');
+  await expect(page.locator('#subscriptionState')).toHaveText('Pro disponível — renovação cancelada');
+  const late=page.waitForResponse(response=>response.url()===base+'/api/me');
+  release();await late;
+  await expect(page.locator('#subscriptionState')).toHaveText('Pro disponível — renovação cancelada');
+  await expect(page.locator('#adArea')).toBeHidden();
+  await expect(page.locator('#accountCancel')).toBeHidden();
+  await expect(page.locator('#accountCheckout')).toBeDisabled();
+  await page.reload();
+  await expect(page.locator('#proStudio')).toBeVisible();
+  await expect(page.locator('#adArea')).toBeHidden();
+  await expect(page.locator('#subscriptionState')).toHaveText('Pro disponível — renovação cancelada');
+  await expect(page.locator('#billingState')).toContainText(new Date(until).toLocaleDateString('pt-BR'));
+});
+
+test('browser: controlled expiry closes Pro and restores ads without a page reload', async t => {
+  const {context, page} = await newPage(t);
+  await fill(page, account()); await page.locator('#accountRegister').click();
+  await expect(page.locator('#accountMember')).toBeVisible();
+  const real = await (await context.request.get(base + '/api/me')).json();
+  const now = Date.parse('2026-01-15T12:00:00Z'), until = new Date(now + 60000).toISOString();
+  await page.clock.install({time: new Date(now)}); await page.clock.pauseAt(new Date(now + 1000));
+  let sub = {active: true, status: 'cancelled', renewal_status: 'cancelled', access_status: 'pro_cancelled', access_until: until, verified_at: now, can_cancel: false};
+  await context.route('**/api/me', route => route.fulfill({json: {...real, subscription: sub, billing: {configured: false}}}));
+  await page.locator('#accountRefresh').click();
+  await expect(page.locator('#proStudio')).toBeVisible();
+  await expect(page.locator('#adArea')).toBeHidden();
+  await page.clock.fastForward(59999);
+  await expect(page.locator('#proStudio')).toBeVisible();
+  sub = {...sub, active: false, access_status: 'expired', verified_at: now + 60000};
+  await page.clock.fastForward(1);
+  await expect(page.locator('#proStudio')).toBeHidden();
+  await expect(page.locator('#adArea')).toBeVisible();
+  await expect(page.locator('#subscriptionState')).toHaveText('Período Pro encerrado — renovação cancelada');
 });

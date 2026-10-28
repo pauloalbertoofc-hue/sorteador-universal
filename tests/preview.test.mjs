@@ -9,6 +9,8 @@ const previewId = '9701cfcf-9c77-4b09-8411-0f4a13f8c584';
 
 test('Wrangler validates distinct production and Workers Previews D1 bindings', () => {
   const config = unstable_readConfig({config: 'wrangler.jsonc'});
+  assert.equal(config.vars.BILLING_ENABLED, 'false');
+  assert.equal(config.previews.vars.BILLING_ENABLED, 'false');
   assert.deepEqual(config.d1_databases, [{binding: 'DB', database_name: 'sorteador-universal-db', database_id: productionId}]);
   assert.equal(config.previews.d1_databases.length, 1);
   const preview = config.previews.d1_databases[0];

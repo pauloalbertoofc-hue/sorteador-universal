@@ -30,7 +30,11 @@
       "MP_ACCESS_TOKEN": "",
       "MP_PLAN_ID": "",
       "MP_WEBHOOK_SECRET": "",
-      "PUBLIC_SITE_URL": ""
+      "PUBLIC_SITE_URL": "",
+      "BILLING_ENABLED": "false"
     }
+  },
+  "vars": {
+    "BILLING_ENABLED": "false"
   }
 }

@@ -186,3 +186,37 @@ os comandos de migration e o estado dos acessos/builds estão documentados em
 [docs/PREVIEW_RUNBOOK.md](docs/PREVIEW_RUNBOOK.md). Esta seção complementa a
 correção de autenticação acima: os testes agora usam a migration de prévia, e
 não apenas o antigo fixture local. O banco de produção permanece inalterado.
+
+## Implementação de cobrança recorrente — homologação pendente
+
+A integração foi ampliada com validação de plano/pagamento, proteção contra
+contratações duplicadas, reconciliação de webhooks e autorização canônica das
+listas Pro. A cobrança permanece **desabilitada por padrão**. As limitações da
+integração inicial descritas acima são histórico; o estado atual, migrations,
+secrets, testes e pendências de homologação estão em
+[docs/BILLING_IMPLEMENTATION.md](docs/BILLING_IMPLEMENTATION.md). Não ativar
+cobranças reais com base apenas nos testes simulados.
+
+## Cancelamento da renovação e período pago
+
+Cancelar a renovação agora preserva o Pro até o fim do mês pago e verificado,
+sem reativar a recorrência. A autorização continua consultando o pagamento real,
+inclusive para detectar reembolsos/estornos. A política, testes com relógio
+controlado e pendências de homologação estão em
+[docs/CANCELLATION_POLICY.md](docs/CANCELLATION_POLICY.md).
+
+## Localizar o plano existente sem criar cobranças
+
+`npm run billing:find-plan` pesquisa planos exclusivamente por GET, com
+MP_ACCESS_TOKEN injetado com segurança e MP_ENVIRONMENT explícito. O comando
+`billing:verify-plan` compartilha as validações e também exige o ambiente.
+Nenhum comando altera MP_PLAN_ID de produção ou habilita pagamentos. Veja o
+[relatório e instruções de execução segura](docs/MP_PLAN_DISCOVERY.md).
+
+## Node falha, mas curl funciona
+
+As CLIs administrativas agora respeitam proxy HTTP/HTTPS/NO_PROXY e emitem
+causas sanitizadas de DNS, TLS, timeout e CONNECT. Use Node 24.14+ para o suporte
+automático de proxy e execute `npm run billing:network-check` sem token para
+isolar o transporte. Veja [MP_NETWORK_DIAGNOSIS.md](docs/MP_NETWORK_DIAGNOSIS.md)
+para instruções Windows, segurança de certificados e limites da validação real.
