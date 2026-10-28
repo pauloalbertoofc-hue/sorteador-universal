@@ -20,12 +20,10 @@ export function adminClient(env, fetchImpl=fetch) {
     let response;
     try{response=await fetchImpl(API+path,{method:'GET',redirect:'manual',signal:AbortSignal.timeout(Math.min(8000,Math.max(1,deadline-Date.now()))),headers:{authorization:`Bearer ${env.MP_ACCESS_TOKEN}`,accept:'application/json'}})}
     catch(error){
-      // Only fetch/transport failures are classified as network errors. Preserve
-      // unexpected application exceptions as a distinct, sanitized diagnostic.
-      if(error instanceof TypeError || error?.name==='AbortError' || error?.name==='TimeoutError' || typeof error?.code==='string' || error?.cause?.code){
-        throw networkFailure(error,env,stage+'_request');
-      }
-      abort('request_exception','A consulta falhou antes de receber uma resposta HTTP; examine a implementação do cliente.',{stage:stage+'_request',exception_type:typeof error?.name==='string'&&/^[A-Za-z]{1,48}$/.test(error.name)?error.name:'UnknownError'});
+      // Errors raised by the fetch adapter are sanitized and classified by
+      // networkFailure, including unknown errors without a recognized code.
+      // Never expose raw exception messages or credentials.
+      throw networkFailure(error,env,stage+'_request');
     }
     if([401,403].includes(response.status))abort('authentication_denied','Consulta bloqueada (HTTP 401/403). Confira credencial, permissão, ambiente e política de rede.',{stage,http_status:response.status});
     if(response.status===404)abort('not_visible','Recurso não visível para essa credencial. Isso não prova que esteja ausente em outra conta ou ambiente.');
