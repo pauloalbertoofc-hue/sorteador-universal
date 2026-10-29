@@ -1,0 +1,20 @@
+name: Webhook HMAC tests
+on:
+  pull_request:
+    paths:
+      - 'src/billing.js'
+      - 'tests/webhook-hmac-simulator.test.mjs'
+      - '.github/workflows/webhook-hmac-tests.yml'
+  workflow_dispatch:
+jobs:
+  webhook-hmac:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run simulator HMAC tests
+        run: node --test tests/webhook-hmac-simulator.test.mjs
