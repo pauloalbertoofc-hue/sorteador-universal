@@ -263,7 +263,28 @@ export async function webhook(req, env, url) {
   if (!Number.isFinite(time) || Math.abs(Date.now() - time) > 300000) webhookReject('timestamp_outside_window');
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(env.MP_WEBHOOK_SECRET), {name: 'HMAC', hash: 'SHA-256'}, false, ['sign']);
   const expected = hex(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`id:${raw.toLowerCase()};request-id:${rid};ts:${stamp};`)));
-  if (!equal(expected, signature.toLowerCase())) webhookReject('hmac_mismatch');
+  if (!equal(expected, signature.toLowerCase())) {
+    // Diagnostics contain only booleans and fixed labels; never log IDs, signatures, or secrets.
+    // Alternative signatures are diagnostic ONLY: they must never authorize a webhook.
+    const signVariant = async manifest => hex(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(manifest)));
+    const alternatives = [
+      ['id_case_preserved', `id:${raw};request-id:${rid};ts:${stamp};`],
+      ['id_omitted', `id:;request-id:${rid};ts:${stamp};`],
+      ['request_id_lowercase', `id:${raw.toLowerCase()};request-id:${rid.toLowerCase()};ts:${stamp};`]
+    ];
+    let diagnostic = 'no_known_variant';
+    for (const [label, manifest] of alternatives) {
+      if (manifest === `id:${raw.toLowerCase()};request-id:${rid};ts:${stamp};`) continue;
+      if (equal(await signVariant(manifest), signature.toLowerCase())) { diagnostic = label; break; }
+    }
+    console.warn('[SU_BILLING] webhook_hmac_diagnostic', {
+      variant: diagnostic,
+      has_body: Number(req.headers.get('content-length') || 0) > 0,
+      resource_id_alphanumeric: /[a-z]/i.test(raw),
+      signature_header_present: true
+    });
+    webhookReject('hmac_mismatch');
+  }
   const text = await req.text();
   if (text.length > 12000) throw new BillingError('Evento grande demais.', 413);
   let body; try { body = JSON.parse(text); } catch {throw new BillingError('Evento inválido.', 400);}
