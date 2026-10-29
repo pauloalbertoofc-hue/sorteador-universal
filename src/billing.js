@@ -245,6 +245,11 @@ export async function cancelSubscription(env, user) {
 const hex = buffer => [...new Uint8Array(buffer)].map(n => n.toString(16).padStart(2, '0')).join('');
 async function digest(text) {return hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)));}
 function equal(a, b) {if (a.length !== b.length) return false; let diff = 0; for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i); return diff === 0;}
+// Only fixed rejection categories are logged; never log signatures or request identifiers.
+function webhookReject(reason) {
+  console.warn('[SU_BILLING] webhook_auth_rejected', {reason});
+  throw new BillingError('Assinatura inválida.', 401);
+}
 export async function webhook(req, env, url) {
   if (!billingConfigured(env)) throw new BillingError('Webhook indisponível.');
   const raw = url.searchParams.get('data.id'), rid = req.headers.get('x-request-id') || '';
@@ -252,10 +257,13 @@ export async function webhook(req, env, url) {
   const ts = parts.filter(([key]) => key === 'ts'), sig = parts.filter(([key]) => key === 'v1');
   const stamp = ts[0]?.[1], signature = sig[0]?.[1];
   const numeric = Number(stamp), time = numeric < 1e12 ? numeric * 1000 : numeric;
-  if (!raw || !idPattern.test(raw) || !/^[\w-]{1,128}$/.test(rid) || ts.length !== 1 || sig.length !== 1 || !/^\d{10,16}$/.test(stamp || '') || !/^[a-f0-9]{64}$/i.test(signature || '') || Math.abs(Date.now() - time) > 300000) throw new BillingError('Assinatura inválida.', 401);
+  if (!raw || !idPattern.test(raw)) webhookReject('resource_id_missing_or_invalid');
+  if (!rid || !/^[\w-]{1,128}$/.test(rid)) webhookReject('request_id_missing_or_invalid');
+  if (ts.length !== 1 || sig.length !== 1 || !/^\d{10,16}$/.test(stamp || '') || !/^[a-f0-9]{64}$/i.test(signature || '')) webhookReject('signature_headers_missing_or_malformed');
+  if (!Number.isFinite(time) || Math.abs(Date.now() - time) > 300000) webhookReject('timestamp_outside_window');
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(env.MP_WEBHOOK_SECRET), {name: 'HMAC', hash: 'SHA-256'}, false, ['sign']);
   const expected = hex(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`id:${raw.toLowerCase()};request-id:${rid};ts:${stamp};`)));
-  if (!equal(expected, signature.toLowerCase())) throw new BillingError('Assinatura inválida.', 401);
+  if (!equal(expected, signature.toLowerCase())) webhookReject('hmac_mismatch');
   const text = await req.text();
   if (text.length > 12000) throw new BillingError('Evento grande demais.', 413);
   let body; try { body = JSON.parse(text); } catch {throw new BillingError('Evento inválido.', 400);}
