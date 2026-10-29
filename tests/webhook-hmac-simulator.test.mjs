@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {webcrypto} from 'node:crypto';
+import {webcrypto, createHmac} from 'node:crypto';
 import {webhook, BillingError} from '../src/billing.js';
 
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
@@ -44,4 +44,20 @@ test('query data.id tampering invalidates HMAC', async () => {
 test('signed query ID must match body ID', async () => {
   const {req, url} = await signedRequest({bodyId: '654321'});
   await assert.rejects(webhook(req, env, url), err => err instanceof BillingError && err.status === 400);
+});
+
+test('independent Node crypto signature validates an uppercase resource ID', async () => {
+  const id = 'ORD01JQ4S4KY8HWQ6NA5PXB65B3D3';
+  const ts = String(Date.now());
+  const rid = '2066ca19-c6f1-498a-be75-1923005edd06';
+  const manifest = `id:${id.toLowerCase()};request-id:${rid};ts:${ts};`;
+  const signature = createHmac('sha256', secret).update(manifest).digest('hex');
+  const url = new URL('https://example.com/api/webhooks/mercadopago');
+  url.searchParams.set('data.id', id);
+  const req = new Request(url, {
+    method: 'POST',
+    headers: {'x-request-id': rid, 'x-signature': `ts=${ts},v1=${signature}`},
+    body: JSON.stringify({type: 'unhandled_test_event', data: {id}})
+  });
+  assert.deepEqual(await webhook(req, env, url), {ok: true, ignored: true});
 });
