@@ -161,6 +161,22 @@ test('invalid signatures, stale timestamps and resource substitution are rejecte
   assert.equal((await send(await event(sub, {ts: String(clock - 600000)}))).status, 401);
   const evt = await event(sub); evt.body.data.id = 'other'; assert.equal((await send(evt)).status, 400);
 });
+test('webhook rejects missing auth fields, stale timestamps and invalid HMAC without accepting events', async () => {
+  const sub = await start();
+  const unsigned = await request('/api/webhooks/mercadopago', {type: 'subscription_preapproval', data: {id: sub.id}});
+  assert.equal(unsigned.status, 401);
+  assert.deepEqual(await unsigned.json(), {error: 'Assinatura inválida.'});
+  const missingRequestId = await event(sub);
+  delete missingRequestId.headers['x-request-id'];
+  assert.equal((await send(missingRequestId)).status, 401);
+  const missingSignature = await event(sub);
+  delete missingSignature.headers['x-signature'];
+  assert.equal((await send(missingSignature)).status, 401);
+  assert.equal((await send(await event(sub, {ts: String(clock - 600000)}))).status, 401);
+  assert.equal((await send(await event(sub, {bad: true}))).status, 401);
+  assert.equal((await send(await event(sub))).status, 200);
+});
+
 test('out-of-order notifications preserve cancelled renewal and only the verified paid period', async () => {
   const sub = await start(); approve(sub); const old = await event(sub, {body: {status: 'authorized'}});
   sub.status = 'cancelled'; assert.equal((await send(await event(sub))).status, 200);
