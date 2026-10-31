@@ -64,3 +64,60 @@ test('pending subscription does not grant Pro', async () => {
   const result = await syncSubscription({...envBase, DB: fakeDB()}, user, subscription('pending'), ctx, fence);
   assert.equal(result.active, false);
 });
+
+function paidProvider({paymentStatus = 'approved', chargeStatus = 'processed', refunded = 0, debitDaysAgo = 2} = {}) {
+  const debit = new Date(Date.now() - debitDaysAgo * 86400000).toISOString();
+  const approved = new Date(Date.now() - (debitDaysAgo - 0.1) * 86400000).toISOString();
+  return async url => {
+    const u = String(url);
+    if (u.includes('/authorized_payments/search')) return Response.json({results: [{
+      id: 'charge-1', preapproval_id: 'sub-123', debit_date: debit,
+      status: chargeStatus, payment: {id: 'payment-1', status: paymentStatus}
+    }], paging: {total: 1}});
+    if (u.includes('/v1/payments/payment-1')) return Response.json({
+      id: 'payment-1', collector_id: sellerId, payer: {id: 987},
+      currency_id: 'BRL', transaction_amount: 4.9, transaction_amount_refunded: refunded,
+      status: paymentStatus, date_approved: approved
+    });
+    throw new Error('Unexpected provider endpoint');
+  };
+}
+async function withProvider(provider, callback) {
+  const original = globalThis.fetch;
+  globalThis.fetch = provider;
+  try {return await callback();} finally {globalThis.fetch = original;}
+}
+test('approved settled payment grants Pro for a bounded monthly period', async () => {
+  await withProvider(paidProvider(), async () => {
+    const result = await syncSubscription({...envBase, DB: fakeDB()}, user, subscription(), ctx, fence);
+    assert.equal(result.active, true);
+    assert.equal(result.access_status, 'pro_active');
+    assert.ok(Date.parse(result.access_until) > Date.now());
+  });
+});
+test('cancelled subscription preserves only already-paid access', async () => {
+  await withProvider(paidProvider(), async () => {
+    const result = await syncSubscription({...envBase, DB: fakeDB()}, user, subscription('cancelled'), ctx, fence);
+    assert.equal(result.active, true);
+    assert.equal(result.access_status, 'pro_cancelled');
+    assert.equal(result.can_cancel, false);
+  });
+});
+test('refunded payment never grants Pro', async () => {
+  await withProvider(paidProvider({refunded: 4.9}), async () => {
+    const result = await syncSubscription({...envBase, DB: fakeDB()}, user, subscription(), ctx, fence);
+    assert.equal(result.active, false);
+  });
+});
+test('failed latest payment never grants Pro on an authorized subscription', async () => {
+  await withProvider(paidProvider({paymentStatus: 'rejected', chargeStatus: 'rejected'}), async () => {
+    const result = await syncSubscription({...envBase, DB: fakeDB()}, user, subscription(), ctx, fence);
+    assert.equal(result.active, false);
+  });
+});
+test('expired paid period does not grant Pro', async () => {
+  await withProvider(paidProvider({debitDaysAgo: 65}), async () => {
+    const result = await syncSubscription({...envBase, DB: fakeDB()}, user, subscription(), ctx, fence);
+    assert.equal(result.active, false);
+  });
+});
