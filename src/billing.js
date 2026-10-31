@@ -163,8 +163,8 @@ export async function subscriptionState(env, user) {
     });
   } catch { return {active: false, status: 'unverified', renewal_status: 'unverified', access_status: 'unverified', can_cancel: true}; }
 }
-export async function billingInfo(env) {
-  if (env.BILLING_ENABLED !== 'true' || !billingConfigured(env)) return {configured: false, amount_cents: PRICE, currency: 'BRL', interval: 'month'};
+export async function billingInfo(env, user) {
+  if (!checkoutAllowed(env, user) || !billingConfigured(env)) return {configured: false, amount_cents: PRICE, currency: 'BRL', interval: 'month'};
   try { await context(env, true); return {configured: true, amount_cents: PRICE, currency: 'BRL', interval: 'month'}; }
   catch { return {configured: false, amount_cents: PRICE, currency: 'BRL', interval: 'month'}; }
 }
@@ -185,8 +185,16 @@ async function recover(env, user, ctx) {
   if (matches.length !== 1) throw new BillingError('Contratação em reconciliação. Não iniciaremos outra cobrança. Consulte novamente ou contate o responsável.', 409);
   return owned(await mpGet(env, matches[0].id), user, ctx, matches[0].id);
 }
+export function checkoutAllowed(env, user) {
+  if (env.BILLING_ENABLED !== 'true') return false;
+  if (env.BILLING_MODE === 'pilot') {
+    return /^[a-f0-9-]{36}$/i.test(env.BILLING_PILOT_USER_ID || '') && user?.id === env.BILLING_PILOT_USER_ID;
+  }
+  // Public billing requires an explicit second switch; no accidental rollout.
+  return env.BILLING_MODE === 'public';
+}
 export async function checkout(env, user) {
-  if (env.BILLING_ENABLED !== 'true' || !billingConfigured(env)) throw new BillingError('Pagamento ainda não configurado.');
+  if (!checkoutAllowed(env, user) || !billingConfigured(env)) throw new BillingError('Pagamento ainda não configurado.');
   return withLock(env, user.id, async fence => {
     const ctx = await context(env, true);
     const row = await local(env, user.id);
