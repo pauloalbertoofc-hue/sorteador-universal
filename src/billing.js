@@ -21,10 +21,23 @@ async function mp(env, path, {method = 'GET', body, key, allowNotFound = false} 
     res = await fetch(API + path, {method, redirect: 'manual', signal: AbortSignal.timeout(8000), headers: {
       authorization: `Bearer ${env.MP_ACCESS_TOKEN}`, 'content-type': 'application/json', ...(key ? {'X-Idempotency-Key': key} : {})
     }, ...(body ? {body: JSON.stringify(body)} : {})});
-  } catch { throw new BillingError('Mercado Pago indisponível. Tente consultar sua assinatura novamente.', 502); }
+  } catch (error) {
+    if (method === 'POST' && path === '/preapproval/') console.warn('[SU_BILLING] checkout_provider_diagnostic', {
+      phase: 'transport', category: error?.name === 'TimeoutError' ? 'timeout' : 'network_failure'
+    });
+    throw new BillingError('Mercado Pago indisponível. Tente consultar sua assinatura novamente.', 502);
+  }
   if (allowNotFound && res.status === 404) return null;
-  if (!res.ok) throw new BillingError('Não foi possível confirmar a operação no Mercado Pago.', 502);
-  try { return await res.json(); } catch { throw new BillingError('Resposta inválida do Mercado Pago.', 502); }
+  if (!res.ok) {
+    if (method === 'POST' && path === '/preapproval/') console.warn('[SU_BILLING] checkout_provider_diagnostic', {
+      phase: 'http', status: res.status
+    });
+    throw new BillingError('Não foi possível confirmar a operação no Mercado Pago.', 502);
+  }
+  try { return await res.json(); } catch {
+    if (method === 'POST' && path === '/preapproval/') console.warn('[SU_BILLING] checkout_provider_diagnostic', {phase: 'invalid_json'});
+    throw new BillingError('Resposta inválida do Mercado Pago.', 502);
+  }
 }
 async function searchAll(env, path) {
   const rows = [], seen = new Set();
@@ -220,13 +233,24 @@ export async function checkout(env, user) {
     await fence.write(`INSERT INTO billing_checkout(user_id,attempt_id,state,created_at,updated_at) SELECT ?,?,'creating',?,? WHERE $LEASE
       ON CONFLICT(user_id) DO UPDATE SET attempt_id=excluded.attempt_id,state='creating',provider_id=NULL,created_at=excluded.created_at,updated_at=excluded.updated_at WHERE $LEASE`, [user.id, attemptId, Date.now(), Date.now()]);
     // Persist the intent before POST. Never repeat an ambiguous POST, even if the provider ignores its idempotency header.
-    const created = owned(await mp(env, '/preapproval/', {method: 'POST', key: attemptId, body: {
+    const providerResponse = await mp(env, '/preapproval/', {method: 'POST', key: attemptId, body: {
       preapproval_plan_id: ctx.plan.id, reason: 'Sorteador Universal Pro', external_reference: user.id,
       payer_email: user.email, back_url: `${site(env)}/?billing=return`, status: 'pending'
-    }}), user, ctx);
+    }});
+    // Never print provider payloads, tokens, IDs, emails, or checkout URLs.
+    let created;
+    try { created = owned(providerResponse, user, ctx); }
+    catch (error) {
+      console.warn('[SU_BILLING] checkout_provider_diagnostic', {phase: 'response_validation'});
+      throw error;
+    }
     await bindPending(env, user, created, ctx, fence);
     if (created.status !== 'pending') throw new BillingError('Consulte o estado da sua assinatura antes de prosseguir.', 409);
-    return {checkout_url: checkoutUrl(created)};
+    try { return {checkout_url: checkoutUrl(created)}; }
+    catch (error) {
+      console.warn('[SU_BILLING] checkout_provider_diagnostic', {phase: 'checkout_url_validation'});
+      throw error;
+    }
   });
 }
 export async function cancelSubscription(env, user) {

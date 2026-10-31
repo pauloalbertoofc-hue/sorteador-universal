@@ -155,3 +155,31 @@ test('existing pending subscription reuses provider checkout URL without new POS
   });
   assert.equal(requests.filter(r => r.method === 'POST').length, 0);
 });
+
+test('provider checkout HTTP error logs only a redacted status and never retries', async () => {
+  const originalFetch = globalThis.fetch;
+  const originalWarn = console.warn;
+  const warnings = [];
+  let postCount = 0;
+  globalThis.fetch = async (url, options = {}) => {
+    const path = String(url);
+    if (path.endsWith('/users/me')) return Response.json({id: sellerId});
+    if (path.includes('/preapproval_plan/')) return Response.json({id: planId, collector_id: sellerId, status: 'active', auto_recurring: schedule});
+    if (path.endsWith('/preapproval/') && options.method === 'POST') {
+      postCount++;
+      return Response.json({message: 'sensitive-provider-response'}, {status: 422});
+    }
+    throw new Error('unexpected endpoint');
+  };
+  console.warn = (...args) => warnings.push(args);
+  try {
+    await assert.rejects(checkout({...envBase, DB: fakeDB(), BILLING_ENABLED: 'true', BILLING_MODE: 'pilot', BILLING_PILOT_USER_ID: user.id}, user), e => e instanceof BillingError && e.status === 502);
+    assert.equal(postCount, 1);
+    assert.deepEqual(warnings, [['[SU_BILLING] checkout_provider_diagnostic', {phase: 'http', status: 422}]]);
+    assert.ok(!JSON.stringify(warnings).includes('sensitive-provider-response'));
+    assert.ok(!JSON.stringify(warnings).includes(user.email));
+  } finally {
+    globalThis.fetch = originalFetch;
+    console.warn = originalWarn;
+  }
+});
