@@ -22,8 +22,16 @@ async function search(filters){
   }
   throw Error('incomplete_pagination');
 }
-if(env.MP_ENVIRONMENT!=='production'||!validPlan.test(env.MP_PLAN_ID||'')||!validUser.test(env.BILLING_PILOT_USER_ID||'')||!env.MP_ACCESS_TOKEN||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(env.BILLING_PILOT_EMAIL||'')){
-  fail('missing_or_invalid_local_configuration');
+const checks={
+  environment:env.MP_ENVIRONMENT==='production',
+  plan_id:validPlan.test(env.MP_PLAN_ID||''),
+  pilot_user_id:validUser.test(env.BILLING_PILOT_USER_ID||''),
+  access_token:typeof env.MP_ACCESS_TOKEN==='string'&&env.MP_ACCESS_TOKEN.length>0,
+  pilot_email:/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(env.BILLING_PILOT_EMAIL||'')
+};
+if(Object.values(checks).some(value=>!value)){
+  console.error(JSON.stringify({outcome:'not_verified',code:'missing_or_invalid_local_configuration',invalid_fields:Object.keys(checks).filter(key=>!checks[key])}));
+  process.exitCode=1;
 }else{
   let restore=()=>{};
   try{
