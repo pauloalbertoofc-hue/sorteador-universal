@@ -23,7 +23,15 @@ async function mp(env, path, {method = 'GET', body, key, allowNotFound = false} 
     }, ...(body ? {body: JSON.stringify(body)} : {})});
   } catch { throw new BillingError('Mercado Pago indisponível. Tente consultar sua assinatura novamente.', 502); }
   if (allowNotFound && res.status === 404) return null;
-  if (!res.ok) throw new BillingError('Não foi possível confirmar a operação no Mercado Pago.', 502);
+  if (!res.ok) {
+    // Only fixed metadata; never log provider body, token, payer data or subscription IDs.
+    // A failed POST may be ambiguous: preserve the checkout intent for reconciliation.
+    if (path === '/preapproval/' && method === 'POST') {
+      const category = res.status >= 400 && res.status < 500 ? 'provider_rejected_or_unconfirmed' : 'provider_server_error';
+      console.warn('[SU_BILLING] checkout_provider_response', {http_status: res.status, category});
+    }
+    throw new BillingError('Não foi possível confirmar a operação no Mercado Pago.', 502);
+  }
   try { return await res.json(); } catch { throw new BillingError('Resposta inválida do Mercado Pago.', 502); }
 }
 async function searchAll(env, path) {
