@@ -3,7 +3,7 @@
 import {configureAdminNetwork} from './lib/mp-admin-transport.mjs';
 const env=process.env;
 const fail=code=>{console.error(JSON.stringify({outcome:'not_verified',code}));process.exitCode=1;};
-const validPlan=/^[a-f0-9]{32}$/i, validUser=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
+const validPlan=/^[a-f0-9]{32}$/i, validUser=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 async function search(filters){
   const rows=[],ids=new Set();let total;
   for(let page=0;page<5;page++){
