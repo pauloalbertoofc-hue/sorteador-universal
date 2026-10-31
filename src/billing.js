@@ -14,7 +14,7 @@ export const billingConfigured = env => !!(env.MP_ACCESS_TOKEN && env.MP_WEBHOOK
 function site(env) {
   try { const u = new URL(env.PUBLIC_SITE_URL); return u.protocol === 'https:' && !u.username && !u.password && u.pathname === '/' && !u.search && !u.hash ? u.origin : null; } catch { return null; }
 }
-async function mp(env, path, {method = 'GET', body, key} = {}) {
+async function mp(env, path, {method = 'GET', body, key, allowNotFound = false} = {}) {
   if (!env.MP_ACCESS_TOKEN) throw new BillingError('Pagamento ainda não configurado.');
   let res;
   try {
@@ -22,6 +22,7 @@ async function mp(env, path, {method = 'GET', body, key} = {}) {
       authorization: `Bearer ${env.MP_ACCESS_TOKEN}`, 'content-type': 'application/json', ...(key ? {'X-Idempotency-Key': key} : {})
     }, ...(body ? {body: JSON.stringify(body)} : {})});
   } catch { throw new BillingError('Mercado Pago indisponível. Tente consultar sua assinatura novamente.', 502); }
+  if (allowNotFound && res.status === 404) return null;
   if (!res.ok) throw new BillingError('Não foi possível confirmar a operação no Mercado Pago.', 502);
   try { return await res.json(); } catch { throw new BillingError('Resposta inválida do Mercado Pago.', 502); }
 }
@@ -41,9 +42,9 @@ async function searchAll(env, path) {
   }
   throw new BillingError('Histórico de cobrança requer reconciliação.', 502);
 }
-export const mpGet = (env, id) => {
+export const mpGet = (env, id, options = {}) => {
   if (!idPattern.test(String(id))) denied();
-  return mp(env, `/preapproval/${encodeURIComponent(id)}`);
+  return mp(env, `/preapproval/${encodeURIComponent(id)}`, options);
 };
 function schedule(value) {
   return value && value.frequency === 1 && value.frequency_type === 'months' && value.currency_id === 'BRL' && cents(value.transaction_amount) === PRICE && !value.free_trial && !value.repetitions;
@@ -294,12 +295,23 @@ export async function webhook(req, env, url) {
   const eventKey = await digest(`${rid}:${stamp}:${signature.toLowerCase()}`);
   if (await env.DB.prepare('SELECT event_key FROM billing_events WHERE event_key=?').bind(eventKey).first()) return {ok: true, duplicate: true};
   let userId, providerId;
-  if (type === 'subscription_preapproval') {const sub = await mpGet(env, raw); userId = sub.external_reference; providerId = sub.id;}
+  if (type === 'subscription_preapproval') {
+    const sub = await mpGet(env, raw, {allowNotFound: true});
+    if (!sub) {console.info('[SU_BILLING] webhook_resource_not_found', {type}); return {ok: true, ignored: true};}
+    userId = sub.external_reference; providerId = sub.id;
+  }
   else if (type === 'subscription_authorized_payment') {
-    const charge = await mp(env, `/authorized_payments/${encodeURIComponent(raw)}`);
+    const charge = await mp(env, `/authorized_payments/${encodeURIComponent(raw)}`, {allowNotFound: true});
+    if (!charge) {console.info('[SU_BILLING] webhook_resource_not_found', {type}); return {ok: true, ignored: true};}
     if (!sameId(charge.id, raw) || !idPattern.test(String(charge.preapproval_id))) denied();
-    const sub = await mpGet(env, charge.preapproval_id); userId = sub.external_reference; providerId = sub.id;
-  } else {const payment = await mp(env, `/v1/payments/${encodeURIComponent(raw)}`); if (!sameId(payment.id, raw)) denied(); userId = payment.external_reference;}
+    const sub = await mpGet(env, charge.preapproval_id, {allowNotFound: true});
+    if (!sub) {console.info('[SU_BILLING] webhook_resource_not_found', {type}); return {ok: true, ignored: true};}
+    userId = sub.external_reference; providerId = sub.id;
+  } else {
+    const payment = await mp(env, `/v1/payments/${encodeURIComponent(raw)}`, {allowNotFound: true});
+    if (!payment) {console.info('[SU_BILLING] webhook_resource_not_found', {type}); return {ok: true, ignored: true};}
+    if (!sameId(payment.id, raw)) denied(); userId = payment.external_reference;
+  }
   if (typeof userId !== 'string' || !/^[a-f0-9-]{36}$/i.test(userId)) return {ok: true, ignored: true};
   const user = await env.DB.prepare('SELECT id,email FROM users WHERE id=?').bind(userId).first();
   const row = await local(env, userId);
