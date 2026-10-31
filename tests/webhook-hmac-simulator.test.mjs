@@ -61,3 +61,22 @@ test('independent Node crypto signature validates an uppercase resource ID', asy
   });
   assert.deepEqual(await webhook(req, env, url), {ok: true, ignored: true});
 });
+
+test('signed simulated subscription with missing provider resource is safely ignored', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response('Not found', {status: 404});
+  try {
+    const {req, url} = await signedRequest({type: 'subscription_preapproval'});
+    const result = await webhook(req, {...env, DB: {prepare() {throw Error('DB must not be accessed for nonexistent resource');}}}, url);
+    assert.deepEqual(result, {ok: true, ignored: true});
+  } finally {globalThis.fetch = originalFetch;}
+});
+
+test('provider errors other than 404 remain failures', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response('Provider unavailable', {status: 503});
+  try {
+    const {req, url} = await signedRequest({type: 'subscription_preapproval'});
+    await assert.rejects(webhook(req, env, url), err => err instanceof BillingError && err.status === 502);
+  } finally {globalThis.fetch = originalFetch;}
+});
