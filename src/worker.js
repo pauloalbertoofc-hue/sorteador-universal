@@ -38,7 +38,7 @@ async function api(req,env,url){const path=url.pathname,method=req.method;
  const user=await auth(req,env);
  if(path==='/api/me'&&method==='GET'){
   if(!user)return json({user:null,subscription:{active:false}});
-  const subscription=await subscriptionState(env,user),billing=await billingInfo(env),now=Date.now();
+  const subscription=await subscriptionState(env,user),billing=await billingInfo(env,user),now=Date.now();
   // Billing configuration checks may take time; never serialize an expired grant.
   if(subscription.active&&Date.parse(subscription.access_until)<=now){subscription.active=false;subscription.access_status='expired'}
   if(subscription.verified_at)subscription.verified_at=now;
