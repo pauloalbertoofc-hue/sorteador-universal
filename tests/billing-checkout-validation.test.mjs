@@ -121,3 +121,37 @@ test('expired paid period does not grant Pro', async () => {
     assert.equal(result.active, false);
   });
 });
+
+test('existing active subscription prevents another checkout without creating a charge', async () => {
+  const existing = {mp_subscription_id: 'sub-123', status: 'authorized'};
+  const db = fakeDB(existing);
+  const requests = [];
+  await withProvider(async (url, options = {}) => {
+    requests.push({url: String(url), method: options.method || 'GET'});
+    if (String(url).endsWith('/users/me')) return Response.json({id: sellerId});
+    if (String(url).includes('/preapproval_plan/')) return Response.json({id: planId, collector_id: sellerId, status: 'active', auto_recurring: schedule});
+    if (String(url).includes('/preapproval/sub-123')) return Response.json(subscription());
+    throw Error('Unexpected API endpoint');
+  }, async () => {
+    await assert.rejects(checkout({...envBase, BILLING_ENABLED: 'true', DB: db}, user),
+      err => err instanceof BillingError && err.status === 409);
+  });
+  assert.equal(requests.filter(r => r.method === 'POST').length, 0);
+});
+
+test('existing pending subscription reuses provider checkout URL without new POST', async () => {
+  const existing = {mp_subscription_id: 'sub-123', status: 'pending'};
+  const db = fakeDB(existing);
+  const requests = [];
+  await withProvider(async (url, options = {}) => {
+    requests.push({url: String(url), method: options.method || 'GET'});
+    if (String(url).endsWith('/users/me')) return Response.json({id: sellerId});
+    if (String(url).includes('/preapproval_plan/')) return Response.json({id: planId, collector_id: sellerId, status: 'active', auto_recurring: schedule});
+    if (String(url).includes('/preapproval/sub-123')) return Response.json({...subscription('pending'), init_point: 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_id=sub-123'});
+    throw Error('Unexpected API endpoint');
+  }, async () => {
+    const result = await checkout({...envBase, BILLING_ENABLED: 'true', DB: db}, user);
+    assert.match(result.checkout_url, /preapproval_id=sub-123/);
+  });
+  assert.equal(requests.filter(r => r.method === 'POST').length, 0);
+});
