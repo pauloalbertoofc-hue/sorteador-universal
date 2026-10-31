@@ -133,7 +133,7 @@ test('existing active subscription prevents another checkout without creating a 
     if (String(url).includes('/preapproval/sub-123')) return Response.json(subscription());
     throw Error('Unexpected API endpoint');
   }, async () => {
-    await assert.rejects(checkout({...envBase, BILLING_ENABLED: 'true', DB: db}, user),
+    await assert.rejects(checkout({...envBase, BILLING_ENABLED: 'true', BILLING_MODE: 'pilot', BILLING_PILOT_USER_ID: user.id, DB: db}, user),
       err => err instanceof BillingError && err.status === 409);
   });
   assert.equal(requests.filter(r => r.method === 'POST').length, 0);
@@ -150,7 +150,7 @@ test('existing pending subscription reuses provider checkout URL without new POS
     if (String(url).includes('/preapproval/sub-123')) return Response.json({...subscription('pending'), init_point: 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_id=sub-123'});
     throw Error('Unexpected API endpoint');
   }, async () => {
-    const result = await checkout({...envBase, BILLING_ENABLED: 'true', DB: db}, user);
+    const result = await checkout({...envBase, BILLING_ENABLED: 'true', BILLING_MODE: 'pilot', BILLING_PILOT_USER_ID: user.id, DB: db}, user);
     assert.match(result.checkout_url, /preapproval_id=sub-123/);
   });
   assert.equal(requests.filter(r => r.method === 'POST').length, 0);
