@@ -175,7 +175,7 @@ test('provider checkout HTTP error logs only a redacted status and never retries
   try {
     await assert.rejects(checkout({...envBase, DB: fakeDB(), BILLING_ENABLED: 'true', BILLING_MODE: 'pilot', BILLING_PILOT_USER_ID: user.id}, user), e => e instanceof BillingError && e.status === 502);
     assert.equal(postCount, 1);
-    assert.deepEqual(warnings, [['[SU_BILLING] checkout_provider_diagnostic', {phase: 'http', status: 422}]]);
+    assert.deepEqual(warnings, [['[SU_BILLING] checkout_provider_diagnostic', {phase: 'http', status: 422, provider_code: 'unclassified', category: 'provider_validation'}]]);
     assert.ok(!JSON.stringify(warnings).includes('sensitive-provider-response'));
     assert.ok(!JSON.stringify(warnings).includes(user.email));
   } finally {
