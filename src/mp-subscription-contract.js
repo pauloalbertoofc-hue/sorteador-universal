@@ -3,10 +3,10 @@
 // Pure request builder; not wired into production until verification/binding,
 // cancellation, recovery and webhook flows support planless subscriptions.
 export function pendingSubscriptionRequest({userId,email,backUrl}) {
-  if (!/^[a-f0-9]{8}-[a-f0-9-]{27,}$/i.test(userId || '')) throw Error('Invalid account');
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(userId || '')) throw Error('Invalid account');
   if (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw Error('Invalid email');
   const u = new URL(backUrl);
-  if (u.protocol !== 'https:' || u.username || u.password || u.hash) throw Error('Invalid return URL');
+  if (u.protocol !== 'https:' || u.username || u.password || u.hash || u.port || !u.hostname) throw Error('Invalid return URL');
   return {
     reason:'Sorteador Universal Pro',
     external_reference:userId,
