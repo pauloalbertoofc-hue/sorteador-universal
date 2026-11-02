@@ -29,9 +29,29 @@ async function mp(env, path, {method = 'GET', body, key, allowNotFound = false} 
   }
   if (allowNotFound && res.status === 404) return null;
   if (!res.ok) {
-    if (method === 'POST' && path === '/preapproval/') console.warn('[SU_BILLING] checkout_provider_diagnostic', {
-      phase: 'http', status: res.status
-    });
+    if (method === 'POST' && path === '/preapproval/') {
+      // Only log an allowlisted provider classification; never print raw bodies,
+      // account identifiers, payment details, access tokens or checkout URLs.
+      let providerCode = 'unclassified';
+      try {
+        const payload = await res.json();
+        const code = typeof payload?.code === 'string' ? payload.code : '';
+        const safeCodes = new Set([
+          'PA_UNAUTHORIZED_RESULT_FROM_POLICIES', 'PA_INVALID_IDENTIFICATION',
+          'PA_INVALID_PAYER_EMAIL', 'PA_INVALID_PLAN_ID', 'PA_INVALID_STATUS',
+          'PA_INVALID_BACK_URL', 'PA_INVALID_AUTO_RECURRING',
+          'invalid_token', 'invalid_request', 'unauthorized', 'forbidden'
+        ]);
+        if (safeCodes.has(code)) providerCode = code;
+      } catch { /* An error body may be absent or non-JSON. */ }
+      console.warn('[SU_BILLING] checkout_provider_diagnostic', {
+        phase: 'http', status: res.status, provider_code: providerCode,
+        category: res.status === 401 || res.status === 403 ? 'credentials_or_permissions'
+          : res.status === 400 || res.status === 422 ? 'provider_validation'
+          : res.status === 429 ? 'provider_rate_limit'
+          : res.status >= 500 ? 'provider_server_error' : 'other_http_error'
+      });
+    }
     throw new BillingError('Não foi possível confirmar a operação no Mercado Pago.', 502);
   }
   try { return await res.json(); } catch {
