@@ -43,7 +43,7 @@ async function fill(page, credentials) {
 before(async () => {
   // Real workerd + isolated, in-memory D1. Never touches production or local dev state.
   mf = new Miniflare(convertV4MiniflareOptions({
-    name: 'auth-tests', modules: [{type: 'ESModule', path: 'src/worker.js'}, {type: 'ESModule', path: 'src/billing.js'}],
+    name: 'auth-tests', modules: [{type: 'ESModule', path: 'src/worker.js'}, {type: 'ESModule', path: 'src/billing.js'}, {type: 'ESModule', path: 'src/mp-subscription-contract.js'}, {type: 'ESModule', path: 'src/mp-planless-response.js'}],
     compatibilityDate: '2026-10-24', d1Databases: ['DB']
   }));
   await mf.ready;
