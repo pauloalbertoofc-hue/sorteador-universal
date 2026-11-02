@@ -9,7 +9,8 @@ const previewId = '9701cfcf-9c77-4b09-8411-0f4a13f8c584';
 
 test('Wrangler validates distinct production and Workers Previews D1 bindings', () => {
   const config = unstable_readConfig({config: 'wrangler.jsonc'});
-  assert.equal(config.vars.BILLING_ENABLED, 'false');
+  // Production billing is configured via Cloudflare environment variables; keep_vars preserves them.
+  assert.equal(config.vars.BILLING_ENABLED, undefined);
   assert.equal(config.previews.vars.BILLING_ENABLED, 'false');
   assert.deepEqual(config.d1_databases, [{binding: 'DB', database_name: 'sorteador-universal-db', database_id: productionId}]);
   assert.equal(config.previews.d1_databases.length, 1);
@@ -20,7 +21,7 @@ test('Wrangler validates distinct production and Workers Previews D1 bindings', 
   assert.equal(preview.migrations_dir, 'migrations/preview');
   assert.ok(!JSON.stringify(config.previews).includes(productionId));
   assert.ok(!JSON.stringify(config.previews).includes('<REPLACE_ME>'));
-  for (const key of ['MP_ACCESS_TOKEN', 'MP_PLAN_ID', 'MP_WEBHOOK_SECRET', 'PUBLIC_SITE_URL']) assert.equal(config.previews.vars[key], '');
+  for (const key of ['MP_ACCESS_TOKEN', 'MP_PLAN_ID', 'MP_WEBHOOK_SECRET', 'PUBLIC_SITE_URL']) assert.equal(config.previews.vars[key], undefined);
 });
 
 test('preview migration CLI config contains only preview DB and dedicated SQL directory', async () => {

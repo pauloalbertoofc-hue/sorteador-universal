@@ -71,7 +71,7 @@ before(async () => {
   mf = new Miniflare(convertV4MiniflareOptions({name: 'billing-tests',
     modules: [{type: 'ESModule', path: 'tests/fixtures/clock-worker.js'}, {type: 'ESModule', path: 'src/worker.js'}, {type: 'ESModule', path: 'src/billing.js'}],
     compatibilityDate: '2026-10-24', d1Databases: ['DB'], outboundService: provider,
-    bindings: {BILLING_ENABLED: 'true', MP_ACCESS_TOKEN: 'synthetic-test-token', MP_PLAN_ID: PLAN, MP_WEBHOOK_SECRET: SECRET, PUBLIC_SITE_URL: ORIGIN}
+    bindings: {BILLING_ENABLED: 'true', BILLING_MODE: 'public', MP_ACCESS_TOKEN: 'synthetic-test-token', MP_PLAN_ID: PLAN, MP_WEBHOOK_SECRET: SECRET, PUBLIC_SITE_URL: ORIGIN}
   }));
   await mf.ready; db = await mf.getD1Database('DB');
   for (const file of ['migrations/preview/0001_initial.sql', 'migrations/preview/0002_billing_safety.sql']) {
