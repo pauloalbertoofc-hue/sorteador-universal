@@ -98,6 +98,21 @@ function owned(sub, user, ctx, expectedId) {
   if (end && !Number.isFinite(date(end))) denied();
   return sub;
 }
+// A hosted plan URL is not a user-specific subscription or proof of payment.
+// This validator can be used by a future account-binding flow, but must never
+// grant Pro access or bypass checkout intent reconciliation.
+export function hostedPlanCheckoutUrl(plan, expectedPlanId) {
+  try {
+    if (!sameId(plan?.id, expectedPlanId) || !plan?.init_point) denied();
+    const u = new URL(plan.init_point);
+    if (u.protocol !== 'https:' ||
+        !['www.mercadopago.com.br', 'sandbox.mercadopago.com.br'].includes(u.hostname) ||
+        u.pathname !== '/subscriptions/checkout' ||
+        u.searchParams.get('preapproval_plan_id') !== String(expectedPlanId) ||
+        u.username || u.password || u.port || u.hash) denied();
+    return u.href;
+  } catch { throw new BillingError('Checkout do plano inválido.', 502); }
+}
 function checkoutUrl(sub) {
   try {
     const u = new URL(sub.init_point);
