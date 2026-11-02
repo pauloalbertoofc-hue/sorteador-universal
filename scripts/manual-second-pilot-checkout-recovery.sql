@@ -26,8 +26,8 @@ FROM billing_checkout
 WHERE user_id='9f95ed18-8b4f-4cc5-b601-6216d9947144'
   AND attempt_id='bb65be88-3318-4b1c-921c-34242cf7c4c8'
   AND state='creating' AND provider_id IS NULL
-  AND created_at=REPLACE_WITH_VERIFIED_CREATED_AT
-  AND updated_at=REPLACE_WITH_VERIFIED_UPDATED_AT
+  AND created_at=1793490853024
+  AND updated_at=1793490853024
   AND NOT EXISTS (SELECT 1 FROM subscriptions WHERE user_id='9f95ed18-8b4f-4cc5-b601-6216d9947144')
   AND NOT EXISTS (SELECT 1 FROM billing_locks WHERE user_id='9f95ed18-8b4f-4cc5-b601-6216d9947144' AND expires_at>CAST(unixepoch('now')*1000 AS INTEGER));
 
@@ -35,8 +35,8 @@ DELETE FROM billing_checkout
 WHERE user_id='9f95ed18-8b4f-4cc5-b601-6216d9947144'
   AND attempt_id='bb65be88-3318-4b1c-921c-34242cf7c4c8'
   AND state='creating' AND provider_id IS NULL
-  AND created_at=REPLACE_WITH_VERIFIED_CREATED_AT
-  AND updated_at=REPLACE_WITH_VERIFIED_UPDATED_AT
+  AND created_at=1793490853024
+  AND updated_at=1793490853024
   AND EXISTS (SELECT 1 FROM billing_checkout_recovery_audit a
               WHERE a.attempt_id=billing_checkout.attempt_id
                 AND a.user_id=billing_checkout.user_id
