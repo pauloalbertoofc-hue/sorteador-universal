@@ -11,3 +11,7 @@ test('pending subscription uses explicit BRL 4.90 monthly recurring terms withou
 });
 test('rejects insecure callback',()=>assert.throws(()=>pendingSubscriptionRequest({...args,backUrl:'http://example.test'})));
 test('rejects missing account reference',()=>assert.throws(()=>pendingSubscriptionRequest({...args,userId:''})));
+
+test('rejects malformed account reference that previously passed',()=>assert.throws(()=>pendingSubscriptionRequest({...args,userId:'12345678-aaaaaaaaaaaaaaaaaaaaaaaaaaa'})));
+test('rejects credential-bearing callback',()=>assert.throws(()=>pendingSubscriptionRequest({...args,backUrl:'https://user:pass@sorteador.example.test/'})));
+test('rejects callback with URL fragment',()=>assert.throws(()=>pendingSubscriptionRequest({...args,backUrl:'https://sorteador.example.test/#x'})));
