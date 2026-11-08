@@ -29,7 +29,7 @@ jobs:
           node --input-type=module <<'NODE'
           import {readFileSync} from 'node:fs';
           const c=JSON.parse(readFileSync('wrangler.rooms-preview.jsonc','utf8'));
-          if(c.name!=='sorteador-universal-rooms-preview'||c.d1_databases?.length!==1||c.d1_databases[0].database_id!=='9701cfcf-9c77-4b09-8411-0f4a13f8c584'||c.workers_dev!==true||c.vars?.BILLING_ENABLED!=='false'||c.routes||c.route||c.triggers)throw Error('Unsafe preview Worker configuration');
+          if(c.name!=='sorteador-universal-rooms-preview'||c.d1_databases?.length!==1||c.d1_databases[0].database_id!=='9701cfcf-9c77-4b09-8411-0f4a13f8c584'||c.workers_dev!==true||c.vars?.BILLING_ENABLED!=='false'||c.vars?.PREVIEW_ROOMS_ONLY!=='true'||c.routes||c.route||c.triggers)throw Error('Unsafe preview Worker configuration');
           if(JSON.stringify(c).includes('24fe67dc-7003-4557-9de0-cf6658e713c2'))throw Error('Production D1 ID in preview config');
           NODE
       - name: Run integration and browser tests
