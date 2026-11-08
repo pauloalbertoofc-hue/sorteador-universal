@@ -256,6 +256,23 @@ test('free tools browser smoke tests', async t => {
       assert.match(await page.locator('#winnerProgress').textContent(), /4 de 4 nomes disponíveis/);
       assert.equal(await page.locator('#wheelDisc .wheel-label').count(), 4);
     });
+    await t.test('result cards: generate a PNG and hide when switching tools', async () => {
+      await page.locator('[data-tab=numbers]').click();
+      await page.locator('#min').fill('7');
+      await page.locator('#max').fill('7');
+      await page.locator('#qty').fill('1');
+      await page.locator('#draw').click();
+      assert.equal(await page.locator('#shareCard').isVisible(), true);
+      const dimensions = await page.evaluate(() => {
+        const canvas = createResultCard();
+        return { width: canvas.width, height: canvas.height, pixels: Array.from(canvas.getContext('2d').getImageData(0, 0, 1, 1).data) };
+      });
+      assert.equal(dimensions.width, 1080);
+      assert.equal(dimensions.height, 1080);
+      assert.equal(dimensions.pixels[3], 255);
+      await page.locator('[data-tab=dice]').click();
+      assert.equal(await page.locator('#shareCard').isVisible(), false);
+    });
     await t.test('collections: save, reload and delete a names list', async () => {
       await page.locator('[data-tab=names]').click();
       await page.locator('#items').fill('Ana\nBruno\nCarla');
