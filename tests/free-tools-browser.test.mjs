@@ -402,7 +402,7 @@ test('free tools browser smoke tests', async t => {
       assert.equal(download.suggestedFilename(), 'sorteador-historico.json');
       const payload = {format:'sorteador-universal-history',version:1,entries:[{mode:'numbers',label:'Importado',text:'Resultado de backup 314',fields:{min:'314',max:'314',qty:'1'},favorite:true}]};
       await page.locator('#historyFile').setInputFiles({name:'backup.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(payload))});
-      assert.match(await page.locator('#historyTransferStatus').innerText(), /Importação concluída: 1 novos registros/);
+      await page.waitForFunction(() => document.querySelector('#historyTransferStatus')?.textContent.includes('Importação concluída: 1 novos registros'));
       await page.locator('#historySearch').fill('backup 314');
       assert.match(await page.locator('#history').innerText(), /Resultado de backup 314/);
       await page.locator('#historySearch').fill('');
@@ -497,6 +497,8 @@ test('free tools browser smoke tests', async t => {
       await page.getByRole('button', { name: 'Excluir coleção Equipe de teste' }).click();
     });
     await t.test('history: favorites and repeat restore draw configuration', async () => {
+      await page.evaluate(() => localStorage.removeItem('su-history'));
+      await page.reload();
       await page.locator('#historySearch').fill('');
       await page.locator('#historyMode').selectOption('all');
       await page.locator('#historyFavorites').selectOption('all');
