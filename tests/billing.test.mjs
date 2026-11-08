@@ -14,7 +14,7 @@ async function provider(req) {
   if (fail) return response({}, 503);
   if (u.pathname === '/users/me') return response({id: 123});
   if (u.pathname === '/preapproval_plan/' + PLAN) return response({id: PLAN, collector_id: 123, status: 'active', auto_recurring: schedule(), ...planOverride});
-  if (u.pathname === '/preapproval/' && req.method === 'POST') {
+  if (u.pathname === '/preapproval' && req.method === 'POST') {
     created++;
     if (gate) await gate();
     if (delay) await new Promise(resolve => setTimeout(resolve, 100));
@@ -27,10 +27,10 @@ async function provider(req) {
     return ambiguous ? response({}, 503) : response(sub);
   }
   if (u.pathname === '/preapproval/search') return response({paging: {total: subs.size}, results: [...subs.values()].slice(Number(u.searchParams.get('offset')), Number(u.searchParams.get('offset')) + 100)});
-  if (u.pathname.startsWith('/preapproval/')) {
+  if (u.pathname.startsWith('/preapproval')) {
     const sub = subs.get(u.pathname.split('/').at(-1));
     if (!sub) return response({}, 404);
-    if (req.method === 'PUT') {cancellations++; assert.deepEqual(await req.json(), {status: 'cancelled'}); sub.status = 'cancelled';}
+    if (req.method === 'PUT') {cancellations++; assert.deepEqual(await req.json(), {status: 'canceled'}); sub.status = 'canceled';}
     return response(sub);
   }
   if (u.pathname === '/authorized_payments/search') {
@@ -200,7 +200,7 @@ test('authorized-payment and payment events recheck current canonical subscripti
 test('cancel uses authenticated ownership and confirms provider state; subsequent checkout is a new generation', async () => {
   const sub = await start(); approve(sub);
   assert.equal((await request('/api/subscription/cancel', {})).status, 200);
-  assert.equal(sub.status, 'cancelled'); assert.equal((await me()).subscription.active, true);
+  assert.equal(sub.status, 'canceled'); assert.equal((await me()).subscription.active, true);
   assert.equal((await request('/api/checkout', {})).status,409);
   clock=Date.parse((await me()).subscription.access_until);
   await signIn(); await start(); assert.equal(created, 2);
@@ -289,7 +289,7 @@ test('cancellation before first payment and after rejected payment never grants 
   r = await request('/api/subscription/cancel', {});
   assert.equal((await r.json()).subscription.active, false);
   assert.equal((await me()).subscription.active, false);
-  assert.equal(sub.status, 'cancelled'); assert.equal(next.status, 'cancelled');
+  assert.equal(sub.status, 'canceled'); assert.equal(next.status, 'canceled');
 });
 
 test('refund, chargeback and payment cancellation after subscription cancellation revoke access', async () => {
@@ -327,7 +327,7 @@ test('provider outage after confirmed cancellation fails closed without pretendi
   const sub = await start(); approve(sub);
   paymentUnavailable = true;
   const r = await request('/api/subscription/cancel', {}), result = await r.json();
-  assert.equal(r.status, 200); assert.equal(sub.status, 'cancelled');
+  assert.equal(r.status, 200); assert.equal(sub.status, 'canceled');
   assert.equal(result.subscription.renewal_status, 'cancelled');
   assert.equal(result.subscription.access_status, 'unverified'); assert.equal(result.subscription.active, false);
   assert.equal((await request('/api/lists')).status, 403);

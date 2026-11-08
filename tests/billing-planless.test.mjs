@@ -14,7 +14,7 @@ async function provider(req) {
   if (fail) return response({}, 503);
   if (u.pathname === '/users/me') return response({id: 123});
   if (u.pathname === '/preapproval_plan/' + PLAN) return response({id: PLAN, collector_id: 123, status: 'active', auto_recurring: schedule(), ...planOverride});
-  if (u.pathname === '/preapproval/' && req.method === 'POST') {
+  if (u.pathname === '/preapproval' && req.method === 'POST') {
     created++;
     if (gate) await gate();
     if (delay) await new Promise(resolve => setTimeout(resolve, 100));
@@ -27,10 +27,10 @@ async function provider(req) {
     return ambiguous ? response({}, 503) : response(sub);
   }
   if (u.pathname === '/preapproval/search') return response({paging: {total: subs.size}, results: [...subs.values()].slice(Number(u.searchParams.get('offset')), Number(u.searchParams.get('offset')) + 100)});
-  if (u.pathname.startsWith('/preapproval/')) {
+  if (u.pathname.startsWith('/preapproval')) {
     const sub = subs.get(u.pathname.split('/').at(-1));
     if (!sub) return response({}, 404);
-    if (req.method === 'PUT') {cancellations++; assert.deepEqual(await req.json(), {status: 'cancelled'}); sub.status = 'cancelled';}
+    if (req.method === 'PUT') {cancellations++; assert.deepEqual(await req.json(), {status: 'canceled'}); sub.status = 'canceled';}
     return response(sub);
   }
   if (u.pathname === '/authorized_payments/search') {
@@ -71,7 +71,7 @@ before(async () => {
   mf = new Miniflare(convertV4MiniflareOptions({name: 'planless-billing-tests',
     modules: [{type: 'ESModule', path: 'tests/fixtures/clock-worker.js'}, {type: 'ESModule', path: 'src/worker.js'}, {type: 'ESModule', path: 'src/billing.js'}, {type: 'ESModule', path: 'src/mp-subscription-contract.js'}, {type: 'ESModule', path: 'src/mp-planless-response.js'}],
     compatibilityDate: '2026-10-24', d1Databases: ['DB'], outboundService: provider,
-    bindings: {BILLING_ENABLED: 'true', BILLING_MODE: 'public', MP_ACCESS_TOKEN: 'synthetic-test-token', MP_PLAN_ID: PLAN, MP_PLANLESS_CHECKOUT: 'true', MP_WEBHOOK_SECRET: SECRET, PUBLIC_SITE_URL: ORIGIN}
+    bindings: {BILLING_ENABLED: 'true', BILLING_MODE: 'public', MP_ACCESS_TOKEN: 'synthetic-test-token', MP_PLANLESS_CHECKOUT: 'true', MP_WEBHOOK_SECRET: SECRET, PUBLIC_SITE_URL: ORIGIN}
   }));
   await mf.ready; db = await mf.getD1Database('DB');
   for (const file of ['migrations/preview/0001_initial.sql', 'migrations/preview/0002_billing_safety.sql']) {
@@ -129,4 +129,15 @@ test('planless provider contract drift fails closed', async () => {
   assert.equal((await me()).subscription.active, false);
   assert.equal((await request('/api/subscription/cancel', {})).status, 502);
   assert.equal(cancellations, 0);
+});
+test('planless invoice and payment webhooks reconcile a refund without restoring Pro', async () => {
+  const before = (await db.prepare('SELECT COUNT(*) AS n FROM billing_events').first()).n;
+  const sub = await start();
+  const payment = approve(sub);
+  assert.equal((await send(await event(sub, {type: 'subscription_authorized_payment', id: charges[0].id}))).status, 200);
+  assert.equal((await me()).subscription.active, true);
+  payment.status = 'refunded';
+  assert.equal((await send(await event(sub, {type: 'payment', id: String(payment.id)}))).status, 200);
+  assert.equal((await me()).subscription.active, false);
+  assert.equal((await db.prepare('SELECT COUNT(*) AS n FROM billing_events').first()).n, before + 2);
 });
