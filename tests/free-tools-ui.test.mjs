@@ -76,3 +76,24 @@ test('wheel permits the final remaining name in elimination mode', () => {
   assert.match(html, /a\.length===1&&!\$\('#excludeWinners'\)\.checked/);
   assert.match(html, /if\(!a\.length\|\|a\.length>24\)/);
 });
+
+test('saved participant collections are local and bounded', () => {
+  assert.match(html, /su-free-collections-v1/);
+  assert.match(html, /id="collectionName"/);
+  assert.match(html, /id="saveCollection"/);
+  assert.match(html, /collections\.length>=10/);
+  assert.match(html, /localStorage\.setItem\(collectionKey,JSON\.stringify\(collections\)\)/);
+});
+
+test('result cards are generated locally and shared with a fallback download', () => {
+  assert.match(html, /function createResultCard\(/);
+  assert.match(html, /canvas\.width=1080;canvas\.height=1080/);
+  assert.match(html, /canvas\.toBlob\(resolve,'image\/png'\)/);
+  assert.match(html, /navigator\.canShare/);
+  assert.match(html, /link\.download='sorteador-resultado\.png'/);
+});
+
+test('cancelled wheel spins invalidate scheduled animation frames', () => {
+  assert.match(html, /if\(token===spinToken&&spinning&&mode==='names'\)/);
+  assert.match(html, /if\(token!==spinToken\|\|mode!=='names'\)return/);
+});
