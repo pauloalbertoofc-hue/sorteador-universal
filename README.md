@@ -1,5 +1,11 @@
 # Sorteador Universal 2.0 — integração inicial
 
+## Aplicativo publicado
+
+**Acessar Sorteador Universal:** https://sorteador-universal.paulo-alberto-ofc.workers.dev/
+
+Este é o endereço de produção informado pelo responsável pelo projeto. As alterações enviadas ao GitHub só aparecem no site depois do deploy no Cloudflare.
+
 **ATENÇÃO: não ativar cobrança real antes de concluir testes e validação.** Este pacote é uma base de integração, não um produto de pagamentos auditado.
 
 ## 1. Preparação do GitHub
