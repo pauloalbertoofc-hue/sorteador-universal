@@ -63,3 +63,16 @@ test('remaining winner counter uses distinct names even when duplicates are allo
   assert.match(html, /distinct\.filter\(n=>!excludedWinners\.has\(n\)\)\.length/);
   assert.match(html, /distinct\.length\} nomes disponíveis nesta sessão/);
 });
+
+test('history stores favorites and reusable settings locally', () => {
+  assert.match(html, /function historyFields\(/);
+  assert.match(html, /function pushHistory\(/);
+  assert.match(html, /x\.favorite=!x\.favorite;save\(\)/);
+  assert.match(html, /mode,fields:historyFields\(\),favorite:false/);
+  assert.match(html, /localStorage\.setItem\('su-history'/);
+});
+
+test('wheel permits the final remaining name in elimination mode', () => {
+  assert.match(html, /a\.length===1&&!\$\('#excludeWinners'\)\.checked/);
+  assert.match(html, /if\(!a\.length\|\|a\.length>24\)/);
+});
