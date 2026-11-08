@@ -1,0 +1,40 @@
+name: Free tools quality checks
+
+on:
+  push:
+    paths:
+      - 'public/index.html'
+      - 'public/sw.js'
+      - 'tests/free-tools-ui.test.mjs'
+      - 'tests/free-tools-browser.test.mjs'
+      - '.github/workflows/free-tools-quality.yml'
+  pull_request:
+    paths:
+      - 'public/index.html'
+      - 'public/sw.js'
+      - 'tests/free-tools-ui.test.mjs'
+      - 'tests/free-tools-browser.test.mjs'
+      - '.github/workflows/free-tools-quality.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  free-tools:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Static and algorithm checks
+        run: node --test tests/free-tools-ui.test.mjs
+      - name: Mobile browser smoke tests
+        run: node --test tests/free-tools-browser.test.mjs
