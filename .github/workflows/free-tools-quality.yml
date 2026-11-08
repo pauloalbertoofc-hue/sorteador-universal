@@ -40,11 +40,24 @@ jobs:
         run: |
           set -o pipefail
           node --test tests/free-tools-browser.test.mjs 2>&1 | tee free-tools-browser.log
-      - name: Upload browser test log on failure
-        if: failure()
+      - name: Publish browser test summary
+        if: always()
+        run: |
+          {
+            echo "## Sorteador Universal — browser checks"
+            if [ -f free-tools-browser.log ]; then
+              echo '~~~text'
+              tail -n 90 free-tools-browser.log
+              echo '~~~'
+            else
+              echo "Browser tests did not start. Check the preceding workflow steps."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload browser test log
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: free-tools-browser-failure-log
+          name: free-tools-browser-test-log
           path: free-tools-browser.log
           if-no-files-found: ignore
           retention-days: 7
