@@ -108,7 +108,7 @@ const choice=button.dataset.quick;
 const target=choice==='teams2'?'teams':choice==='dice6'?'dice':choice==='coin'?'names':'numbers';
 switchTab(target);
 if(choice==='number100'){$('#min').value='1';$('#max').value='100';$('#qty').value='1';$('#unique').checked=true;$('#draw').click()}
-else if(choice==='coin'){$('#items').value='Cara\\nCoroa'.replace('\\n','\n');$('#winners').value='1';updateWheel();$('#draw').click()}
+else if(choice==='coin'){$('#items').value='Cara\nCoroa';$('#winners').value='1';updateWheel();$('#draw').click()}
 else if(choice==='teams2'){$('#teamcount').value='2';$('#players').focus();$('#players').scrollIntoView({block:'center',behavior:'smooth'})}
 else if(choice==='dice6'){$('#sides').value='6';$('#dicecount').value='1';$('#draw').click()}
 }));
