@@ -84,6 +84,18 @@ test('free tools browser smoke tests', async t => {
       await page.locator('#teamMode').selectOption('count');
       assert.equal(await page.locator('#teamSizeField').isVisible(), false);
     });
+    await t.test('teams: share button appears only after a valid team draw', async () => {
+      await page.locator('[data-tab=numbers]').click();
+      assert.equal(await page.locator('#shareTeams').isVisible(), false);
+      await page.locator('[data-tab=teams]').click();
+      await page.locator('#players').fill('Ana\\nBruno\\nCarla\\nDiego');
+      await page.locator('#teamMode').selectOption('count');
+      await page.locator('#teamcount').fill('2');
+      await page.locator('#draw').click();
+      assert.equal(await page.locator('#shareTeams').isVisible(), true);
+      await page.locator('[data-tab=dice]').click();
+      assert.equal(await page.locator('#shareTeams').isVisible(), false);
+    });
     await t.test('dice: valid roll and statistics', async () => {
       await page.locator('[data-tab=dice]').click();
       await page.locator('#dicecount').fill('6');
