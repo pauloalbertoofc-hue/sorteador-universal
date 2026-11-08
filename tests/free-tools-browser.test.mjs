@@ -354,6 +354,20 @@ test('free tools browser smoke tests', async t => {
       assert.equal(await page.locator('#presentationView').getAttribute('data-mode'), 'dice');
       await page.locator('#presentationClose').click();
     });
+    await t.test('presentation v2.3: long team results remain readable on mobile', async () => {
+      await page.locator('[data-tab=teams]').click();
+      const teamInput = page.locator('#participants');
+      assert.equal(await teamInput.count(), 1);
+      await teamInput.fill(Array.from({length: 30}, (_, i) => `Participante de teste ${i + 1}`).join('\\n'));
+      await page.locator('#draw').click();
+      await page.locator('#presentationOpen').click();
+      assert.equal(await page.locator('#presentationResult').getAttribute('data-long'), 'true');
+      assert.ok(await page.locator('#presentationResult .presentation-line').count() >= 2);
+      assert.equal(await page.locator('#presentationCount').isVisible(), true);
+      const metrics = await page.locator('#presentationResult').evaluate(el => ({ width: el.getBoundingClientRect().width, viewport: innerWidth }));
+      assert.ok(metrics.width <= metrics.viewport, 'long results must fit mobile viewport');
+      await page.locator('#presentationClose').click();
+    });
     await t.test('presentation v2.3: opens, closes and resets between tools', async () => {
       await page.locator('[data-tab=numbers]').click();
       assert.equal(await page.locator('#presentationOpen').isVisible(), false);
