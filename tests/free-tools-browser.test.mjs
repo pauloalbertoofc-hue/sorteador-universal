@@ -51,6 +51,28 @@ test('free tools browser smoke tests', async t => {
       const drawHeight = await page.locator('#draw').evaluate(node => node.getBoundingClientRect().height);
       assert.ok(drawHeight >= 50, 'draw action needs a touch-friendly target');
     });
+    await t.test('mobile: main content remains visible above compact navigation', async () => {
+      for (const width of [320, 390]) {
+        await page.setViewportSize({ width, height: 720 });
+        const geometry = await page.evaluate(() => {
+          const nav = document.querySelector('.tabs').getBoundingClientRect();
+          const header = document.querySelector('header').getBoundingClientRect();
+          const panel = document.querySelector('.panel').getBoundingClientRect();
+          return {
+            navTop: nav.top, navHeight: nav.height,
+            headerHeight: header.height, panelWidth: panel.width,
+            panelDisplay: getComputedStyle(document.querySelector('.panel')).display
+          };
+        });
+        assert.ok(geometry.navTop > 590, `navigation covers content at ${width}px: top=${geometry.navTop}`);
+        assert.ok(geometry.navHeight <= 110, `navigation stretches vertically at ${width}px`);
+        assert.ok(geometry.headerHeight > 40, 'hero header must have visible height');
+        assert.ok(geometry.panelWidth > 240, 'tool panel must retain usable width');
+        assert.notEqual(geometry.panelDisplay, 'none');
+        await page.screenshot({ path: `mobile-${width}.png`, fullPage: true });
+      }
+      await page.setViewportSize({ width: 390, height: 844 });
+    });
     await t.test('mobile: 320px and 390px navigation remains usable', async () => {
       for (const width of [320, 390]) {
         await page.setViewportSize({ width, height: 720 });
