@@ -51,6 +51,27 @@ test('free tools browser smoke tests', async t => {
       const drawHeight = await page.locator('#draw').evaluate(node => node.getBoundingClientRect().height);
       assert.ok(drawHeight >= 50, 'draw action needs a touch-friendly target');
     });
+    await t.test('mobile v2.3: no horizontal overflow and controls stay tappable', async () => {
+      for (const width of [320, 390]) {
+        await page.setViewportSize({ width, height: 720 });
+        for (const tab of ['numbers', 'names', 'teams', 'dice']) {
+          await page.locator(`[data-tab=${tab}]`).click();
+          const metrics = await page.evaluate(() => {
+            const doc = document.documentElement;
+            const nav = document.querySelector('.tabs').getBoundingClientRect();
+            const draw = document.querySelector('#draw').getBoundingClientRect();
+            const panel = document.querySelector('.panel').getBoundingClientRect();
+            return { overflow: doc.scrollWidth - innerWidth, navTop: nav.top, navBottom: nav.bottom, drawHeight: draw.height, panelWidth: panel.width };
+          });
+          assert.ok(metrics.overflow <= 2, `${tab} at ${width}px overflows horizontally by ${metrics.overflow}px`);
+          assert.ok(metrics.navTop >= 590 && metrics.navBottom <= 722, `${tab} navigation is misplaced at ${width}px`);
+          assert.ok(metrics.drawHeight >= 48, `${tab} draw button too small at ${width}px`);
+          assert.ok(metrics.panelWidth <= width, `${tab} panel exceeds viewport at ${width}px`);
+        }
+      }
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.locator('[data-tab=numbers]').click();
+    });
     await t.test('mobile: main content remains visible above compact navigation', async () => {
       for (const width of [320, 390]) {
         await page.setViewportSize({ width, height: 720 });
