@@ -45,6 +45,25 @@ test('free tools browser smoke tests', async t => {
       const drawHeight = await page.locator('#draw').evaluate(node => node.getBoundingClientRect().height);
       assert.ok(drawHeight >= 50, 'draw action needs a touch-friendly target');
     });
+    await t.test('mobile: 320px and 390px navigation remains usable', async () => {
+      for (const width of [320, 390]) {
+        await page.setViewportSize({ width, height: 720 });
+        for (const tool of ['numbers', 'names', 'teams', 'dice']) {
+          const button = page.locator(`[data-tab=${tool}]`);
+          await button.click();
+          assert.equal(await button.getAttribute('aria-pressed'), 'true');
+          const metrics = await page.evaluate(() => ({
+            scrollWidth: document.documentElement.scrollWidth,
+            viewport: document.documentElement.clientWidth,
+            navWidth: document.querySelector('.tabs').getBoundingClientRect().width
+          }));
+          assert.ok(metrics.scrollWidth <= metrics.viewport + 1, `${tool} overflows at ${width}px`);
+          assert.ok(metrics.navWidth <= metrics.viewport + 1);
+        }
+      }
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.locator('[data-tab=numbers]').click();
+    });
     await t.test('mobile quick presets switch tools and draw', async () => {
       await page.locator('[data-quick=number100]').click();
       assert.equal(await page.locator('[data-tab=numbers]').getAttribute('aria-pressed'), 'true');
