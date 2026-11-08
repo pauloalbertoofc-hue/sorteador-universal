@@ -111,3 +111,11 @@ test('v2.5 public rooms have accessible create, join, copy and draw controls', (
   assert.match(html,/localStorage\.setItem\('su-room-admin-'/);
   assert.match(html,/const field=\$\('#items'\)/);
 });
+
+test('v2.5 public rooms provide bounded entry and explicit privacy messaging', () => {
+  assert.match(html, /max="100"/);
+  assert.match(html, /Inscrições abertas por até 24 horas/);
+  assert.match(html, /credentials:'omit'/);
+  assert.match(html, /roomAdminToken=localStorage\.getItem/);
+  assert.match(html, /Não inclua dados sensíveis/);
+});
