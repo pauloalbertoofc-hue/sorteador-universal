@@ -51,7 +51,9 @@ test('public rooms: create, duplicate/capacity, close, expiry cleanup and rate l
  // An expired room must refuse new entries even before the daily cleanup runs.
  await db.prepare('UPDATE draw_rooms SET expires_at=? WHERE id=?').bind(Date.now()-1,concurrent.body.id).run();
  assert.equal((await api('/api/rooms/'+concurrent.body.id+'/join',{data:{name:'Pessoa tardia'},ip:'203.0.113.70'})).status,409);
- assert.equal((await api('/api/rooms/'+concurrent.body.id)).body.status,'closed');
+ const expiredRoom=await api('/api/rooms/'+concurrent.body.id);
+ assert.equal(expiredRoom.body.status,'closed');
+ assert.deepEqual(expiredRoom.body.entries,[],'expired rooms must not expose names before cleanup');
  await db.prepare('UPDATE draw_rooms SET expires_at=? WHERE id=?').bind(Date.now()-1,id).run();
  // Scheduled cleanup runs against the same isolated DB, using Worker scheduled handler.
  const worker=(await import('../src/worker.js')).default;
