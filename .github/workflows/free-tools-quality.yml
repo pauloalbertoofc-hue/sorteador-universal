@@ -8,6 +8,7 @@ on:
       - 'tests/free-tools-ui.test.mjs'
       - 'tests/free-tools-browser.test.mjs'
       - 'tests/rooms-api-contract.test.mjs'
+      - 'tests/rooms-integration.test.mjs'
       - 'src/worker.js'
       - 'migrations/0003_public_rooms.sql'
       - 'migrations/0004_room_rate_limits.sql'
@@ -20,6 +21,7 @@ on:
       - 'tests/free-tools-ui.test.mjs'
       - 'tests/free-tools-browser.test.mjs'
       - 'tests/rooms-api-contract.test.mjs'
+      - 'tests/rooms-integration.test.mjs'
       - 'src/worker.js'
       - 'migrations/0003_public_rooms.sql'
       - 'migrations/0004_room_rate_limits.sql'
@@ -46,6 +48,8 @@ jobs:
           node --test tests/free-tools-ui.test.mjs tests/rooms-api-contract.test.mjs
       - name: Install locked dependencies
         run: npm ci
+      - name: Rooms integration with isolated D1
+        run: node --test tests/rooms-integration.test.mjs
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Mobile browser smoke tests
