@@ -19,6 +19,32 @@ test('free tools browser smoke tests', async t => {
     const page = await context.newPage();
     await page.route(/^https?:\/\//, route => route.request().url().startsWith('http://127.0.0.1:') ? route.continue() : route.abort());
     await page.goto(`http://127.0.0.1:${server.address().port}/`);
+    await t.test('mobile v2.2: bottom navigation and touch targets', async () => {
+      const nav = page.locator('.tabs');
+      const metrics = await nav.evaluate(node => {
+        const box = node.getBoundingClientRect();
+        return {
+          position: getComputedStyle(node).position,
+          bottom: Math.abs(window.innerHeight - box.bottom),
+          columns: getComputedStyle(node).gridTemplateColumns.split(' ').length,
+          width: box.width
+        };
+      });
+      assert.equal(metrics.position, 'fixed');
+      assert.ok(metrics.bottom <= 2, 'bottom navigation should touch viewport bottom');
+      assert.equal(metrics.columns, 4);
+      assert.ok(metrics.width <= 391);
+      for (const tab of ['numbers', 'names', 'teams', 'dice']) {
+        const button = page.locator(`[data-tab=${tab}]`);
+        const height = await button.evaluate(node => node.getBoundingClientRect().height);
+        assert.ok(height >= 48, `${tab} needs a touch-friendly navigation target`);
+        await button.click();
+        assert.equal(await button.getAttribute('aria-pressed'), 'true');
+      }
+      await page.locator('[data-tab=numbers]').click();
+      const drawHeight = await page.locator('#draw').evaluate(node => node.getBoundingClientRect().height);
+      assert.ok(drawHeight >= 50, 'draw action needs a touch-friendly target');
+    });
     await t.test('mobile quick presets switch tools and draw', async () => {
       await page.locator('[data-quick=number100]').click();
       assert.equal(await page.locator('[data-tab=numbers]').getAttribute('aria-pressed'), 'true');
