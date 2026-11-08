@@ -247,10 +247,12 @@ async function loadRoom(id){
  const data=await roomApi('/'+id);activeRoom=data;
  roomAdminToken=localStorage.getItem('su-room-admin-'+id);
  $('#roomActive').hidden=false;$('#roomActiveTitle').textContent=data.title;
- $('#roomMeta').textContent=data.entries.length+' de '+data.maxEntries+' inscritos · '+(data.status==='open'?'Inscrições abertas':'Inscrições encerradas');
+ $('#roomMeta').textContent=data.entries.length+' de '+data.maxEntries+' inscritos · '+(data.status==='open'?'Inscrições abertas':'Inscrições encerradas')+' · Prazo: '+new Date(data.expiresAt).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});
  const link=new URL(location.href);link.searchParams.set('room',id);link.hash='roomStudio';$('#roomLink').value=link.href;
  $('#roomEntries').replaceChildren(...data.entries.map(name=>{const li=document.createElement('li');li.textContent=name;return li}));
  $('#roomJoin').disabled=data.status!=='open'||data.entries.length>=data.maxEntries;
+ $('#roomName').disabled=data.status!=='open'||data.entries.length>=data.maxEntries;
+ $('#roomJoin').textContent=data.status!=='open'?'Inscrições encerradas':data.entries.length>=data.maxEntries?'Sala lotada':'Inscrever';
  $('#roomClose').hidden=!roomAdminToken||data.status!=='open';
  $('#roomUse').hidden=!roomAdminToken||!data.entries.length;
  roomStatus('Sala atualizada.');
