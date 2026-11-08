@@ -71,6 +71,19 @@ test('free tools browser smoke tests', async t => {
       assert.deepEqual(counts.sort(), [2,3]);
       assert.match(await page.locator('#result').textContent(), /Azul/);
     });
+    await t.test('teams: group by maximum participants', async () => {
+      await page.locator('[data-tab=teams]').click();
+      await page.locator('#players').fill('Ana\\nBruno\\nCarla\\nDiego\\nEva');
+      await page.locator('#teamMode').selectOption('size');
+      await page.locator('#teamSize').fill('2');
+      assert.equal(await page.locator('#teamSizeField').isVisible(), true);
+      await page.locator('#draw').click();
+      assert.equal(await page.locator('#result .team').count(), 3);
+      const sizes = await page.locator('#result .team').evaluateAll(cards => cards.map(card => card.querySelectorAll('span').length));
+      assert.deepEqual(sizes.slice().sort((a,b)=>a-b), [1,2,2]);
+      await page.locator('#teamMode').selectOption('count');
+      assert.equal(await page.locator('#teamSizeField').isVisible(), false);
+    });
     await t.test('dice: valid roll and statistics', async () => {
       await page.locator('[data-tab=dice]').click();
       await page.locator('#dicecount').fill('6');
