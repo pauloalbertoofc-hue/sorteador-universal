@@ -32,6 +32,14 @@ test('public rooms: create, duplicate/capacity, close, expiry cleanup and rate l
  assert.equal((await api('/api/rooms/'+id+'/close',{data:{},token:'0'.repeat(64)})).status,403);
  assert.equal((await api('/api/rooms/'+id+'/close',{data:{},token:adminToken})).status,200);
  assert.equal((await api('/api/rooms/'+id+'/join',{data:{name:'Davi'}})).status,409);
+ // Concurrent registrations must not exceed room capacity, even when submitted together.
+ const concurrent=await api('/api/rooms',{data:{title:'Sala simultânea',maxEntries:2},ip:'203.0.113.8'});
+ assert.equal(concurrent.status,201);
+ const attempts=await Promise.all(Array.from({length:8},(_,i)=>api('/api/rooms/'+concurrent.body.id+'/join',{data:{name:'Pessoa '+i},ip:'203.0.113.'+(20+i)})));
+ assert.equal(attempts.filter(x=>x.status===201).length,2);
+ assert.equal(attempts.filter(x=>x.status===409).length,6);
+ const concurrentState=await api('/api/rooms/'+concurrent.body.id);
+ assert.equal(concurrentState.body.entries.length,2);
  for(let i=0;i<4;i++)assert.equal((await api('/api/rooms',{data:{title:'Sala '+i,maxEntries:2}})).status,201);
  assert.equal((await api('/api/rooms',{data:{title:'Sala extra',maxEntries:2}})).status,429);
  await db.prepare('UPDATE draw_rooms SET expires_at=? WHERE id=?').bind(Date.now()-1,id).run();
