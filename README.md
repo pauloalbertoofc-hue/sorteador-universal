@@ -240,3 +240,11 @@ para instruções Windows, segurança de certificados e limites da validação r
 ### Conferência de publicação
 
 Após confirmar o deploy no Cloudflare, abra a URL real do Worker em uma janela privada e confira a identificação `Versão 2.4`, os botões de modelos, comprovantes e Modo Evento. No celular, recarregue a PWA após a ativação do service worker novo. O deploy de produção não é executado pelo workflow de qualidade.
+
+## Prévia 2.5 — Salas compartilháveis
+
+Primeira entrega: criação de salas públicas, links de convite, inscrição por nome, listagem de participantes, encerramento pelo organizador e transferência dos inscritos para o sorteio de nomes. O link público **não contém** a chave de administrador; ela é guardada apenas no armazenamento local do navegador que criou a sala. Perder esse armazenamento impede encerrar manualmente a sala antes do vencimento.
+
+**Importante antes do deploy:** execute a migração `migrations/0002_public_rooms.sql` no D1 de produção, por exemplo com `npx wrangler d1 execute sorteador-universal-db --remote --file=migrations/0002_public_rooms.sql`. Faça backup e confirme o banco de destino antes de executar. O GitHub Actions de qualidade não aplica migrações nem publica no Cloudflare.
+
+**Limitações da prévia:** as salas aceitam de 2 a 100 inscritos e expiram em 24 horas; nomes são visíveis para qualquer pessoa com o link. Duplicatas são bloqueadas por nome normalizado, mas isso **não impede** que alguém use nomes diferentes ou se inscreva por outros dispositivos. A API ainda não tem limitação de requisições por IP, CAPTCHA ou proteção antiabuso; configure controles de rate limiting no Cloudflare antes de divulgar amplamente. O vencimento encerra inscrições, mas **não apaga automaticamente** os registros do D1: é necessário implementar uma rotina de exclusão/retensão antes de uso em produção com dados pessoais. O sorteio ocorre no navegador do organizador, não na sala; resultados ainda não são publicados automaticamente. Não use como prova de imparcialidade.
