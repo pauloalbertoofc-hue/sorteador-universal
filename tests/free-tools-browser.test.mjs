@@ -29,13 +29,17 @@ test('free tools browser smoke tests', async t => {
           position: getComputedStyle(node).position,
           bottom: Math.abs(window.innerHeight - box.bottom),
           columns: getComputedStyle(node).gridTemplateColumns.split(' ').length,
-          width: box.width
+          width: box.width,
+          height: box.height,
+          top: getComputedStyle(node).top
         };
       });
       assert.equal(metrics.position, 'fixed');
       assert.ok(metrics.bottom <= 2, 'bottom navigation should touch viewport bottom');
       assert.equal(metrics.columns, 4);
       assert.ok(metrics.width <= 391);
+      assert.ok(metrics.height >= 54 && metrics.height <= 110, `mobile navigation must stay compact, got ${metrics.height}px`);
+      assert.notEqual(metrics.top, '0px', 'bottom navigation must not inherit sticky top: 0');
       for (const tab of ['numbers', 'names', 'teams', 'dice']) {
         const button = page.locator(`[data-tab=${tab}]`);
         const height = await button.evaluate(node => node.getBoundingClientRect().height);
