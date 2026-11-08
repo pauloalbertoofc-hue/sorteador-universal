@@ -37,4 +37,14 @@ jobs:
       - name: Static and algorithm checks
         run: node --test tests/free-tools-ui.test.mjs
       - name: Mobile browser smoke tests
-        run: node --test tests/free-tools-browser.test.mjs
+        run: |
+          set -o pipefail
+          node --test tests/free-tools-browser.test.mjs 2>&1 | tee free-tools-browser.log
+      - name: Upload browser test log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: free-tools-browser-failure-log
+          path: free-tools-browser.log
+          if-no-files-found: ignore
+          retention-days: 7
