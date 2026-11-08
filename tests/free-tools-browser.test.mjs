@@ -1,16 +1,24 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { chromium } from '@playwright/test';
+import { createServer } from 'node:http';
+import { readFile } from 'node:fs/promises';
 
-const pageUrl = new URL('../public/index.html', import.meta.url).href;
+const htmlUrl = new URL('../public/index.html', import.meta.url);
 
 test('free tools browser smoke tests', async t => {
-  const browser = await chromium.launch({ headless: true });
+  const server = createServer(async (_req, res) => {
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.end(await readFile(htmlUrl));
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  let browser;
   try {
+    browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
     const page = await context.newPage();
     await page.route(/^https?:\/\//, route => route.abort());
-    await page.goto(pageUrl);
+    await page.goto(`http://127.0.0.1:${server.address().port}/`);
     await t.test('numbers: full unique range and incremental results', async () => {
       await page.locator('#min').fill('1');
       await page.locator('#max').fill('100');
@@ -68,5 +76,8 @@ test('free tools browser smoke tests', async t => {
       assert.equal(await page.locator('#max').inputValue(), '100');
     });
     await context.close();
-  } finally { await browser.close(); }
+  } finally {
+    if (browser) await browser.close();
+    await new Promise(resolve => server.close(resolve));
+  }
 });
