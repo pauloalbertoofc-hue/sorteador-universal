@@ -390,6 +390,22 @@ test('free tools browser smoke tests', async t => {
       assert.ok(metrics.width <= metrics.viewport, 'long results must fit mobile viewport');
       await page.locator('#presentationClose').click();
     });
+    await t.test('v2.4: printable receipt is readable and escapes participant names', async () => {
+      await page.locator('[data-tab=names]').click();
+      await page.locator('#items').fill('<script>alert(1)</script>');
+      await page.locator('#winners').fill('1');
+      await page.locator('#draw').click();
+      const downloadPromise = page.waitForEvent('download');
+      await page.locator('#receiptPrint').click();
+      const download = await downloadPromise;
+      assert.match(download.suggestedFilename(), /^sorteador-comprovante-[0-9a-f]{12}\.html$/);
+      const fs = await import('node:fs/promises');
+      const html = await fs.readFile(await download.path(), 'utf8');
+      assert.match(html, /Comprovante informativo/);
+      assert.match(html, /SHA-256/);
+      assert.match(html, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
+      assert.doesNotMatch(html, /<script>alert\(1\)<\/script>/);
+    });
     await t.test('v2.4: receipt export and SHA-256 integrity verification', async () => {
       await page.locator('[data-tab=numbers]').click();
       await page.locator('#min').fill('314');
