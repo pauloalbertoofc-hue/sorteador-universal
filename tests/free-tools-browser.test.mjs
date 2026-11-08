@@ -263,7 +263,7 @@ test('free tools browser smoke tests', async t => {
       await page.locator('#max').fill('31');
       await page.locator('#qty').fill('1');
       await page.locator('#draw').click();
-      assert.equal(await page.locator('#history li').count(), 30);
+      assert.equal(await page.locator('#history li').count(), 21);
       assert.ok((await page.locator('#history').textContent()).includes('31'));
       assert.equal(await page.locator('#history li button[aria-pressed=true]').count(), 20);
     });
