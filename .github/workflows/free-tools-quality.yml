@@ -17,6 +17,8 @@ on:
       - 'migrations/0003_public_rooms.sql'
       - 'migrations/0004_room_rate_limits.sql'
       - 'wrangler.jsonc'
+      - 'wrangler.rooms-preview.jsonc'
+      - '.github/workflows/rooms-preview-http.yml'
       - '.github/workflows/free-tools-quality.yml'
   pull_request:
     paths:
@@ -34,6 +36,8 @@ on:
       - 'migrations/0003_public_rooms.sql'
       - 'migrations/0004_room_rate_limits.sql'
       - 'wrangler.jsonc'
+      - 'wrangler.rooms-preview.jsonc'
+      - '.github/workflows/rooms-preview-http.yml'
       - '.github/workflows/free-tools-quality.yml'
   workflow_dispatch:
 
