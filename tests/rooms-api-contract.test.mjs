@@ -18,7 +18,7 @@ test('v2.5 room schema and API agree on required tables',()=>{
 test('v2.5 room capacity is enforced atomically and invitation does not contain owner secret',()=>{
  assert.match(worker,/INSERT OR IGNORE INTO draw_room_entries/);
  assert.match(worker,/SELECT COUNT\(\*\) FROM draw_room_entries/);
- assert.match(worker,/UNIQUE\(room_id,name_key\)/);
+ assert.match(schema,/UNIQUE\(room_id,name_key\)/);
  assert.match(worker,/return json\(\{id:room.id,title:room.title,status:/);
  assert.doesNotMatch(worker,/return json\(\{id:room.id,title:room.title,adminToken/);
 });
