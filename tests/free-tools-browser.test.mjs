@@ -179,6 +179,23 @@ test('free tools browser smoke tests', async t => {
       assert.match(await page.locator('#spin').textContent(), /Girar novamente/);
       assert.equal(await page.locator('#wheelWinner').isVisible(), true);
     });
+    await t.test('wheel v2.2: selected speed controls animation duration', async () => {
+      await page.emulateMedia({ reducedMotion: 'no-preference' });
+      try {
+        await page.locator('[data-tab=names]').click();
+        await page.locator('#items').fill('Ana\nBruno\nCarla');
+        await page.locator('#excludeWinners').uncheck();
+        await page.locator('#winners').fill('1');
+        await page.locator('#wheelSpeed').selectOption('2000');
+        await page.locator('#spin').click();
+        const duration = await page.locator('#wheelDisc').evaluate(node => node.style.transition);
+        assert.match(duration, /2000ms/);
+        await page.locator('#items').fill('Ana\nBruno\nCarla\nDavi');
+        assert.equal(await page.locator('#spin').isDisabled(), false);
+      } finally {
+        await page.emulateMedia({ reducedMotion: 'reduce' });
+      }
+    });
     await t.test('wheel: selects a single valid name', async () => {
       await page.locator('[data-tab=names]').click();
       await page.locator('#items').fill('Ana\nBruno\nCarla');
