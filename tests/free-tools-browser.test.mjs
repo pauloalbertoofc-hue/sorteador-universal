@@ -96,10 +96,12 @@ test('free tools browser smoke tests', async t => {
       await page.locator('#removeDup').uncheck();
       await page.locator('#excludeWinners').check();
       await page.locator('#winners').fill('2');
+      assert.match(await page.locator('#winnerProgress').textContent(), /2 de 2 nomes disponíveis/);
       await page.locator('#draw').click();
       const winners = await page.locator('#result .chip').allTextContents();
       assert.equal(winners.length, 2);
       assert.equal(new Set(winners).size, 2);
+      assert.match(await page.locator('#winnerProgress').textContent(), /0 de 2 nomes disponíveis/);
     });
     await t.test('mobile: results stay within the viewport', async () => {
       await page.locator('[data-tab=numbers]').click();
