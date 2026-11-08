@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const worker=readFileSync(new URL('../src/worker.js',import.meta.url),'utf8');
-const schema=readFileSync(new URL('../migrations/0002_public_rooms.sql',import.meta.url),'utf8');
-const limits=readFileSync(new URL('../migrations/0003_room_rate_limits.sql',import.meta.url),'utf8');
+const schema=readFileSync(new URL('../migrations/0003_public_rooms.sql',import.meta.url),'utf8');
+const limits=readFileSync(new URL('../migrations/0004_room_rate_limits.sql',import.meta.url),'utf8');
 const config=readFileSync(new URL('../wrangler.jsonc',import.meta.url),'utf8');
 test('v2.5 room schema and API agree on required tables',()=>{
  for(const name of ['draw_rooms','draw_room_entries']){
