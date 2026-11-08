@@ -77,3 +77,16 @@ test('full preview migration chain provisions rooms alongside existing auth and 
   assert.equal((await db.prepare('SELECT COUNT(*) AS n FROM '+table).first()).n,0,table);
  }
 });
+
+test('remote preview migration workflow is manual-only and hard-bound to preview D1',async()=>{
+ const workflow=await readFile('.github/workflows/preview-d1-homologation.yml','utf8');
+ assert.match(workflow,/workflow_dispatch:/);
+ assert.doesNotMatch(workflow,/^  (?:push|pull_request|schedule):/m);
+ assert.match(workflow,/HOMOLOGAR-PREVIEW/);
+ assert.match(workflow,/environment: preview-d1/);
+ assert.match(workflow,/9701cfcf-9c77-4b09-8411-0f4a13f8c584/);
+ assert.match(workflow,/production.*24fe67dc-7003-4557-9de0-cf6658e713c2/);
+ assert.match(workflow,/npm run db:preview:remote/);
+ assert.match(workflow,/Read-only verification of preview room tables/);
+ assert.doesNotMatch(workflow,/wrangler deploy|npm run deploy/);
+});
