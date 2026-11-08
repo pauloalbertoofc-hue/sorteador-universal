@@ -220,3 +220,17 @@ causas sanitizadas de DNS, TLS, timeout e CONNECT. Use Node 24.14+ para o suport
 automático de proxy e execute `npm run billing:network-check` sem token para
 isolar o transporte. Veja [MP_NETWORK_DIAGNOSIS.md](docs/MP_NETWORK_DIAGNOSIS.md)
 para instruções Windows, segurança de certificados e limites da validação real.
+
+## Versão 2.4 — Estúdio de Sorteios (ferramentas gratuitas)
+
+- **Modelos reutilizáveis:** salve até 20 configurações no navegador, separadas por ferramenta; carregue, atualize ou exclua sem cadastro. Os modelos não são sincronizados entre aparelhos.
+- **Comprovante técnico:** após cada sorteio, baixe um JSON com resultado, parâmetros, identificador aleatório, data UTC e hash SHA-256. A verificação no próprio aplicativo recalcula o hash e detecta alterações sem atualização correspondente.
+- **Comprovante legível:** exporte HTML com resultado, parâmetros e hash; abra no navegador para imprimir ou salvar como PDF. Os dados dos participantes são escapados para não executar HTML inserido como nome.
+- **Modo Evento:** apresentação com contagem regressiva e revelação progressiva dos resultados, incluindo comandos para revelar o próximo ou todos. O modo pode ser fechado por Esc.
+- **Limites de verificação:** um hash sem assinatura externa não autentica a origem, não impede substituição integral do arquivo e não comprova aleatoriedade ou imparcialidade. Não é certificação de sorteios regulamentados.
+- **Privacidade:** modelos e históricos permanecem no armazenamento local deste navegador. O arquivo de comprovante pode conter nomes e outras informações inseridas pelo usuário; revise antes de compartilhar.
+- **Validação:** o workflow `.github/workflows/free-tools-quality.yml` executa testes estáticos e testes de navegador Chromium, incluindo cenários de 320 e 390 px. Sucesso do workflow não significa que o Cloudflare publicou a revisão.
+
+### Conferência de publicação
+
+Após confirmar o deploy no Cloudflare, abra a URL real do Worker em uma janela privada e confira a identificação `Versão 2.4`, os botões de modelos, comprovantes e Modo Evento. No celular, recarregue a PWA após a ativação do service worker novo. O deploy de produção não é executado pelo workflow de qualidade.
