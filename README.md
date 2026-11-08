@@ -260,3 +260,9 @@ Primeira entrega: criação de salas públicas, links de convite, inscrição po
 O banco de preview tem migrações separadas, agora incluindo `migrations/preview/0003_public_rooms.sql` e `migrations/preview/0004_room_rate_limits.sql`. Para aplicar apenas no banco preview, use `npm run db:preview:remote` **somente após conferir** `wrangler.preview-db.jsonc` e o ID de preview `9701cfcf-9c77-4b09-8411-0f4a13f8c584`. Esse comando não é executado pelo CI.
 
 A suíte `tests/rooms-integration.test.mjs` executa Worker e D1 isolados no Miniflare. Ela valida o ciclo de vida sem dados reais. **Isso não substitui homologação no D1 remoto nem confirma que as salas estejam publicadas**. Para publicar, prepare as migrações no D1 de produção, valide o cron e só depois faça o deploy, com revisão de privacidade e proteção de borda.
+
+### Execução manual de homologação remota
+
+O workflow `.github/workflows/preview-d1-homologation.yml` é **exclusivamente manual**. No GitHub Actions, selecione **Preview D1 homologation (manual only)**, informe exatamente `HOMOLOGAR-PREVIEW` e execute somente após configurar as credenciais `CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_ACCOUNT_ID` no environment protegido `preview-d1`. Recomenda-se exigir aprovação de um revisor nesse environment. O workflow verifica o ID do banco de preview, roda testes isolados e aplica migrações **apenas** no D1 preview. Não publica Worker, não altera D1 de produção e não executa automaticamente em commits.
+
+**Importante:** criar esse workflow não equivale a executá-lo; a homologação remota continua pendente até que a execução manual seja autorizada e concluída.
