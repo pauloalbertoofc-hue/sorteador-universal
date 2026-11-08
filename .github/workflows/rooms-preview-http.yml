@@ -41,9 +41,3 @@ jobs:
         run: |
           test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
           npx wrangler deploy --config wrangler.rooms-preview.jsonc
-      - name: Check deployed preview HTTP response
-        run: |
-          node --input-type=module <<'NODE'
-          const url='https://sorteador-universal-rooms-preview.'+process.env.CLOUDFLARE_SUBDOMAIN+'.workers.dev/api/rooms/not-a-room';
-          console.log('Preview HTTP smoke test requires confirmed workers.dev subdomain; use Cloudflare deployment output to test the URL.');
-          NODE
