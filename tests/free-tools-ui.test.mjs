@@ -102,5 +102,5 @@ test('v2.3 design system keeps mobile navigation bounded', () => {
   assert.match(html, /id="free-tools-design-v23"/);
   assert.match(html, /\.tabs\{top:auto!important;bottom:0!important;height:auto!important/);
   assert.match(html, /max-height:110px/);
-  assert.match(html, /Versão 2\.3/);
+  assert.match(html, /Versão 2\.4/);
 });
