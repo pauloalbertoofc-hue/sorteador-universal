@@ -306,6 +306,10 @@ test('free tools browser smoke tests', async t => {
       assert.equal(dimensions.width, 1080);
       assert.equal(dimensions.height, 1080);
       assert.equal(dimensions.pixels[3], 255);
+      const downloadPromise = page.waitForEvent('download', { timeout: 10000 });
+      await page.locator('#shareCard').click();
+      const download = await downloadPromise;
+      assert.equal(download.suggestedFilename(), 'sorteador-resultado.png');
       await page.locator('[data-tab=dice]').click();
       assert.equal(await page.locator('#shareCard').isVisible(), false);
     });
