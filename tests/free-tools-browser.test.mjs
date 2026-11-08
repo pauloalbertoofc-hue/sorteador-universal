@@ -5,9 +5,7 @@ import { chromium } from '@playwright/test';
 const pageUrl = new URL('../public/index.html', import.meta.url).href;
 
 test('free tools browser smoke tests', async t => {
-  let browser;
-  try { browser = await chromium.launch({ headless: true }); }
-  catch (error) { t.skip('Chromium not installed: ' + error.message); return; }
+  const browser = await chromium.launch({ headless: true });
   try {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
     const page = await context.newPage();
