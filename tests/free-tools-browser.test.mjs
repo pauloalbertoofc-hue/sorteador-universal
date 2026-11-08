@@ -256,6 +256,31 @@ test('free tools browser smoke tests', async t => {
       assert.match(await page.locator('#winnerProgress').textContent(), /4 de 4 nomes disponíveis/);
       assert.equal(await page.locator('#wheelDisc .wheel-label').count(), 4);
     });
+    await t.test('collections: save, reload and delete a names list', async () => {
+      await page.locator('[data-tab=names]').click();
+      await page.locator('#items').fill('Ana\nBruno\nCarla');
+      await page.locator('#collectionName').fill('Turma de Direito');
+      await page.locator('#saveCollection').click();
+      assert.equal(await page.locator('#collectionList li').count(), 1);
+      await page.reload();
+      await page.locator('[data-tab=names]').click();
+      await page.locator('#items').fill('Outra pessoa');
+      await page.getByRole('button', { name: 'Carregar coleção Turma de Direito' }).click();
+      assert.equal(await page.locator('#items').inputValue(), 'Ana\nBruno\nCarla');
+      await page.getByRole('button', { name: 'Excluir coleção Turma de Direito' }).click();
+      assert.match(await page.locator('#collectionList').textContent(), /Nenhuma coleção/);
+    });
+    await t.test('collections: names and teams remain separate', async () => {
+      await page.locator('[data-tab=teams]').click();
+      await page.locator('#players').fill('Davi\nEva');
+      await page.locator('#collectionName').fill('Equipe de teste');
+      await page.locator('#saveCollection').click();
+      assert.equal(await page.locator('#collectionList li').count(), 1);
+      await page.locator('[data-tab=names]').click();
+      assert.match(await page.locator('#collectionList').textContent(), /Nenhuma coleção/);
+      await page.locator('[data-tab=teams]').click();
+      await page.getByRole('button', { name: 'Excluir coleção Equipe de teste' }).click();
+    });
     await t.test('history: favorites and repeat restore draw configuration', async () => {
       await page.locator('[data-tab=numbers]').click();
       await page.locator('#min').fill('25');
