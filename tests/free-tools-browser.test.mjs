@@ -281,6 +281,21 @@ test('free tools browser smoke tests', async t => {
       await page.waitForTimeout(150);
       assert.equal(await page.locator('#history li').count(), before);
     });
+    await t.test('wheel: cancellation prevents stale animation and winner', async () => {
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await page.locator('[data-tab=names]').click();
+      await page.locator('#items').fill('Ana\nBruno\nCarla');
+      await page.locator('#excludeWinners').uncheck();
+      await page.locator('#winners').fill('1');
+      const historyBefore = await page.locator('#history li').count();
+      await page.locator('#spin').click();
+      await page.locator('#items').fill('Ana\nBruno\nCarla\nDavi');
+      await page.waitForTimeout(250);
+      assert.equal(await page.locator('#wheelDisc').evaluate(node => node.style.transform), 'rotate(0deg)');
+      assert.equal(await page.locator('#wheelWinner').isVisible(), false);
+      assert.equal(await page.locator('#history li').count(), historyBefore);
+      assert.match(await page.locator('#wheelNote').textContent(), /4 opções|Opções alteradas/);
+    });
     await t.test('wheel: editing participant list resets excluded winners', async () => {
       await page.locator('[data-tab=names]').click();
       await page.locator('#items').fill('Ana\nBruno\nCarla');
