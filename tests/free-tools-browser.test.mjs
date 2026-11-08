@@ -390,6 +390,26 @@ test('free tools browser smoke tests', async t => {
       assert.ok(metrics.width <= metrics.viewport, 'long results must fit mobile viewport');
       await page.locator('#presentationClose').click();
     });
+    await t.test('v2.4: save, load and delete draw templates per tool', async () => {
+      await page.locator('[data-tab=numbers]').click();
+      await page.locator('#min').fill('1');
+      await page.locator('#max').fill('100');
+      await page.locator('#qty').fill('3');
+      await page.locator('#drawPresetName').fill('Rifa teste');
+      await page.locator('#drawPresetSave').click();
+      assert.match(await page.locator('#drawPresetStatus').innerText(), /Modelo salvo/);
+      await page.locator('#min').fill('44');
+      await page.locator('#drawPresetList').getByRole('button', { name: 'Carregar modelo Rifa teste' }).click();
+      assert.equal(await page.locator('#min').inputValue(), '1');
+      assert.equal(await page.locator('#qty').inputValue(), '3');
+      await page.locator('[data-tab=dice]').click();
+      assert.match(await page.locator('#drawPresetList').innerText(), /Nenhum modelo salvo/);
+      await page.locator('[data-tab=numbers]').click();
+      assert.match(await page.locator('#drawPresetList').innerText(), /Rifa teste/);
+      await page.reload();
+      await page.locator('#drawPresetList').getByRole('button', { name: 'Excluir modelo Rifa teste' }).click();
+      assert.match(await page.locator('#drawPresetList').innerText(), /Nenhum modelo salvo/);
+    });
     await t.test('history v2.3: JSON backup export and safe import', async () => {
       await page.locator('[data-tab=numbers]').click();
       await page.locator('#min').fill('91');
