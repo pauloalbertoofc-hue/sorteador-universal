@@ -210,6 +210,34 @@ test('free tools browser smoke tests', async t => {
       assert.equal(await page.locator('#history li').filter({ has: page.getByRole('button', { name: 'Remover dos favoritos' }) }).count(), 1);
       assert.equal(await page.locator('#history li').filter({ has: page.getByRole('button', { name: 'Repetir configuração de Sortear números' }) }).count() >= 1, true);
     });
+    await t.test('history: recent results remain visible with many favorites', async () => {
+      await page.evaluate(() => {
+        const entries = Array.from({ length: 30 }, (_, i) => ({
+          label: 'Números', text: String(i), mode: 'numbers',
+          fields: { min: '1', max: '100', qty: '1' }, favorite: true
+        }));
+        localStorage.setItem('su-history', JSON.stringify(entries));
+      });
+      await page.reload();
+      await page.locator('[data-tab=numbers]').click();
+      await page.locator('#min').fill('31');
+      await page.locator('#max').fill('31');
+      await page.locator('#qty').fill('1');
+      await page.locator('#draw').click();
+      assert.equal(await page.locator('#history li').count(), 30);
+      assert.ok((await page.locator('#history').textContent()).includes('31'));
+      assert.equal(await page.locator('#history li button[aria-pressed=true]').count(), 20);
+    });
+    await t.test('history: invalid saved modes cannot be replayed', async () => {
+      await page.evaluate(() => {
+        localStorage.setItem('su-history', JSON.stringify([
+          { label: 'Inválido', text: 'teste', mode: 'invalid', fields: { min: '1' } }
+        ]));
+      });
+      await page.reload();
+      assert.equal(await page.locator('#history li').count(), 1);
+      assert.equal(await page.locator('#history li').getByRole('button', { name: /Repetir configuração/ }).count(), 0);
+    });
     await t.test('saved settings can be cleared', async () => {
       await page.locator('[data-tab=numbers]').click();
       await page.locator('#max').fill('777');
