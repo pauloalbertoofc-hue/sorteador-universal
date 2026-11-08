@@ -380,7 +380,7 @@ test('free tools browser smoke tests', async t => {
       await page.locator('[data-tab=teams]').click();
       const teamInput = page.locator('#players');
       assert.equal(await teamInput.count(), 1);
-      await teamInput.fill(Array.from({length: 30}, (_, i) => `Participante de teste ${i + 1}`).join('\\n'));
+      await teamInput.fill(Array.from({length: 30}, (_, i) => `Participante de teste ${i + 1}`).join('\n'));
       await page.locator('#draw').click();
       await page.locator('#presentationOpen').click();
       assert.equal(await page.locator('#presentationResult').getAttribute('data-long'), 'true');
@@ -407,7 +407,7 @@ test('free tools browser smoke tests', async t => {
       assert.match(await page.locator('#history').innerText(), /Resultado de backup 314/);
       await page.locator('#historySearch').fill('');
       await page.locator('#historyFile').setInputFiles({name:'invalid.json',mimeType:'application/json',buffer:Buffer.from('{"entries":[]}')});
-      assert.match(await page.locator('#historyTransferStatus').innerText(), /Formato de histórico não reconhecido/);
+      await page.waitForFunction(() => document.querySelector('#historyTransferStatus')?.textContent.includes('Formato de histórico não reconhecido'));
     });
     await t.test('history v2.3: search, tool filter and favorites', async () => {
       await page.locator('#historySearch').fill('busca-impossivel-987');
@@ -497,6 +497,9 @@ test('free tools browser smoke tests', async t => {
       await page.getByRole('button', { name: 'Excluir coleção Equipe de teste' }).click();
     });
     await t.test('history: favorites and repeat restore draw configuration', async () => {
+      await page.locator('#historySearch').fill('');
+      await page.locator('#historyMode').selectOption('all');
+      await page.locator('#historyFavorites').selectOption('all');
       await page.locator('[data-tab=numbers]').click();
       await page.locator('#min').fill('25');
       await page.locator('#max').fill('25');
