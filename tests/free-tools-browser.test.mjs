@@ -718,6 +718,7 @@ test('v2.5 mobile room creation, joining and loading names',async()=>{
   names=['<img src=x onerror=alert(1)>'];closed=false;
   await page.locator('#roomRefresh').click();
   assert.equal(await page.locator('#roomEntries img').count(),0);
+  await page.locator('#roomEntries li').first().getByText('<img src=x onerror=alert(1)>',{exact:true}).waitFor();
   assert.equal(await page.locator('#roomEntries li').first().innerText(),'<img src=x onerror=alert(1)>');
   // An invite link must never contain the organizer's privileged token.
   assert.doesNotMatch(await page.locator('#roomLink').inputValue(),new RegExp(adminToken));
