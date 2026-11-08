@@ -18,7 +18,7 @@ async function api(req,env,url){const path=url.pathname,method=req.method;
  if(!['GET','POST','DELETE'].includes(method))return fail('Método não permitido',405);
  if(method!=='GET'&&!originOk(req)&&path!=='/api/webhooks/mercadopago')return fail('Origem inválida',403);
  // Public rooms: anonymous registration, short lifetime, bounded capacity and no account data.
- const roomMatch=path.match(/^\\/api\\/rooms\\/([0-9a-f]{32})(?:\\/(join|close))?$/);
+ const roomMatch=path.match(/^\/api\/rooms\/([0-9a-f]{32})(?:\/(join|close))?$/);
  async function roomRateLimit(scope,identity,limit,windowMs){
   const bucket=Math.floor(Date.now()/windowMs),key=await sha(scope+':'+identity+':'+bucket);
   await env.DB.prepare('INSERT INTO draw_room_rate_limits(key,hits,expires_at) VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET hits=hits+1').bind(key,(bucket+1)*windowMs).run();
