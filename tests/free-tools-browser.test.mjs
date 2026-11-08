@@ -212,7 +212,7 @@ test('free tools browser smoke tests', async t => {
     });
     await t.test('history: repeating a wheel result spins the wheel again', async () => {
       await page.locator('[data-tab=names]').click();
-      await page.locator('#items').fill('Ana\\nBruno\\nCarla');
+      await page.locator('#items').fill('Ana\nBruno\nCarla');
       await page.locator('#excludeWinners').uncheck();
       await page.locator('#winners').fill('1');
       await page.locator('#spin').click();
