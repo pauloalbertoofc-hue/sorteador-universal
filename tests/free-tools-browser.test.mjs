@@ -670,3 +670,37 @@ test('free tools browser smoke tests', async t => {
     await new Promise(resolve => server.close(resolve));
   }
 });
+
+test('v2.5 mobile room creation, joining and loading names',async()=>{
+ const server=createServer(async(_req,res)=>{res.setHeader('content-type','text/html; charset=utf-8');res.end(await readFile(htmlUrl))});
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ const browser=await chromium.launch({headless:true});
+ try{
+  const page=await browser.newPage({viewport:{width:390,height:844}});
+  const id='a'.repeat(32),adminToken='b'.repeat(64);
+  let names=[],closed=false;
+  await page.route('**/api/rooms**',async route=>{
+   const req=route.request(),u=new URL(req.url()),parts=u.pathname.split('/');
+   let status=200,body={};
+   if(u.pathname==='/api/rooms'&&req.method()==='POST'){status=201;body={id,title:'Sorteio da turma',maxEntries:3,adminToken,expiresAt:Date.now()+86400000}}
+   else if(parts[3]===id&&req.method()==='GET'){body={id,title:'Sorteio da turma',status:closed?'closed':'open',maxEntries:3,expiresAt:Date.now()+86400000,entries:names}}
+   else if(parts[4]==='join'){names.push(req.postDataJSON().name);status=201;body={ok:true}}
+   else if(parts[4]==='close'){closed=true;body={ok:true}}
+   else {status=404;body={error:'not_found'}}
+   await route.fulfill({status,contentType:'application/json',body:JSON.stringify(body)});
+  });
+  await page.goto('http://127.0.0.1:'+server.address().port+'/');
+  await page.locator('#roomTitle').fill('Sorteio da turma');
+  await page.locator('#roomLimit').fill('3');
+  await page.locator('#roomCreate').click();
+  await page.locator('#roomActiveTitle').getByText('Sorteio da turma').waitFor();
+  assert.match(await page.locator('#roomLink').inputValue(),new RegExp('room='+id));
+  assert.doesNotMatch(await page.locator('#roomLink').inputValue(),new RegExp(adminToken));
+  await page.locator('#roomName').fill('Ana Silva');
+  await page.locator('#roomJoin').click();
+  await page.locator('#roomEntries li').getByText('Ana Silva').waitFor();
+  await page.locator('#roomUse').click();
+  assert.equal(await page.locator('#items').inputValue(),'Ana Silva');
+
+ }finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
+});
