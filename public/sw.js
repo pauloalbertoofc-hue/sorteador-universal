@@ -1,4 +1,4 @@
-const CACHE = 'sorteador-universal-v2-0-10';
+const CACHE = 'sorteador-universal-v2-0-11';
 const PRECACHE = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png'];
 const STATIC_PATHS = new Set(PRECACHE.map(path => new URL(path, self.location.href).pathname));
 
