@@ -17,6 +17,8 @@ test('free tools browser smoke tests', async t => {
     browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
     const page = await context.newPage();
+    const pageErrors = [];
+    page.on('pageerror', error => pageErrors.push(error.message));
     await page.route(/^https?:\/\//, route => route.request().url().startsWith('http://127.0.0.1:') ? route.continue() : route.abort());
     await page.goto(`http://127.0.0.1:${server.address().port}/`);
     await t.test('mobile v2.2: bottom navigation and touch targets', async () => {
@@ -438,6 +440,7 @@ test('free tools browser smoke tests', async t => {
       await page.locator('#clearSettings').click();
       assert.equal(await page.locator('#max').inputValue(), '100');
     });
+    assert.deepEqual(pageErrors, [], 'unexpected browser JavaScript errors');
     await context.close();
   } finally {
     if (browser) await browser.close();
