@@ -39,8 +39,10 @@ async function api(req,env,url){const path=url.pathname,method=req.method;
  if(roomMatch&&method==='GET'&&!roomMatch[2]){
   const room=await env.DB.prepare('SELECT id,title,status,expires_at,max_entries FROM draw_rooms WHERE id=?').bind(roomMatch[1]).first();
   if(!room)return fail('Sala não encontrada',404);
-  const entries=await env.DB.prepare('SELECT display_name FROM draw_room_entries WHERE room_id=? ORDER BY created_at,id LIMIT 100').bind(room.id).all();
-  return json({id:room.id,title:room.title,status:room.status==='open'&&room.expires_at>Date.now()?'open':'closed',expiresAt:room.expires_at,maxEntries:room.max_entries,entries:entries.results.map(e=>e.display_name)});
+  // Expired rooms stop exposing participant names immediately, before cron cleanup.
+  const expired=room.expires_at<=Date.now();
+  const entries=expired?[]:(await env.DB.prepare('SELECT display_name FROM draw_room_entries WHERE room_id=? ORDER BY created_at,id LIMIT 100').bind(room.id).all()).results.map(e=>e.display_name);
+  return json({id:room.id,title:room.title,status:room.status==='open'&&!expired?'open':'closed',expiresAt:room.expires_at,maxEntries:room.max_entries,entries});
  }
  if(roomMatch&&method==='POST'&&roomMatch[2]==='join'){
   if(!await roomRateLimit('join',requester,30,3600000))return fail('Muitas inscrições. Tente mais tarde.',429);
