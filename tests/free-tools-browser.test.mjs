@@ -206,6 +206,9 @@ test('free tools browser smoke tests', async t => {
       assert.equal(await page.locator('#min').inputValue(), '25');
       assert.equal(await page.locator('#max').inputValue(), '25');
       assert.equal((await page.locator('#result .chip').first().textContent()).trim(), '25');
+      await page.reload();
+      assert.equal(await page.locator('#history li').filter({ has: page.getByRole('button', { name: 'Remover dos favoritos' }) }).count(), 1);
+      assert.equal(await page.locator('#history li').filter({ has: page.getByRole('button', { name: 'Repetir configuração de Sortear números' }) }).count() >= 1, true);
     });
     await t.test('saved settings can be cleared', async () => {
       await page.locator('[data-tab=numbers]').click();
