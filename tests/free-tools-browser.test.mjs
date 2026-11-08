@@ -126,6 +126,23 @@ test('free tools browser smoke tests', async t => {
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
       assert.equal(overflow, false, 'horizontal page overflow at mobile width');
     });
+    await t.test('wheel: excludes winners and refreshes available segments', async () => {
+      await page.locator('[data-tab=names]').click();
+      await page.locator('#items').fill('Ana\\nBruno\\nCarla');
+      await page.locator('#winners').fill('1');
+      await page.locator('#excludeWinners').check();
+      await page.locator('#spin').click();
+      await page.waitForFunction(() => !document.querySelector('#spin').disabled, null, { timeout: 8000 });
+      assert.match(await page.locator('#winnerProgress').textContent(), /2 de 3 nomes disponíveis/);
+      assert.equal(await page.locator('#wheelDisc .wheel-label').count(), 2);
+      await page.locator('#spin').click();
+      await page.waitForFunction(() => !document.querySelector('#spin').disabled, null, { timeout: 8000 });
+      assert.match(await page.locator('#winnerProgress').textContent(), /1 de 3 nomes disponíveis/);
+      assert.equal(await page.locator('#wheelDisc .wheel-label').count(), 1);
+      await page.locator('#resetWinners').click();
+      assert.match(await page.locator('#winnerProgress').textContent(), /3 de 3 nomes disponíveis/);
+      assert.equal(await page.locator('#wheelDisc .wheel-label').count(), 3);
+    });
     await t.test('saved settings can be cleared', async () => {
       await page.locator('[data-tab=numbers]').click();
       await page.locator('#max').fill('777');
