@@ -65,3 +65,15 @@ test('room migrations are mirrored into preview and retain the same schema',asyn
   assert.equal(preview,prod,'preview schema differs for '+name);
  }
 });
+
+test('full preview migration chain provisions rooms alongside existing auth and billing tables',async t=>{
+ const mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:'export default {fetch(){return new Response("ok")}}',compatibilityDate:'2026-10-24',d1Databases:['DB']}));
+ t.after(()=>mf.dispose());const db=await mf.getD1Database('DB');
+ for(const file of ['0001_initial.sql','0002_billing_safety.sql','0003_public_rooms.sql','0004_room_rate_limits.sql']){
+  const sql=(await readFile('migrations/preview/'+file,'utf8')).replace(/^--.*$/gm,'');
+  for(const statement of sql.split(';').filter(x=>x.trim()))await db.prepare(statement).run();
+ }
+ for(const table of ['users','sessions','subscriptions','saved_lists','payment_events','billing_locks','billing_checkout','billing_events','draw_rooms','draw_room_entries','draw_room_rate_limits']){
+  assert.equal((await db.prepare('SELECT COUNT(*) AS n FROM '+table).first()).n,0,table);
+ }
+});
