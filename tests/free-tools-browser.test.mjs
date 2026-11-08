@@ -714,6 +714,14 @@ test('v2.5 mobile room creation, joining and loading names',async()=>{
   assert.equal(await page.locator('#roomJoin').isDisabled(),true);
   assert.equal(await page.locator('#roomName').isDisabled(),true);
   assert.match(await page.locator('#roomMeta').innerText(),/Prazo:/);
+  // Participant names are rendered as text, never interpreted as HTML.
+  names=['<img src=x onerror=alert(1)>'];closed=false;
+  await page.locator('#roomRefresh').click();
+  assert.equal(await page.locator('#roomEntries img').count(),0);
+  assert.equal(await page.locator('#roomEntries li').first().innerText(),'<img src=x onerror=alert(1)>');
+  // An invite link must never contain the organizer's privileged token.
+  assert.doesNotMatch(await page.locator('#roomLink').inputValue(),new RegExp(adminToken));
+
 
 
  }finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
