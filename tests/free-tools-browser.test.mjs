@@ -17,7 +17,7 @@ test('free tools browser smoke tests', async t => {
     browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
     const page = await context.newPage();
-    await page.route(/^https?:\/\//, route => route.abort());
+    await page.route(/^https?:\/\//, route => route.request().url().startsWith('http://127.0.0.1:') ? route.continue() : route.abort());
     await page.goto(`http://127.0.0.1:${server.address().port}/`);
     await t.test('numbers: full unique range and incremental results', async () => {
       await page.locator('#min').fill('1');
