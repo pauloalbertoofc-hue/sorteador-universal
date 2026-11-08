@@ -356,7 +356,7 @@ test('free tools browser smoke tests', async t => {
     });
     await t.test('presentation v2.3: long team results remain readable on mobile', async () => {
       await page.locator('[data-tab=teams]').click();
-      const teamInput = page.locator('#participants');
+      const teamInput = page.locator('#players');
       assert.equal(await teamInput.count(), 1);
       await teamInput.fill(Array.from({length: 30}, (_, i) => `Participante de teste ${i + 1}`).join('\\n'));
       await page.locator('#draw').click();
