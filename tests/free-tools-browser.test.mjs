@@ -196,6 +196,7 @@ test('free tools browser smoke tests', async t => {
       await page.locator('#items').fill('Ana\\nBruno\\nCarla');
       await page.locator('#excludeWinners').check();
       await page.locator('#winners').fill('1');
+      const before = await page.locator('#history li').count();
       await page.locator('#spin').click();
       assert.equal(await page.locator('#spin').isDisabled(), true);
       await page.locator('#items').fill('Ana\\nBruno\\nCarla\\nDavi');
@@ -203,7 +204,7 @@ test('free tools browser smoke tests', async t => {
       assert.equal(await page.locator('#wheelWinner').isVisible(), false);
       assert.match(await page.locator('#winnerProgress').textContent(), /4 de 4 nomes disponíveis/);
       await page.waitForTimeout(150);
-      assert.equal(await page.locator('#history li').filter({ hasText: 'Roleta de nomes' }).count() >= 0, true);
+      assert.equal(await page.locator('#history li').count(), before);
     });
     await t.test('wheel: editing participant list resets excluded winners', async () => {
       await page.locator('[data-tab=names]').click();
