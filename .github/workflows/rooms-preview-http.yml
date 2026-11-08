@@ -1,0 +1,49 @@
+name: Rooms preview HTTP deployment (manual only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Type PUBLICAR-PREVIEW to deploy a separate preview Worker (never production)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-preview:
+    if: ${{ inputs.confirmation == 'PUBLICAR-PREVIEW' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: preview-d1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Validate isolated preview Worker configuration
+        run: |
+          node --input-type=module <<'NODE'
+          import {readFileSync} from 'node:fs';
+          const c=JSON.parse(readFileSync('wrangler.rooms-preview.jsonc','utf8'));
+          if(c.name!=='sorteador-universal-rooms-preview'||c.d1_databases?.length!==1||c.d1_databases[0].database_id!=='9701cfcf-9c77-4b09-8411-0f4a13f8c584'||c.workers_dev!==true||c.vars?.BILLING_ENABLED!=='false'||c.routes||c.route||c.triggers)throw Error('Unsafe preview Worker configuration');
+          if(JSON.stringify(c).includes('24fe67dc-7003-4557-9de0-cf6658e713c2'))throw Error('Production D1 ID in preview config');
+          NODE
+      - name: Run integration and browser tests
+        run: node --test tests/rooms-integration.test.mjs tests/preview.test.mjs
+      - name: Deploy separate preview Worker (no production routes)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
+          npx wrangler deploy --config wrangler.rooms-preview.jsonc
+      - name: Check deployed preview HTTP response
+        run: |
+          node --input-type=module <<'NODE'
+          const url='https://sorteador-universal-rooms-preview.'+process.env.CLOUDFLARE_SUBDOMAIN+'.workers.dev/api/rooms/not-a-room';
+          console.log('Preview HTTP smoke test requires confirmed workers.dev subdomain; use Cloudflare deployment output to test the URL.');
+          NODE
