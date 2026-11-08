@@ -30,7 +30,9 @@ jobs:
           import {readFileSync} from 'node:fs';
           const config=JSON.parse(readFileSync('wrangler.preview-db.jsonc','utf8'));
           const db=config.d1_databases;
-          if(db.length!==1||db[0].binding!=='DB'||db[0].database_id!=='9701cfcf-9c77-4b09-8411-0f4a13f8c584'||db[0].migrations_dir!=='migrations/preview')throw Error('Unexpected D1 target: refusing remote migration');
+          if(db.length!==1||db[0].binding!=='DB'||db[0].database_id!=='9701cfcf-9c77-4b09-8411-0f4a13f8c584'||db[0].database_name!=='sorteador-universal-preview-db'||db[0].migrations_dir!=='migrations/preview')throw Error('Unexpected D1 target: refusing remote migration');
+          const production='24fe67dc-7003-4557-9de0-cf6658e713c2';
+          if(JSON.stringify(config).includes(production))throw Error('Production database identifier found in preview config');
           console.log('Target verified: isolated preview D1 database');
           NODE
       - name: Run isolated D1 integration tests first
@@ -48,3 +50,17 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npx wrangler d1 migrations list DB --remote --config wrangler.preview-db.jsonc
+      - name: Read-only verification of preview room tables
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx wrangler d1 execute DB --remote --config wrangler.preview-db.jsonc --command "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('draw_rooms','draw_room_entries','draw_room_rate_limits') ORDER BY name;" --json > preview-tables.json
+          node --input-type=module <<'NODE'
+          import {readFileSync} from 'node:fs';
+          const output=JSON.parse(readFileSync('preview-tables.json','utf8'));
+          const names=output.flatMap(x=>x.results||[]).map(x=>x.name).sort();
+          const expected=['draw_room_entries','draw_room_rate_limits','draw_rooms'];
+          if(JSON.stringify(names)!==JSON.stringify(expected))throw Error('Preview D1 room tables missing: '+JSON.stringify(names));
+          console.log('Preview D1 room tables verified');
+          NODE
