@@ -252,6 +252,21 @@ test('free tools browser smoke tests', async t => {
       assert.ok((await page.locator('#history').textContent()).includes('31'));
       assert.equal(await page.locator('#history li button[aria-pressed=true]').count(), 20);
     });
+    await t.test('history: loading too many favorites keeps recent results', async () => {
+      await page.evaluate(() => {
+        const favorites = Array.from({ length: 25 }, (_, i) => ({
+          label: 'Favorito', text: String(i), favorite: true
+        }));
+        const recent = Array.from({ length: 5 }, (_, i) => ({
+          label: 'Recente', text: String(i), favorite: false
+        }));
+        localStorage.setItem('su-history', JSON.stringify([...favorites, ...recent]));
+      });
+      await page.reload();
+      assert.equal(await page.locator('#history li').count(), 25);
+      assert.equal(await page.locator('#history li button[aria-pressed=true]').count(), 20);
+      assert.equal(await page.locator('#history li').filter({ hasText: 'Recente' }).count(), 5);
+    });
     await t.test('history: invalid saved modes cannot be replayed', async () => {
       await page.evaluate(() => {
         localStorage.setItem('su-history', JSON.stringify([
