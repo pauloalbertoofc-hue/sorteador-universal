@@ -1,0 +1,23 @@
+{
+  "name": "sorteador-universal-rooms-preview",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-10-24",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/api/*"
+    ]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "sorteador-universal-preview-db",
+      "database_id": "9701cfcf-9c77-4b09-8411-0f4a13f8c584"
+    }
+  ],
+  "vars": {
+    "BILLING_ENABLED": "false"
+  },
+  "workers_dev": true
+}
