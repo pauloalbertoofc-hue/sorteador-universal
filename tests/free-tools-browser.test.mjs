@@ -147,6 +147,19 @@ test('free tools browser smoke tests', async t => {
       await page.locator('#draw').click();
       assert.equal(await page.locator('#result .chip').count(), 2);
     });
+    await t.test('wheel v2.2: speed selector and repeat button', async () => {
+      await page.locator('[data-tab=names]').click();
+      await page.locator('#items').fill('Ana\nBruno\nCarla');
+      await page.locator('#excludeWinners').uncheck();
+      await page.locator('#winners').fill('1');
+      assert.equal(await page.locator('#wheelSpeed option').count(), 3);
+      await page.locator('#wheelSpeed').selectOption('2000');
+      await page.locator('#spin').click();
+      assert.equal(await page.locator('#spin').textContent(), 'Girando…');
+      await page.waitForFunction(() => !document.querySelector('#spin').disabled, null, { timeout: 8000 });
+      assert.match(await page.locator('#spin').textContent(), /Girar novamente/);
+      assert.equal(await page.locator('#wheelWinner').isVisible(), true);
+    });
     await t.test('wheel: selects a single valid name', async () => {
       await page.locator('[data-tab=names]').click();
       await page.locator('#items').fill('Ana\nBruno\nCarla');
