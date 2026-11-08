@@ -193,13 +193,13 @@ test('free tools browser smoke tests', async t => {
     });
     await t.test('wheel: changing participants cancels an in-flight spin', async () => {
       await page.locator('[data-tab=names]').click();
-      await page.locator('#items').fill('Ana\\nBruno\\nCarla');
+      await page.locator('#items').fill('Ana\nBruno\nCarla');
       await page.locator('#excludeWinners').check();
       await page.locator('#winners').fill('1');
       const before = await page.locator('#history li').count();
       await page.locator('#spin').click();
       assert.equal(await page.locator('#spin').isDisabled(), true);
-      await page.locator('#items').fill('Ana\\nBruno\\nCarla\\nDavi');
+      await page.locator('#items').fill('Ana\nBruno\nCarla\nDavi');
       assert.equal(await page.locator('#spin').isDisabled(), false);
       assert.equal(await page.locator('#wheelWinner').isVisible(), false);
       assert.match(await page.locator('#winnerProgress').textContent(), /4 de 4 nomes disponíveis/);
