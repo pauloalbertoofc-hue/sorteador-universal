@@ -34,6 +34,7 @@ test('free tools browser smoke tests', async t => {
       assert.equal(await page.locator('#teamcount').inputValue(), '2');
     });
     await t.test('numbers: full unique range and incremental results', async () => {
+      await page.locator('[data-tab=numbers]').click();
       await page.locator('#min').fill('1');
       await page.locator('#max').fill('100');
       await page.locator('#qty').fill('100');
