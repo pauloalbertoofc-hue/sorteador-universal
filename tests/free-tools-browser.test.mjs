@@ -335,6 +335,25 @@ test('free tools browser smoke tests', async t => {
       assert.match(await page.locator('#winnerProgress').textContent(), /4 de 4 nomes disponíveis/);
       assert.equal(await page.locator('#wheelDisc .wheel-label').count(), 4);
     });
+    await t.test('presentation v2.3: opens, closes and resets between tools', async () => {
+      await page.locator('[data-tab=numbers]').click();
+      assert.equal(await page.locator('#presentationOpen').isVisible(), false);
+      await page.locator('#min').fill('42');
+      await page.locator('#max').fill('42');
+      await page.locator('#qty').fill('1');
+      await page.locator('#draw').click();
+      await page.locator('#presentationOpen').click();
+      assert.equal(await page.locator('#presentationView').isVisible(), true);
+      assert.match(await page.locator('#presentationResult').textContent(), /42/);
+      assert.equal(await page.locator('#presentationClose').evaluate(el => el === document.activeElement), true);
+      await page.keyboard.press('Escape');
+      assert.equal(await page.locator('#presentationView').isVisible(), false);
+      await page.locator('#presentationOpen').click();
+      await page.locator('#presentationClose').click();
+      assert.equal(await page.locator('#presentationView').isVisible(), false);
+      await page.locator('[data-tab=teams]').click();
+      assert.equal(await page.locator('#presentationOpen').isVisible(), false);
+    });
     await t.test('result cards: generate a PNG and hide when switching tools', async () => {
       await page.locator('[data-tab=numbers]').click();
       await page.locator('#min').fill('7');
