@@ -110,7 +110,14 @@ async function api(req,env,url){const path=url.pathname,method=req.method;
  }
  return fail('Rota não encontrada',404);
 }
-export default {async fetch(req,env){const url=new URL(req.url);if(url.pathname.startsWith('/api/')){try{return await api(req,env,url)}catch(e){
+export default {async scheduled(_event,env){
+  if(!env.DB)return;
+  const now=Date.now();
+  // D1 does not necessarily enforce FK cascades: delete dependent entries first.
+  await env.DB.prepare('DELETE FROM draw_room_entries WHERE room_id IN (SELECT id FROM draw_rooms WHERE expires_at<=?)').bind(now).run();
+  await env.DB.prepare('DELETE FROM draw_rooms WHERE expires_at<=?').bind(now).run();
+  await env.DB.prepare('DELETE FROM draw_room_rate_limits WHERE expires_at<=?').bind(now).run();
+},async fetch(req,env){const url=new URL(req.url);if(url.pathname.startsWith('/api/')){try{return await api(req,env,url)}catch(e){
    if(e instanceof BillingError){
      if(url.pathname==='/api/webhooks/mercadopago' && e.message==='Webhook indisponível.'){
        // Diagnostics expose only validation outcomes, never secret values or request data.
