@@ -172,6 +172,10 @@ test('free tools browser smoke tests', async t => {
       await page.waitForFunction(() => !document.querySelector('#spin').disabled, null, { timeout: 8000 });
       assert.match(await page.locator('#winnerProgress').textContent(), /1 de 3 nomes disponíveis/);
       assert.equal(await page.locator('#wheelDisc .wheel-label').count(), 1);
+      await page.locator('#spin').click();
+      await page.waitForFunction(() => !document.querySelector('#spin').disabled, null, { timeout: 8000 });
+      assert.match(await page.locator('#winnerProgress').textContent(), /0 de 3 nomes disponíveis/);
+      assert.equal(await page.locator('#wheelDisc .wheel-label').count(), 0);
       await page.locator('#resetWinners').click();
       assert.match(await page.locator('#winnerProgress').textContent(), /3 de 3 nomes disponíveis/);
       assert.equal(await page.locator('#wheelDisc .wheel-label').count(), 3);
