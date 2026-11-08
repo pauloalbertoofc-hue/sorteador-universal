@@ -335,6 +335,25 @@ test('free tools browser smoke tests', async t => {
       assert.match(await page.locator('#winnerProgress').textContent(), /4 de 4 nomes disponíveis/);
       assert.equal(await page.locator('#wheelDisc .wheel-label').count(), 4);
     });
+    await t.test('result v2.3: contextual appearance follows each tool', async () => {
+      await page.locator('[data-tab=numbers]').click();
+      await page.locator('#min').fill('5');
+      await page.locator('#max').fill('5');
+      await page.locator('#qty').fill('1');
+      await page.locator('#draw').click();
+      assert.equal(await page.locator('#result').getAttribute('data-result-mode'), 'numbers');
+      assert.equal(await page.locator('#result').getAttribute('data-has-result'), 'true');
+      await page.locator('#presentationOpen').click();
+      assert.equal(await page.locator('#presentationView').getAttribute('data-mode'), 'numbers');
+      await page.locator('#presentationClose').click();
+      await page.locator('[data-tab=dice]').click();
+      assert.equal(await page.locator('#result').getAttribute('data-has-result'), null);
+      await page.locator('#draw').click();
+      assert.equal(await page.locator('#result').getAttribute('data-result-mode'), 'dice');
+      await page.locator('#presentationOpen').click();
+      assert.equal(await page.locator('#presentationView').getAttribute('data-mode'), 'dice');
+      await page.locator('#presentationClose').click();
+    });
     await t.test('presentation v2.3: opens, closes and resets between tools', async () => {
       await page.locator('[data-tab=numbers]').click();
       assert.equal(await page.locator('#presentationOpen').isVisible(), false);
