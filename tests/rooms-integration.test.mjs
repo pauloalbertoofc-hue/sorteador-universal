@@ -61,3 +61,16 @@ test('public rooms: create, duplicate/capacity, close, expiry cleanup and rate l
  assert.equal((await api('/api/rooms/'+id)).status,404);
  assert.equal((await db.prepare('SELECT COUNT(*) AS n FROM draw_room_entries WHERE room_id=?').bind(id).first()).n,0);
 });
+
+// Preview mode must not expose account, subscription, or payment endpoints.
+test('rooms-only preview rejects non-room APIs before accessing D1 or billing',async t=>{
+ const worker=(await import('../src/worker.js')).default;
+ const env={PREVIEW_ROOMS_ONLY:'true'};
+ for(const path of ['/api/me','/api/login','/api/register','/api/billing','/api/webhooks/mercadopago','/api/lists','/api/rooms/invalid/join']){
+  const response=await worker.fetch(new Request('https://preview.example'+path),env);
+  assert.equal(response.status,404,path);
+  assert.equal((await response.json()).error,'Rota indisponível no ambiente de prévia');
+ }
+ const response=await worker.fetch(new Request('https://preview.example/api/rooms'),env);
+ assert.notEqual(response.status,404,'room endpoint remains reachable in preview mode');
+});
