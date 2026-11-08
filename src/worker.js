@@ -119,7 +119,7 @@ export default {async scheduled(_event,env){
   await env.DB.prepare('DELETE FROM draw_room_entries WHERE room_id IN (SELECT id FROM draw_rooms WHERE expires_at<=?)').bind(now).run();
   await env.DB.prepare('DELETE FROM draw_rooms WHERE expires_at<=?').bind(now).run();
   await env.DB.prepare('DELETE FROM draw_room_rate_limits WHERE expires_at<=?').bind(now).run();
-},async fetch(req,env){const url=new URL(req.url);if(url.pathname.startsWith('/api/')){try{return await api(req,env,url)}catch(e){
+},async fetch(req,env){const url=new URL(req.url);if(env.PREVIEW_ROOMS_ONLY==='true'&&url.pathname.startsWith('/api/')&&url.pathname!=='/api/rooms'&&!/^\/api\/rooms\/[a-f0-9]{32}(?:\/(?:join|close))?$/.test(url.pathname))return fail('Rota indisponível no ambiente de prévia',404);if(url.pathname.startsWith('/api/')){try{return await api(req,env,url)}catch(e){
    if(e instanceof BillingError){
      if(url.pathname==='/api/webhooks/mercadopago' && e.message==='Webhook indisponível.'){
        // Diagnostics expose only validation outcomes, never secret values or request data.
