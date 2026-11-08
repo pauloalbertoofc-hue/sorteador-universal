@@ -173,6 +173,22 @@ test('free tools browser smoke tests', async t => {
       assert.match(await page.locator('#winnerProgress').textContent(), /3 de 3 nomes disponíveis/);
       assert.equal(await page.locator('#wheelDisc .wheel-label').count(), 3);
     });
+    await t.test('history: favorites and repeat restore draw configuration', async () => {
+      await page.locator('[data-tab=numbers]').click();
+      await page.locator('#min').fill('25');
+      await page.locator('#max').fill('25');
+      await page.locator('#qty').fill('1');
+      await page.locator('#draw').click();
+      const item = page.locator('#history li').first();
+      await item.getByRole('button', { name: 'Adicionar aos favoritos' }).click();
+      assert.equal(await page.locator('#history li').first().getByRole('button', { name: 'Remover dos favoritos' }).count(), 1);
+      await page.locator('#min').fill('1');
+      await page.locator('#max').fill('100');
+      await page.locator('#history li').first().getByRole('button', { name: /Repetir configuração/ }).click();
+      assert.equal(await page.locator('#min').inputValue(), '25');
+      assert.equal(await page.locator('#max').inputValue(), '25');
+      assert.equal((await page.locator('#result .chip').first().textContent()).trim(), '25');
+    });
     await t.test('saved settings can be cleared', async () => {
       await page.locator('[data-tab=numbers]').click();
       await page.locator('#max').fill('777');
