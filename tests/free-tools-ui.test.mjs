@@ -104,3 +104,10 @@ test('v2.3 design system keeps mobile navigation bounded', () => {
   assert.match(html, /max-height:110px/);
   assert.match(html, /Versão 2\.4/);
 });
+
+test('v2.5 public rooms have accessible create, join, copy and draw controls', () => {
+  for(const id of ['roomStudio','roomCreate','roomTitle','roomLimit','roomActive','roomJoin','roomCopy','roomClose','roomUse','roomEntries','roomMessage'])assert.match(html,new RegExp('id="'+id+'"'));
+  assert.match(html,/searchParams\.set\('room',id\)/);
+  assert.match(html,/localStorage\.setItem\('su-room-admin-'/);
+  assert.match(html,/const field=\$\('#items'\)/);
+});
