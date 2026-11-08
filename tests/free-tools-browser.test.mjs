@@ -368,6 +368,28 @@ test('free tools browser smoke tests', async t => {
       assert.ok(metrics.width <= metrics.viewport, 'long results must fit mobile viewport');
       await page.locator('#presentationClose').click();
     });
+    await t.test('history v2.3: search, tool filter and favorites', async () => {
+      await page.locator('#historySearch').fill('busca-impossivel-987');
+      assert.match(await page.locator('#history').innerText(), /Nenhum sorteio corresponde aos filtros|Nenhum sorteio ainda/);
+      await page.locator('#historySearch').fill('');
+      await page.locator('[data-tab=numbers]').click();
+      await page.locator('#min').fill('77');
+      await page.locator('#max').fill('77');
+      await page.locator('#qty').fill('1');
+      await page.locator('#draw').click();
+      await page.locator('#historyMode').selectOption('numbers');
+      assert.match(await page.locator('#historyCount').innerText(), /sorteios exibidos/);
+      await page.locator('#historySearch').fill('77');
+      assert.ok(await page.locator('#history li').count() >= 1);
+      await page.locator('#history li').first().locator('button[aria-label="Adicionar aos favoritos"]').click();
+      await page.locator('#historyFavorites').selectOption('favorites');
+      assert.ok(await page.locator('#history li').count() >= 1);
+      await page.locator('#historySearch').fill('busca-impossivel-987');
+      assert.match(await page.locator('#history').innerText(), /Nenhum sorteio corresponde aos filtros/);
+      await page.locator('#historySearch').fill('');
+      await page.locator('#historyMode').selectOption('all');
+      await page.locator('#historyFavorites').selectOption('all');
+    });
     await t.test('presentation v2.3: opens, closes and resets between tools', async () => {
       await page.locator('[data-tab=numbers]').click();
       assert.equal(await page.locator('#presentationOpen').isVisible(), false);
