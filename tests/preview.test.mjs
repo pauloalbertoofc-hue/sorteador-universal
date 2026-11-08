@@ -58,3 +58,10 @@ test('preview bootstrap is repeatable, creates five empty tables and enforces au
   const index = await db.prepare("SELECT name FROM sqlite_master WHERE type='index' AND name='idx_sessions_expiry'").first();
   assert.ok(index);
 });
+
+test('room migrations are mirrored into preview and retain the same schema',async()=>{
+ for(const name of ['0003_public_rooms.sql','0004_room_rate_limits.sql']){
+  const [prod,preview]=await Promise.all([readFile('migrations/'+name,'utf8'),readFile('migrations/preview/'+name,'utf8')]);
+  assert.equal(preview,prod,'preview schema differs for '+name);
+ }
+});
