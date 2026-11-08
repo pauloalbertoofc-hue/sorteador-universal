@@ -210,6 +210,19 @@ test('free tools browser smoke tests', async t => {
       assert.equal(await page.locator('#history li').filter({ has: page.getByRole('button', { name: 'Remover dos favoritos' }) }).count(), 1);
       assert.equal(await page.locator('#history li').filter({ has: page.getByRole('button', { name: 'Repetir configuração de Sortear números' }) }).count() >= 1, true);
     });
+    await t.test('history: repeating a wheel result spins the wheel again', async () => {
+      await page.locator('[data-tab=names]').click();
+      await page.locator('#items').fill('Ana\\nBruno\\nCarla');
+      await page.locator('#excludeWinners').uncheck();
+      await page.locator('#winners').fill('1');
+      await page.locator('#spin').click();
+      await page.waitForFunction(() => !document.querySelector('#spin').disabled, null, { timeout: 8000 });
+      const wheelItem = page.locator('#history li').filter({ hasText: 'Roleta de nomes' }).first();
+      await wheelItem.getByRole('button', { name: /Repetir configuração/ }).click();
+      await page.waitForFunction(() => !document.querySelector('#spin').disabled, null, { timeout: 8000 });
+      assert.equal(await page.locator('#wheelWinner').isVisible(), true);
+      assert.match(await page.locator('#result').textContent(), /Nome sorteado pela roleta/);
+    });
     await t.test('history: recent results remain visible with many favorites', async () => {
       await page.evaluate(() => {
         const entries = Array.from({ length: 30 }, (_, i) => ({
