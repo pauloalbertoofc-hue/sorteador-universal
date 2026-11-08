@@ -17,6 +17,45 @@ async function api(req,env,url){const path=url.pathname,method=req.method;
  if(!env.DB)return fail('Banco D1 não conectado.',503);
  if(!['GET','POST','DELETE'].includes(method))return fail('Método não permitido',405);
  if(method!=='GET'&&!originOk(req)&&path!=='/api/webhooks/mercadopago')return fail('Origem inválida',403);
+ // Public rooms: anonymous registration, short lifetime, bounded capacity and no account data.
+ const roomMatch=path.match(/^\\/api\\/rooms\\/([0-9a-f]{32})(?:\\/(join|close))?$/);
+ if(path==='/api/rooms'&&method==='POST'){
+  const body=await readBody(req);const title=typeof body.title==='string'?body.title.trim():'';
+  if(title.length<3||title.length>80||/[<>\\x00-\\x1f]/.test(title))return fail('Título inválido (3 a 80 caracteres).');
+  const max=Number(body.maxEntries);
+  if(!Number.isInteger(max)||max<2||max>100)return fail('Limite inválido (2 a 100).');
+  const id=random(16),adminToken=random(32),now=Date.now(),expiresAt=now+24*3600000;
+  await env.DB.prepare('INSERT INTO draw_rooms(id,admin_hash,title,status,created_at,expires_at,max_entries) VALUES(?,?,?,?,?,?,?)').bind(id,await sha(adminToken),title,'open',now,expiresAt,max).run();
+  return json({id,title,maxEntries:max,expiresAt,adminToken},201);
+ }
+ if(roomMatch&&method==='GET'&&!roomMatch[2]){
+  const room=await env.DB.prepare('SELECT id,title,status,expires_at,max_entries FROM draw_rooms WHERE id=?').bind(roomMatch[1]).first();
+  if(!room)return fail('Sala não encontrada',404);
+  const entries=await env.DB.prepare('SELECT display_name FROM draw_room_entries WHERE room_id=? ORDER BY created_at,id LIMIT 100').bind(room.id).all();
+  return json({id:room.id,title:room.title,status:room.status==='open'&&room.expires_at>Date.now()?'open':'closed',expiresAt:room.expires_at,maxEntries:room.max_entries,entries:entries.results.map(e=>e.display_name)});
+ }
+ if(roomMatch&&method==='POST'&&roomMatch[2]==='join'){
+  const body=await readBody(req),name=typeof body.name==='string'?body.name.trim().replace(/\\s+/g,' '):'';
+  if(name.length<2||name.length>60||/[<>\\x00-\\x1f]/.test(name))return fail('Nome inválido (2 a 60 caracteres).');
+  const key=name.normalize('NFKC').toLocaleLowerCase('pt-BR');
+  const room=await env.DB.prepare('SELECT status,expires_at,max_entries FROM draw_rooms WHERE id=?').bind(roomMatch[1]).first();
+  if(!room)return fail('Sala não encontrada',404);
+  if(room.status!=='open'||room.expires_at<=Date.now())return fail('Inscrições encerradas',409);
+  // Single atomic statement prevents exceeding capacity under concurrent joins.
+  const insert=await env.DB.prepare(`INSERT OR IGNORE INTO draw_room_entries(id,room_id,display_name,name_key,created_at)
+   SELECT ?,id,?,?,? FROM draw_rooms WHERE id=? AND status='open' AND expires_at>? AND
+   (SELECT COUNT(*) FROM draw_room_entries WHERE room_id=?)<max_entries`).bind(random(16),name,key,Date.now(),roomMatch[1],Date.now(),roomMatch[1]).run();
+  if(!insert.meta?.changes)return fail('Nome já inscrito ou sala lotada',409);
+  return json({ok:true},201);
+ }
+ if(roomMatch&&method==='POST'&&roomMatch[2]==='close'){
+  const token=req.headers.get('x-room-admin-token')||'';
+  if(!/^[0-9a-f]{64}$/.test(token))return fail('Acesso negado',403);
+  const room=await env.DB.prepare('SELECT admin_hash FROM draw_rooms WHERE id=?').bind(roomMatch[1]).first();
+  if(!room||!equal(room.admin_hash,await sha(token)))return fail('Acesso negado',403);
+  await env.DB.prepare("UPDATE draw_rooms SET status='closed' WHERE id=?").bind(roomMatch[1]).run();
+  return json({ok:true});
+ }
  if(path==='/api/health'&&method==='GET')return json({ok:true,version:'2.0.4'});
  if(path==='/api/register'&&method==='POST'){
   const {email,password}=await readBody(req);const e=String(email||'').trim().toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)||e.length>254||typeof password!=='string'||password.length<10||password.length>128)return fail('E-mail ou senha inválidos (mínimo 10 caracteres).');
