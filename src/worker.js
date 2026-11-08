@@ -19,7 +19,15 @@ async function api(req,env,url){const path=url.pathname,method=req.method;
  if(method!=='GET'&&!originOk(req)&&path!=='/api/webhooks/mercadopago')return fail('Origem inválida',403);
  // Public rooms: anonymous registration, short lifetime, bounded capacity and no account data.
  const roomMatch=path.match(/^\\/api\\/rooms\\/([0-9a-f]{32})(?:\\/(join|close))?$/);
+ async function roomRateLimit(scope,identity,limit,windowMs){
+  const bucket=Math.floor(Date.now()/windowMs),key=await sha(scope+':'+identity+':'+bucket);
+  await env.DB.prepare('INSERT INTO draw_room_rate_limits(key,hits,expires_at) VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET hits=hits+1').bind(key,(bucket+1)*windowMs).run();
+  const record=await env.DB.prepare('SELECT hits FROM draw_room_rate_limits WHERE key=?').bind(key).first();
+  return record.hits<=limit;
+ }
+ const requester=req.headers.get('cf-connecting-ip')||'unknown';
  if(path==='/api/rooms'&&method==='POST'){
+  if(!await roomRateLimit('create',requester,5,3600000))return fail('Muitas salas criadas. Tente mais tarde.',429);
   const body=await readBody(req);const title=typeof body.title==='string'?body.title.trim():'';
   if(title.length<3||title.length>80||/[<>\\x00-\\x1f]/.test(title))return fail('Título inválido (3 a 80 caracteres).');
   const max=Number(body.maxEntries);
@@ -35,6 +43,7 @@ async function api(req,env,url){const path=url.pathname,method=req.method;
   return json({id:room.id,title:room.title,status:room.status==='open'&&room.expires_at>Date.now()?'open':'closed',expiresAt:room.expires_at,maxEntries:room.max_entries,entries:entries.results.map(e=>e.display_name)});
  }
  if(roomMatch&&method==='POST'&&roomMatch[2]==='join'){
+  if(!await roomRateLimit('join',requester,30,3600000))return fail('Muitas inscrições. Tente mais tarde.',429);
   const body=await readBody(req),name=typeof body.name==='string'?body.name.trim().replace(/\\s+/g,' '):'';
   if(name.length<2||name.length>60||/[<>\\x00-\\x1f]/.test(name))return fail('Nome inválido (2 a 60 caracteres).');
   const key=name.normalize('NFKC').toLocaleLowerCase('pt-BR');
@@ -49,6 +58,7 @@ async function api(req,env,url){const path=url.pathname,method=req.method;
   return json({ok:true},201);
  }
  if(roomMatch&&method==='POST'&&roomMatch[2]==='close'){
+  if(!await roomRateLimit('close',requester,20,3600000))return fail('Muitas tentativas. Tente mais tarde.',429);
   const token=req.headers.get('x-room-admin-token')||'';
   if(!/^[0-9a-f]{64}$/.test(token))return fail('Acesso negado',403);
   const room=await env.DB.prepare('SELECT admin_hash FROM draw_rooms WHERE id=?').bind(roomMatch[1]).first();
