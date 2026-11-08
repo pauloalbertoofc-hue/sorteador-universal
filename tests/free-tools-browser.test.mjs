@@ -390,6 +390,27 @@ test('free tools browser smoke tests', async t => {
       assert.ok(metrics.width <= metrics.viewport, 'long results must fit mobile viewport');
       await page.locator('#presentationClose').click();
     });
+    await t.test('v2.4: event countdown reveals winners progressively and closes cleanly', async () => {
+      await page.locator('[data-tab=numbers]').click();
+      await page.locator('#min').fill('1');
+      await page.locator('#max').fill('10');
+      await page.locator('#qty').fill('3');
+      await page.locator('#unique').check();
+      await page.locator('#draw').click();
+      await page.locator('#eventOpen').click();
+      assert.equal(await page.locator('#presentationView').getAttribute('data-event'), 'true');
+      assert.equal(await page.locator('#eventCountdown').isVisible(), true);
+      await page.waitForFunction(() => !document.querySelector('#eventControls').hidden, {timeout:8000});
+      assert.equal(await page.locator('#presentationResult .presentation-line').count(), 1);
+      await page.locator('#eventNext').click();
+      assert.equal(await page.locator('#presentationResult .presentation-line').count(), 2);
+      await page.locator('#eventAll').click();
+      assert.equal(await page.locator('#presentationResult .presentation-line').count(), 3);
+      await page.keyboard.press('Escape');
+      assert.equal(await page.locator('#presentationView').isVisible(), false);
+      await page.locator('[data-tab=dice]').click();
+      assert.equal(await page.locator('#eventOpen').isVisible(), false);
+    });
     await t.test('v2.4: printable receipt is readable and escapes participant names', async () => {
       await page.locator('[data-tab=names]').click();
       await page.locator('#items').fill('<script>alert(1)</script>');
