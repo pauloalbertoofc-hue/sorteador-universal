@@ -81,7 +81,7 @@ test('free tools browser smoke tests', async t => {
     });
     await t.test('wheel: selects a single valid name', async () => {
       await page.locator('[data-tab=names]').click();
-      await page.locator('#items').fill('Ana\\nBruno\\nCarla');
+      await page.locator('#items').fill('Ana\nBruno\nCarla');
       await page.locator('#excludeWinners').uncheck();
       await page.locator('#winners').fill('1');
       await page.locator('#spin').click();
