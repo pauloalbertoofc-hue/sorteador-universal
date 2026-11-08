@@ -90,6 +90,26 @@ test('free tools browser smoke tests', async t => {
       assert.ok(['Ana', 'Bruno', 'Carla'].some(name => result.includes(name)));
       assert.equal(await page.locator('#error').textContent(), '');
     });
+    await t.test('names: duplicate entries do not repeat when exclusion is enabled', async () => {
+      await page.locator('[data-tab=names]').click();
+      await page.locator('#items').fill('Ana\\nAna\\nBruno');
+      await page.locator('#removeDup').uncheck();
+      await page.locator('#excludeWinners').check();
+      await page.locator('#winners').fill('2');
+      await page.locator('#draw').click();
+      const winners = await page.locator('#result .chip').allTextContents();
+      assert.equal(winners.length, 2);
+      assert.equal(new Set(winners).size, 2);
+    });
+    await t.test('mobile: results stay within the viewport', async () => {
+      await page.locator('[data-tab=numbers]').click();
+      await page.locator('#min').fill('1');
+      await page.locator('#max').fill('1000');
+      await page.locator('#qty').fill('1000');
+      await page.locator('#draw').click();
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+      assert.equal(overflow, false, 'horizontal page overflow at mobile width');
+    });
     await t.test('saved settings can be cleared', async () => {
       await page.locator('[data-tab=numbers]').click();
       await page.locator('#max').fill('777');
