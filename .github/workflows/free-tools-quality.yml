@@ -7,6 +7,11 @@ on:
       - 'public/sw.js'
       - 'tests/free-tools-ui.test.mjs'
       - 'tests/free-tools-browser.test.mjs'
+      - 'tests/rooms-api-contract.test.mjs'
+      - 'src/worker.js'
+      - 'migrations/0002_public_rooms.sql'
+      - 'migrations/0003_room_rate_limits.sql'
+      - 'wrangler.jsonc'
       - '.github/workflows/free-tools-quality.yml'
   pull_request:
     paths:
@@ -14,6 +19,11 @@ on:
       - 'public/sw.js'
       - 'tests/free-tools-ui.test.mjs'
       - 'tests/free-tools-browser.test.mjs'
+      - 'tests/rooms-api-contract.test.mjs'
+      - 'src/worker.js'
+      - 'migrations/0002_public_rooms.sql'
+      - 'migrations/0003_room_rate_limits.sql'
+      - 'wrangler.jsonc'
       - '.github/workflows/free-tools-quality.yml'
   workflow_dispatch:
 
@@ -31,7 +41,9 @@ jobs:
           node-version: '22'
           cache: npm
       - name: Static and algorithm checks
-        run: node --test tests/free-tools-ui.test.mjs
+        run: |
+          node --check src/worker.js
+          node --test tests/free-tools-ui.test.mjs tests/rooms-api-contract.test.mjs
       - name: Install locked dependencies
         run: npm ci
       - name: Install Chromium
