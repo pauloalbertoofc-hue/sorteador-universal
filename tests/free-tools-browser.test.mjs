@@ -19,6 +19,20 @@ test('free tools browser smoke tests', async t => {
     const page = await context.newPage();
     await page.route(/^https?:\/\//, route => route.request().url().startsWith('http://127.0.0.1:') ? route.continue() : route.abort());
     await page.goto(`http://127.0.0.1:${server.address().port}/`);
+    await t.test('mobile quick presets switch tools and draw', async () => {
+      await page.locator('[data-quick=number100]').click();
+      assert.equal(await page.locator('[data-tab=numbers]').getAttribute('aria-pressed'), 'true');
+      assert.equal(await page.locator('#result .chip').count(), 1);
+      await page.locator('[data-quick=coin]').click();
+      assert.equal(await page.locator('[data-tab=names]').getAttribute('aria-pressed'), 'true');
+      const coin = (await page.locator('#result .chip').first().textContent()).trim();
+      assert.ok(['Cara', 'Coroa'].includes(coin));
+      await page.locator('[data-quick=dice6]').click();
+      assert.equal(await page.locator('#sides').inputValue(), '6');
+      assert.equal(await page.locator('#result .chip').count(), 1);
+      await page.locator('[data-quick=teams2]').click();
+      assert.equal(await page.locator('#teamcount').inputValue(), '2');
+    });
     await t.test('numbers: full unique range and incremental results', async () => {
       await page.locator('#min').fill('1');
       await page.locator('#max').fill('100');
