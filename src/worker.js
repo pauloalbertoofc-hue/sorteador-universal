@@ -29,7 +29,7 @@ async function api(req,env,url){const path=url.pathname,method=req.method;
  if(path==='/api/rooms'&&method==='POST'){
   if(!await roomRateLimit('create',requester,5,3600000))return fail('Muitas salas criadas. Tente mais tarde.',429);
   const body=await readBody(req);const title=typeof body.title==='string'?body.title.trim():'';
-  if(title.length<3||title.length>80||/[<>\\x00-\\x1f]/.test(title))return fail('Título inválido (3 a 80 caracteres).');
+  if(title.length<3||title.length>80||/[<>\x00-\x1f]/.test(title))return fail('Título inválido (3 a 80 caracteres).');
   const max=Number(body.maxEntries);
   if(!Number.isInteger(max)||max<2||max>100)return fail('Limite inválido (2 a 100).');
   const id=random(16),adminToken=random(32),now=Date.now(),expiresAt=now+24*3600000;
@@ -44,8 +44,8 @@ async function api(req,env,url){const path=url.pathname,method=req.method;
  }
  if(roomMatch&&method==='POST'&&roomMatch[2]==='join'){
   if(!await roomRateLimit('join',requester,30,3600000))return fail('Muitas inscrições. Tente mais tarde.',429);
-  const body=await readBody(req),name=typeof body.name==='string'?body.name.trim().replace(/\\s+/g,' '):'';
-  if(name.length<2||name.length>60||/[<>\\x00-\\x1f]/.test(name))return fail('Nome inválido (2 a 60 caracteres).');
+  const body=await readBody(req),name=typeof body.name==='string'?body.name.trim().replace(/\s+/g,' '):'';
+  if(name.length<2||name.length>60||/[<>\x00-\x1f]/.test(name))return fail('Nome inválido (2 a 60 caracteres).');
   const key=name.normalize('NFKC').toLocaleLowerCase('pt-BR');
   const room=await env.DB.prepare('SELECT status,expires_at,max_entries FROM draw_rooms WHERE id=?').bind(roomMatch[1]).first();
   if(!room)return fail('Sala não encontrada',404);
