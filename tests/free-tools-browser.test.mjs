@@ -1,7 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { chromium } from '@playwright/test';
-import { fileURLToPath } from 'node:url';
 
 const pageUrl = new URL('../public/index.html', import.meta.url).href;
 
