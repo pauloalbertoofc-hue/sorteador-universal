@@ -368,6 +368,25 @@ test('free tools browser smoke tests', async t => {
       assert.ok(metrics.width <= metrics.viewport, 'long results must fit mobile viewport');
       await page.locator('#presentationClose').click();
     });
+    await t.test('history v2.3: JSON backup export and safe import', async () => {
+      await page.locator('[data-tab=numbers]').click();
+      await page.locator('#min').fill('91');
+      await page.locator('#max').fill('91');
+      await page.locator('#qty').fill('1');
+      await page.locator('#draw').click();
+      const downloadPromise = page.waitForEvent('download');
+      await page.locator('#exportHistory').click();
+      const download = await downloadPromise;
+      assert.equal(download.suggestedFilename(), 'sorteador-historico.json');
+      const payload = {format:'sorteador-universal-history',version:1,entries:[{mode:'numbers',label:'Importado',text:'Resultado de backup 314',fields:{min:'314',max:'314',qty:'1'},favorite:true}]};
+      await page.locator('#historyFile').setInputFiles({name:'backup.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(payload))});
+      assert.match(await page.locator('#historyTransferStatus').innerText(), /Importação concluída: 1 novos registros/);
+      await page.locator('#historySearch').fill('backup 314');
+      assert.match(await page.locator('#history').innerText(), /Resultado de backup 314/);
+      await page.locator('#historySearch').fill('');
+      await page.locator('#historyFile').setInputFiles({name:'invalid.json',mimeType:'application/json',buffer:Buffer.from('{"entries":[]}')});
+      assert.match(await page.locator('#historyTransferStatus').innerText(), /Formato de histórico não reconhecido/);
+    });
     await t.test('history v2.3: search, tool filter and favorites', async () => {
       await page.locator('#historySearch').fill('busca-impossivel-987');
       assert.match(await page.locator('#history').innerText(), /Nenhum sorteio corresponde aos filtros|Nenhum sorteio ainda/);
