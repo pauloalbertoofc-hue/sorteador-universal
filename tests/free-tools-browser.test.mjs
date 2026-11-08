@@ -701,6 +701,20 @@ test('v2.5 mobile room creation, joining and loading names',async()=>{
   await page.locator('#roomEntries li').getByText('Ana Silva').waitFor();
   await page.locator('#roomUse').click();
   assert.equal(await page.locator('#items').inputValue(),'Ana Silva');
+  // The mobile form must not offer registration when capacity is exhausted.
+  names.push('Bruno','Carla');
+  await page.locator('#roomRefresh').click();
+  await page.getByText('Sala lotada',{exact:true}).waitFor();
+  assert.equal(await page.locator('#roomJoin').isDisabled(),true);
+  assert.equal(await page.locator('#roomName').isDisabled(),true);
+  // Closing the room must keep registration disabled even if capacity is available.
+  names=['Ana Silva'];closed=true;
+  await page.locator('#roomRefresh').click();
+  await page.getByText('Inscrições encerradas',{exact:true}).waitFor();
+  assert.equal(await page.locator('#roomJoin').isDisabled(),true);
+  assert.equal(await page.locator('#roomName').isDisabled(),true);
+  assert.match(await page.locator('#roomMeta').innerText(),/Prazo:/);
+
 
  }finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
 });
