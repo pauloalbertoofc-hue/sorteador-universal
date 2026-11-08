@@ -30,12 +30,12 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      - name: Static and algorithm checks
+        run: node --test tests/free-tools-ui.test.mjs
       - name: Install locked dependencies
         run: npm ci
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
-      - name: Static and algorithm checks
-        run: node --test tests/free-tools-ui.test.mjs
       - name: Mobile browser smoke tests
         run: |
           set -o pipefail
