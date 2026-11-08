@@ -20,9 +20,15 @@ test('public rooms: create, duplicate/capacity, close, expiry cleanup and rate l
   const response=await mf.dispatchFetch(base+path,{method:data?'POST':'GET',headers:{origin:base,'content-type':'application/json','cf-connecting-ip':ip,...(token?{'x-room-admin-token':token}:{})},...(data?{body:JSON.stringify(data)}:{})});
   return {status:response.status,body:await response.json()};
  }
+ // Reject malformed payloads without creating rooms or storing unsafe text.
+ assert.equal((await api('/api/rooms',{data:{title:'AB',maxEntries:2},ip:'203.0.113.50'})).status,400);
+ assert.equal((await api('/api/rooms',{data:{title:'Turma <script>',maxEntries:2},ip:'203.0.113.51'})).status,400);
+ assert.equal((await api('/api/rooms',{data:{title:'Sala',maxEntries:101},ip:'203.0.113.52'})).status,400);
  const created=await api('/api/rooms',{data:{title:'Turma de Direito',maxEntries:2}});
  assert.equal(created.status,201);const {id,adminToken}=created.body;
  assert.match(id,/^[a-f0-9]{32}$/);assert.match(adminToken,/^[a-f0-9]{64}$/);
+ assert.equal((await api('/api/rooms/'+id+'/join',{data:{name:'<img src=x>'},ip:'203.0.113.60'})).status,400);
+ assert.equal((await api('/api/rooms/'+id+'/join',{data:{name:'A'},ip:'203.0.113.61'})).status,400);
  assert.equal((await api('/api/rooms/'+id+'/join',{data:{name:' Ana  Silva '}})).status,201);
  assert.equal((await api('/api/rooms/'+id+'/join',{data:{name:'ana silva'}})).status,409);
  assert.equal((await api('/api/rooms/'+id+'/join',{data:{name:'Bruno'}})).status,201);
@@ -42,6 +48,10 @@ test('public rooms: create, duplicate/capacity, close, expiry cleanup and rate l
  assert.equal(concurrentState.body.entries.length,2);
  for(let i=0;i<4;i++)assert.equal((await api('/api/rooms',{data:{title:'Sala '+i,maxEntries:2}})).status,201);
  assert.equal((await api('/api/rooms',{data:{title:'Sala extra',maxEntries:2}})).status,429);
+ // An expired room must refuse new entries even before the daily cleanup runs.
+ await db.prepare('UPDATE draw_rooms SET expires_at=? WHERE id=?').bind(Date.now()-1,concurrent.body.id).run();
+ assert.equal((await api('/api/rooms/'+concurrent.body.id+'/join',{data:{name:'Pessoa tardia'},ip:'203.0.113.70'})).status,409);
+ assert.equal((await api('/api/rooms/'+concurrent.body.id)).body.status,'closed');
  await db.prepare('UPDATE draw_rooms SET expires_at=? WHERE id=?').bind(Date.now()-1,id).run();
  // Scheduled cleanup runs against the same isolated DB, using Worker scheduled handler.
  const worker=(await import('../src/worker.js')).default;
