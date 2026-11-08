@@ -73,7 +73,7 @@ test('free tools browser smoke tests', async t => {
     });
     await t.test('teams: group by maximum participants', async () => {
       await page.locator('[data-tab=teams]').click();
-      await page.locator('#players').fill('Ana\\nBruno\\nCarla\\nDiego\\nEva');
+      await page.locator('#players').fill('Ana\nBruno\nCarla\nDiego\nEva');
       await page.locator('#teamMode').selectOption('size');
       await page.locator('#teamSize').fill('2');
       assert.equal(await page.locator('#teamSizeField').isVisible(), true);
@@ -88,7 +88,7 @@ test('free tools browser smoke tests', async t => {
       await page.locator('[data-tab=numbers]').click();
       assert.equal(await page.locator('#shareTeams').isVisible(), false);
       await page.locator('[data-tab=teams]').click();
-      await page.locator('#players').fill('Ana\\nBruno\\nCarla\\nDiego');
+      await page.locator('#players').fill('Ana\nBruno\nCarla\nDiego');
       await page.locator('#teamMode').selectOption('count');
       await page.locator('#teamcount').fill('2');
       await page.locator('#draw').click();
@@ -135,7 +135,7 @@ test('free tools browser smoke tests', async t => {
     });
     await t.test('names: duplicate entries do not repeat when exclusion is enabled', async () => {
       await page.locator('[data-tab=names]').click();
-      await page.locator('#items').fill('Ana\\nAna\\nBruno');
+      await page.locator('#items').fill('Ana\nAna\nBruno');
       await page.locator('#removeDup').uncheck();
       await page.locator('#excludeWinners').check();
       await page.locator('#winners').fill('2');
@@ -157,7 +157,7 @@ test('free tools browser smoke tests', async t => {
     });
     await t.test('wheel: excludes winners and refreshes available segments', async () => {
       await page.locator('[data-tab=names]').click();
-      await page.locator('#items').fill('Ana\\nBruno\\nCarla');
+      await page.locator('#items').fill('Ana\nBruno\nCarla');
       await page.locator('#winners').fill('1');
       await page.locator('#excludeWinners').check();
       await page.locator('#spin').click();
