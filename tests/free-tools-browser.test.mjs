@@ -158,6 +158,17 @@ test('free tools browser smoke tests', async t => {
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
       assert.equal(overflow, false, 'horizontal page overflow at mobile width');
     });
+    await t.test('mobile: every free tool stays within the viewport', async () => {
+      for (const tab of ['numbers', 'names', 'teams', 'dice']) {
+        await page.locator(`[data-tab=${tab}]`).click();
+        const widths = await page.evaluate(() => ({
+          document: document.documentElement.scrollWidth,
+          viewport: window.innerWidth
+        }));
+        assert.ok(widths.document <= widths.viewport + 1,
+          `${tab} overflows mobile viewport: ${widths.document}px > ${widths.viewport}px`);
+      }
+    });
     await t.test('wheel: excludes winners and refreshes available segments', async () => {
       await page.locator('[data-tab=names]').click();
       await page.locator('#items').fill('Ana\nBruno\nCarla');
