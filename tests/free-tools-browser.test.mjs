@@ -78,12 +78,14 @@ test('free tools browser smoke tests', async t => {
       await page.locator('#teamMode').selectOption('size');
       await page.locator('#teamSize').fill('2');
       assert.equal(await page.locator('#teamSizeField').isVisible(), true);
+      assert.equal(await page.locator('#teamcount').isVisible(), false);
       await page.locator('#draw').click();
       assert.equal(await page.locator('#result .team').count(), 3);
       const sizes = await page.locator('#result .team').evaluateAll(cards => cards.map(card => card.querySelectorAll('span').length));
       assert.deepEqual(sizes.slice().sort((a,b)=>a-b), [1,2,2]);
       await page.locator('#teamMode').selectOption('count');
       assert.equal(await page.locator('#teamSizeField').isVisible(), false);
+      assert.equal(await page.locator('#teamcount').isVisible(), true);
     });
     await t.test('teams: share button appears only after a valid team draw', async () => {
       await page.locator('[data-tab=numbers]').click();
@@ -173,6 +175,17 @@ test('free tools browser smoke tests', async t => {
       await page.locator('#resetWinners').click();
       assert.match(await page.locator('#winnerProgress').textContent(), /3 de 3 nomes disponíveis/);
       assert.equal(await page.locator('#wheelDisc .wheel-label').count(), 3);
+    });
+    await t.test('wheel: editing participant list resets excluded winners', async () => {
+      await page.locator('[data-tab=names]').click();
+      await page.locator('#items').fill('Ana\nBruno\nCarla');
+      await page.locator('#winners').fill('1');
+      await page.locator('#excludeWinners').check();
+      await page.locator('#draw').click();
+      assert.match(await page.locator('#winnerProgress').textContent(), /2 de 3 nomes disponíveis/);
+      await page.locator('#items').fill('Ana\nBruno\nCarla\nDiego');
+      assert.match(await page.locator('#winnerProgress').textContent(), /4 de 4 nomes disponíveis/);
+      assert.equal(await page.locator('#wheelDisc .wheel-label').count(), 4);
     });
     await t.test('history: favorites and repeat restore draw configuration', async () => {
       await page.locator('[data-tab=numbers]').click();
