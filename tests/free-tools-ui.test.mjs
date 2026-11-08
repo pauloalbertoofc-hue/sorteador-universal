@@ -48,3 +48,12 @@ test('unique number sampling terminates and returns every number in a full draw'
   }
   assert.deepEqual(sample(5, 1, 4, false, lowest), [5, 5, 5, 5]);
 });
+
+
+test('large name and number results render in manageable batches', () => {
+  assert.match(html, /function renderChips\(display,values\)/);
+  assert.match(html, /const limit=60/);
+  assert.match(html, /document\.createDocumentFragment\(\)/);
+  assert.match(html, /more\.addEventListener\('click',addNext\)/);
+  assert.match(html, /renderChips\(display,values\)/);
+});
