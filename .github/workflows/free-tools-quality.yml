@@ -40,6 +40,16 @@ jobs:
         run: |
           set -o pipefail
           node --test tests/free-tools-browser.test.mjs 2>&1 | tee free-tools-browser.log
+      - name: Upload mobile layout screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-layout-320-390
+          path: |
+            mobile-320.png
+            mobile-390.png
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Publish browser test summary
         if: always()
         run: |
