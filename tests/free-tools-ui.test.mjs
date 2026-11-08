@@ -30,3 +30,21 @@ test('service worker never caches API account requests', () => {
   assert.match(sw, /url\.pathname\.startsWith\('\/api\/'\)/);
   assert.match(sw, /fetch\(req, \{cache: 'no-store'\}\)/);
 });
+
+
+test('unique number sampling terminates and returns every number in a full draw', () => {
+  const match = html.match(/let values=\[\];if\(unique\)\{const swapped=new Map\(\);[\s\S]*?\}if\(\$\('#sortAscending'\)/);
+  assert.ok(match, 'sampling code should remain present');
+  const body = match[0].slice(0, match[0].lastIndexOf("if($('#sortAscending')"));
+  const sample = new Function('min', 'range', 'qty', 'unique', 'randomInt', body + ';return values;');
+  const lowest = max => 0;
+  const highest = max => max - 1;
+  for (const rng of [lowest, highest]) {
+    const values = sample(-10, 1000, 1000, true, rng);
+    assert.equal(values.length, 1000);
+    assert.equal(new Set(values).size, 1000);
+    assert.equal(Math.min(...values), -10);
+    assert.equal(Math.max(...values), 989);
+  }
+  assert.deepEqual(sample(5, 1, 4, false, lowest), [5, 5, 5, 5]);
+});
