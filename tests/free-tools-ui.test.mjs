@@ -57,3 +57,9 @@ test('large name and number results render in manageable batches', () => {
   assert.match(html, /more\.addEventListener\('click',addNext\)/);
   assert.match(html, /renderChips\(display,values\)/);
 });
+
+test('remaining winner counter uses distinct names even when duplicates are allowed', () => {
+  assert.match(html, /let distinct=\[\.\.\.new Set\(a\)\]/);
+  assert.match(html, /distinct\.filter\(n=>!excludedWinners\.has\(n\)\)\.length/);
+  assert.match(html, /distinct\.length\} nomes disponíveis nesta sessão/);
+});
