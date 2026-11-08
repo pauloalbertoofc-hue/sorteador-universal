@@ -65,6 +65,31 @@ test('free tools browser smoke tests', async t => {
       assert.match(await page.locator('#result').textContent(), /Média:/);
       assert.match(await page.locator('#result').textContent(), /Mais frequente/);
     });
+    await t.test('numbers: invalid ranges and insufficient unique values', async () => {
+      await page.locator('[data-tab=numbers]').click();
+      await page.locator('#min').fill('10');
+      await page.locator('#max').fill('5');
+      await page.locator('#draw').click();
+      assert.match(await page.locator('#error').textContent(), /máximo/);
+      await page.locator('#max').fill('11');
+      await page.locator('#qty').fill('3');
+      await page.locator('#draw').click();
+      assert.match(await page.locator('#error').textContent(), /Quantidade maior que o intervalo/);
+      await page.locator('#qty').fill('2');
+      await page.locator('#draw').click();
+      assert.equal(await page.locator('#result .chip').count(), 2);
+    });
+    await t.test('wheel: selects a single valid name', async () => {
+      await page.locator('[data-tab=names]').click();
+      await page.locator('#items').fill('Ana\\nBruno\\nCarla');
+      await page.locator('#excludeWinners').uncheck();
+      await page.locator('#winners').fill('1');
+      await page.locator('#spin').click();
+      await page.waitForFunction(() => !document.querySelector('#spin').disabled, null, { timeout: 8000 });
+      const result = (await page.locator('#result').textContent()).trim();
+      assert.ok(['Ana', 'Bruno', 'Carla'].some(name => result.includes(name)));
+      assert.equal(await page.locator('#error').textContent(), '');
+    });
     await t.test('saved settings can be cleared', async () => {
       await page.locator('[data-tab=numbers]').click();
       await page.locator('#max').fill('777');
