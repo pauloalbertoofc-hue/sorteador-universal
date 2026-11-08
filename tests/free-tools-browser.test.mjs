@@ -101,6 +101,10 @@ test('free tools browser smoke tests', async t => {
       await page.locator('#spin').click();
       await page.waitForFunction(() => !document.querySelector('#spin').disabled, null, { timeout: 8000 });
       const result = (await page.locator('#result').textContent()).trim();
+      assert.equal(await page.locator('#wheelWinner').isVisible(), true);
+      const winner = (await page.locator('#wheelWinnerName').textContent()).trim();
+      assert.ok(['Ana', 'Bruno', 'Carla'].includes(winner));
+      assert.ok(result.includes(winner));
       assert.ok(['Ana', 'Bruno', 'Carla'].some(name => result.includes(name)));
       assert.equal(await page.locator('#error').textContent(), '');
     });
@@ -133,6 +137,7 @@ test('free tools browser smoke tests', async t => {
       await page.locator('#excludeWinners').check();
       await page.locator('#spin').click();
       await page.waitForFunction(() => !document.querySelector('#spin').disabled, null, { timeout: 8000 });
+      assert.equal(await page.locator('#wheelWinner').isVisible(), true);
       assert.match(await page.locator('#winnerProgress').textContent(), /2 de 3 nomes disponíveis/);
       assert.equal(await page.locator('#wheelDisc .wheel-label').count(), 2);
       await page.locator('#spin').click();
