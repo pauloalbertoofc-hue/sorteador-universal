@@ -9,8 +9,8 @@ on:
       - 'tests/free-tools-browser.test.mjs'
       - 'tests/rooms-api-contract.test.mjs'
       - 'src/worker.js'
-      - 'migrations/0002_public_rooms.sql'
-      - 'migrations/0003_room_rate_limits.sql'
+      - 'migrations/0003_public_rooms.sql'
+      - 'migrations/0004_room_rate_limits.sql'
       - 'wrangler.jsonc'
       - '.github/workflows/free-tools-quality.yml'
   pull_request:
@@ -21,8 +21,8 @@ on:
       - 'tests/free-tools-browser.test.mjs'
       - 'tests/rooms-api-contract.test.mjs'
       - 'src/worker.js'
-      - 'migrations/0002_public_rooms.sql'
-      - 'migrations/0003_room_rate_limits.sql'
+      - 'migrations/0003_public_rooms.sql'
+      - 'migrations/0004_room_rate_limits.sql'
       - 'wrangler.jsonc'
       - '.github/workflows/free-tools-quality.yml'
   workflow_dispatch:
