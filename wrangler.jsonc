@@ -30,5 +30,6 @@
       "BILLING_ENABLED": "false"
     }
   },
+  "triggers": {"crons": ["17 3 * * *"]},
   "keep_vars": true
 }
