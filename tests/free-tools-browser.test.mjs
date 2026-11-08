@@ -721,6 +721,13 @@ test('v2.5 mobile room creation, joining and loading names',async()=>{
   assert.equal(await page.locator('#roomEntries li').first().innerText(),'<img src=x onerror=alert(1)>');
   // An invite link must never contain the organizer's privileged token.
   assert.doesNotMatch(await page.locator('#roomLink').inputValue(),new RegExp(adminToken));
+  // Organizer can close the room; the action must disable future registrations.
+  page.once('dialog',dialog=>dialog.accept());
+  await page.locator('#roomClose').click();
+  await page.getByText('Inscrições encerradas.',{exact:true}).waitFor();
+  assert.equal(closed,true);
+  assert.equal(await page.locator('#roomJoin').isDisabled(),true);
+  assert.equal(await page.locator('#roomClose').isHidden(),true);
 
 
 
