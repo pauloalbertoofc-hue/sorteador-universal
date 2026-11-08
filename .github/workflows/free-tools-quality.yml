@@ -48,6 +48,8 @@ jobs:
           path: |
             mobile-320.png
             mobile-390.png
+            mobile-320-*.png
+            mobile-390-*.png
           if-no-files-found: ignore
           retention-days: 7
       - name: Publish browser test summary
