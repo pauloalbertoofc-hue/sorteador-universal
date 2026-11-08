@@ -67,6 +67,7 @@ test('free tools browser smoke tests', async t => {
           assert.ok(metrics.navTop >= 590 && metrics.navBottom <= 722, `${tab} navigation is misplaced at ${width}px`);
           assert.ok(metrics.drawHeight >= 48, `${tab} draw button too small at ${width}px`);
           assert.ok(metrics.panelWidth <= width, `${tab} panel exceeds viewport at ${width}px`);
+          await page.screenshot({ path: `mobile-${width}-${tab}.png`, fullPage: true });
         }
       }
       await page.setViewportSize({ width: 390, height: 844 });
