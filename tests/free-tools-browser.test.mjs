@@ -390,6 +390,26 @@ test('free tools browser smoke tests', async t => {
       assert.ok(metrics.width <= metrics.viewport, 'long results must fit mobile viewport');
       await page.locator('#presentationClose').click();
     });
+    await t.test('v2.4: receipt export and SHA-256 integrity verification', async () => {
+      await page.locator('[data-tab=numbers]').click();
+      await page.locator('#min').fill('314');
+      await page.locator('#max').fill('314');
+      await page.locator('#qty').fill('1');
+      await page.locator('#draw').click();
+      const downloadPromise = page.waitForEvent('download');
+      await page.locator('#receiptExport').click();
+      const download = await downloadPromise;
+      assert.match(download.suggestedFilename(), /^sorteador-comprovante-[0-9a-f]{12}\.json$/);
+      const fs = await import('node:fs/promises');
+      const receipt = JSON.parse(await fs.readFile(await download.path(), 'utf8'));
+      assert.equal(receipt.result, '314');
+      assert.match(receipt.sha256, /^[0-9a-f]{64}$/);
+      await page.locator('#receiptFile').setInputFiles({name:'receipt.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(receipt))});
+      await page.waitForFunction(() => document.querySelector('#receiptStatus')?.textContent.includes('Integridade confirmada'));
+      receipt.result='315';
+      await page.locator('#receiptFile').setInputFiles({name:'tampered.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(receipt))});
+      await page.waitForFunction(() => document.querySelector('#receiptStatus')?.textContent.includes('Comprovante alterado'));
+    });
     await t.test('v2.4: save, load and delete draw templates per tool', async () => {
       await page.locator('[data-tab=numbers]').click();
       await page.locator('#min').fill('1');
