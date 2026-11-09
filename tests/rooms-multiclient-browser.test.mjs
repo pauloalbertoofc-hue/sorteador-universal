@@ -86,5 +86,15 @@ test('two mobile clients: classic remains private, live wheel shares winner and 
  assert.equal(await guest.locator('#roomLive').isVisible(),false);
  assert.equal(await owner.locator('#roomLive').isVisible(),false);
  assert.equal(await guest.locator('#roomUse').isVisible(),false);
+ // Regression: classic-room import must create separate wheel entries, not a literal backslash-n option.
+ await owner.locator('#roomName').fill('Paulo');
+ await owner.locator('#roomJoin').click();
+ await guest.locator('#roomName').fill('Alberto');
+ await guest.locator('#roomJoin').click();
+ await owner.locator('#roomRefresh').click();
+ await owner.locator('#roomUse').click();
+ assert.equal(await owner.locator('#items').inputValue(),'Paulo\nAlberto');
+ assert.equal(await owner.locator('#wheelDisc .wheel-label').count(),2);
+ assert.match(await owner.locator('#wheelNote').innerText(),/2 opções na roleta/);
  assert.deepEqual(errors,[]);
 });
