@@ -60,6 +60,10 @@ test('two mobile clients: classic remains private, live wheel shares winner and 
  await owner.locator('#roomRefresh').click();
  assert.match(await owner.locator('#roomMeta').innerText(),/2 de 3 inscritos/);
  await guest.locator('#roomRefresh').click();
+ // Room refresh can overlap an in-flight automatic poll. Wait for both browsers
+ // to observe the same D1 snapshot instead of asserting immediately after click.
+ await guest.waitForFunction(()=>document.querySelectorAll('#roomWheel .room-wheel-label').length===2,{timeout:12000});
+ await owner.waitForFunction(()=>document.querySelectorAll('#roomWheel .room-wheel-label').length===2,{timeout:12000});
  assert.equal(await guest.locator('#roomWheel .room-wheel-label').count(),2);
  assert.equal(await owner.locator('#roomWheel .room-wheel-label').count(),2);
  assert.equal(await guest.locator('#roomWheelStage').isVisible(),true);
