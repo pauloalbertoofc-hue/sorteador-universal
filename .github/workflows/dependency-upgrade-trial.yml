@@ -16,6 +16,7 @@ jobs:
         candidate:
           - wrangler-only
           - wrangler-and-miniflare
+          - wrangler-and-undici-override
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -23,13 +24,17 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - name: Install candidate versions without writing package manifests
+      - name: Install candidate versions in disposable runner only
         shell: bash
         run: |
           if [ "${{ matrix.candidate }}" = "wrangler-only" ]; then
-            npm install --no-save --package-lock=false --ignore-scripts --no-audit wrangler@4.158.0
+            npm install --save-dev --ignore-scripts --no-audit wrangler@4.158.0
+          elif [ "${{ matrix.candidate }}" = "wrangler-and-miniflare" ]; then
+            npm install --save-dev --ignore-scripts --no-audit wrangler@4.158.0 miniflare@latest
           else
-            npm install --no-save --package-lock=false --ignore-scripts --no-audit wrangler@4.158.0 miniflare@latest
+            npm install --save-dev --ignore-scripts --no-audit wrangler@4.158.0
+            npm pkg set 'overrides.undici=^7.30.1'
+            npm install --ignore-scripts --no-audit
           fi
           npm ls wrangler miniflare undici --all || true
       - name: Verify syntax and D1 integration tests
