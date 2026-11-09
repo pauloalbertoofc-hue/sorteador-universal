@@ -1,0 +1,73 @@
+name: Production rooms v2.6 schema upgrade (manual, guarded)
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Type MIGRAR-SALAS-V26 after independently verifying a recoverable D1 backup'
+        required: true
+        type: string
+      recovery_verified:
+        description: 'I verified a recoverable production D1 backup and restoration procedure'
+        required: true
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: sorteador-universal-production-rooms-migration
+  cancel-in-progress: false
+jobs:
+  upgrade:
+    if: ${{ inputs.confirmation == 'MIGRAR-SALAS-V26' && inputs.recovery_verified == true }}
+    runs-on: ubuntu-latest
+    environment: production-d1
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.14.0'
+          cache: npm
+      - run: npm ci
+      - name: Validate additive schema and syntax
+        run: |
+          npm run check
+          node scripts/verify-production-room-migration.mjs
+      - name: Verify production migration state without modifying data
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
+          npx wrangler d1 execute DB --remote --config wrangler.jsonc --command "SELECT name FROM d1_migrations ORDER BY id;" --json > history.json
+          node --input-type=module <<'NODE'
+          import {readFileSync} from 'node:fs';
+          const history=JSON.parse(readFileSync('history.json','utf8')).flatMap(x=>x.results||[]).map(x=>x.name);
+          const expected=['0001_sessions.sql','0002_billing_safety.sql','0003_public_rooms.sql','0004_room_rate_limits.sql'];
+          if(JSON.stringify(history)!==JSON.stringify(expected))throw Error('Unexpected production migration history; manual investigation required');
+          console.log('v2.5 production schema confirmed, ready for additive v2.6 upgrade');
+          NODE
+      - name: Apply additive v2.6 migrations only
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler d1 migrations apply DB --remote --config wrangler.jsonc
+      - name: Verify v2.6 schema
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute DB --remote --config wrangler.jsonc --command "SELECT name FROM d1_migrations ORDER BY id;" --json > history-after.json
+          npx wrangler d1 execute DB --remote --config wrangler.jsonc --command "SELECT name FROM sqlite_master WHERE type='table' AND name='draw_room_events';" --json > table-after.json
+          npx wrangler d1 execute DB --remote --config wrangler.jsonc --command "PRAGMA table_info(draw_rooms);" --json > columns-after.json
+          node --input-type=module <<'NODE'
+          import {readFileSync} from 'node:fs';
+          const rows=file=>JSON.parse(readFileSync(file,'utf8')).flatMap(x=>x.results||[]);
+          const names=rows('history-after.json').map(x=>x.name);
+          if(!names.includes('0005_room_live_draw.sql')||!names.includes('0006_room_draw_mode.sql'))throw Error('v2.6 migration records missing');
+          if(!rows('table-after.json').some(x=>x.name==='draw_room_events'))throw Error('Shared draw events table missing');
+          if(!rows('columns-after.json').some(x=>x.name==='draw_mode'&&x.dflt_value==="'classic'"))throw Error('Safe default classic mode missing');
+          console.log('v2.6 schema verified; app deployment is a separate action');
+          NODE
