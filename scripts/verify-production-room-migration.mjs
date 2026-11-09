@@ -10,7 +10,7 @@ assert.equal(prod.d1_databases[0].database_id,'24fe67dc-7003-4557-9de0-cf6658e71
 assert.equal(preview.d1_databases?.length,1);
 assert.equal(preview.d1_databases[0].database_id,'9701cfcf-9c77-4b09-8411-0f4a13f8c584');
 assert.notEqual(prod.d1_databases[0].database_id,preview.d1_databases[0].database_id);
-for(const filename of ['0003_public_rooms.sql','0004_room_rate_limits.sql']){
+for(const filename of ['0003_public_rooms.sql','0004_room_rate_limits.sql','0005_room_live_draw.sql']){
  const a=readFileSync('migrations/'+filename,'utf8');
  const b=readFileSync('migrations/preview/'+filename,'utf8');
  assert.equal(a,b,filename+' differs between preview and production');
