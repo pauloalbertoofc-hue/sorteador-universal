@@ -53,6 +53,9 @@ test('two mobile clients: classic remains private, live wheel shares winner and 
  await guest.goto(invite);
  await guest.locator('#roomActive').waitFor({state:'visible'});
  assert.equal(await guest.locator('#roomDraw').isVisible(),false);
+ assert.equal(await owner.locator('#roomDraw').isVisible(),true);
+ assert.equal(await owner.locator('#roomDraw').isDisabled(),true);
+ assert.match(await owner.locator('#roomDraw').innerText(),/Encerre inscrições/);
  await guest.locator('#roomName').fill('Convidado');
  await guest.locator('#roomJoin').click();
  await owner.locator('#roomName').fill('Organizador');
@@ -70,6 +73,7 @@ test('two mobile clients: classic remains private, live wheel shares winner and 
  owner.once('dialog',dialog=>dialog.accept());
  await owner.locator('#roomClose').click();
  await owner.locator('#roomDraw').waitFor({state:'visible'});
+ assert.equal(await owner.locator('#roomDraw').isEnabled(),true);
  await owner.locator('#roomDraw').click();
  await guest.locator('#roomDrawHistory li').first().waitFor({timeout:12000});
  const first=(await owner.locator('#roomDrawHistory li').first().innerText());
