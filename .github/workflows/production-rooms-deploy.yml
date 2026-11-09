@@ -45,10 +45,10 @@ jobs:
           import {readFileSync} from 'node:fs';
           const rows=file=>JSON.parse(readFileSync(file,'utf8')).flatMap(x=>x.results||[]).map(x=>x.name);
           const tables=rows('rooms.json');
-          const required=['draw_room_entries','draw_room_rate_limits','draw_rooms'];
+          const required=['draw_room_entries','draw_room_events','draw_room_rate_limits','draw_rooms'];
           if(JSON.stringify(tables)!==JSON.stringify(required))throw Error('Room tables not fully present; deployment blocked');
           const history=rows('history.json');
-          for(const name of ['0003_public_rooms.sql','0004_room_rate_limits.sql'])if(!history.includes(name))throw Error('Room migration not recorded: '+name);
+          for(const name of ['0003_public_rooms.sql','0004_room_rate_limits.sql','0005_room_live_draw.sql'])if(!history.includes(name))throw Error('Room migration not recorded: '+name);
           console.log('Production D1 rooms migration verified; no user data read.');
           NODE
       - name: Deploy worker and static assets (existing production secrets preserved)
