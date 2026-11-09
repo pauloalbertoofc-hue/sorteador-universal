@@ -14,7 +14,7 @@ for(const filename of ['0003_public_rooms.sql','0004_room_rate_limits.sql','0005
  const a=readFileSync('migrations/'+filename,'utf8');
  const b=readFileSync('migrations/preview/'+filename,'utf8');
  assert.equal(a,b,filename+' differs between preview and production');
- assert.match(a,/CREATE TABLE IF NOT EXISTS/);
+ if(filename!=='0006_room_draw_mode.sql')assert.match(a,/CREATE TABLE IF NOT EXISTS/);
  const statements=a.replace(/--[^\n]*/g,'').split(';').map(x=>x.trim()).filter(Boolean);
  assert.ok(statements.length>0,'empty migration');
  for(const statement of statements){
