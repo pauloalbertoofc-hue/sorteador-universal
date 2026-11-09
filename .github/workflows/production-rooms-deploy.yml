@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: sorteador-universal-production-rooms-deploy
+  group: sorteador-universal-production-rooms-release
   cancel-in-progress: false
 
 jobs:
@@ -35,7 +35,7 @@ jobs:
       - name: Install Chromium for independent mobile-client validation
         run: npx playwright install --with-deps chromium
       - name: Run isolated room integration tests
-        run: node --test tests/rooms-api-contract.test.mjs tests/rooms-integration.test.mjs tests/rooms-multiclient-browser.test.mjs
+        run: node --test --test-concurrency=1 tests/rooms-api-contract.test.mjs tests/rooms-integration.test.mjs tests/rooms-multiclient-browser.test.mjs
       - name: Require completed room migration before deploy (read-only)
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
