@@ -1,0 +1,54 @@
+name: Production D1 inspection (read-only, manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Type INSPECIONAR-PRODUCAO (metadata only, no writes)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-production:
+    if: ${{ inputs.confirmation == 'INSPECIONAR-PRODUCAO' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: preview-d1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Verify exact production D1 target (no changes)
+        run: |
+          node --input-type=module <<'NODE'
+          import {readFileSync} from 'node:fs';
+          const c=JSON.parse(readFileSync('wrangler.jsonc','utf8'));
+          const db=c.d1_databases;
+          if(c.name!=='sorteador-universal'||db?.length!==1||db[0].binding!=='DB'||db[0].database_name!=='sorteador-universal-db'||db[0].database_id!=='24fe67dc-7003-4557-9de0-cf6658e713c2')throw Error('Unexpected production D1 configuration');
+          console.log('Verified production D1 target for metadata-only inspection');
+          NODE
+          node scripts/verify-production-room-migration.mjs
+      - name: Query production schema metadata only (SELECT)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
+          npx wrangler d1 execute DB --remote --config wrangler.jsonc --command "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('d1_migrations','users','sessions','subscriptions','saved_lists','payment_events','billing_locks','billing_checkout','billing_events','draw_rooms','draw_room_entries','draw_room_rate_limits') ORDER BY name;" --json > production-schema-metadata.json
+          node --input-type=module <<'NODE'
+          import {readFileSync} from 'node:fs';
+          const raw=JSON.parse(readFileSync('production-schema-metadata.json','utf8'));
+          const names=raw.flatMap(x=>x.results||[]).map(x=>x.name).sort();
+          if(!names.length)throw Error('No known tables found; investigate before release');
+          const room=['draw_rooms','draw_room_entries','draw_room_rate_limits'];
+          console.log('Known table names:',names.join(', '));
+          console.log('Room tables present:',room.filter(x=>names.includes(x)).join(', ')||'(none)');
+          console.log('Room tables absent:',room.filter(x=>!names.includes(x)).join(', ')||'(none)');
+          console.log('No row contents or personal data were requested. No migrations were applied.');
+          NODE
