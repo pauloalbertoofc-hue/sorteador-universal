@@ -66,6 +66,18 @@ test('public rooms: create, duplicate/capacity, close, expiry cleanup and rate l
  assert.equal((await db.prepare('SELECT COUNT(*) AS n FROM draw_room_entries WHERE room_id=?').bind(id).first()).n,0);
  assert.equal(await db.prepare('SELECT key FROM draw_room_rate_limits WHERE key=?').bind('qa-expired').first(),null);
  assert.equal((await db.prepare('SELECT key FROM draw_room_rate_limits WHERE key=?').bind('qa-active').first()).key,'qa-active');
+ // Cleanup is repeatable and must preserve non-expired rooms and their entries.
+ const activeRoom=await api('/api/rooms/'+room.body.id);
+ assert.equal(activeRoom.status,404,'the expired room is gone');
+ const live=await api('/api/rooms',{data:{title:'Sala preservada',maxEntries:2},ip:'203.0.113.91'});
+ assert.equal(live.status,201);
+ assert.equal((await api('/api/rooms/'+live.body.id+'/join',{data:{name:'Pessoa viva'},ip:'203.0.113.92'})).status,201);
+ await worker.scheduled({}, {DB:db});
+ await worker.scheduled({}, {DB:db});
+ const surviving=await api('/api/rooms/'+live.body.id);
+ assert.equal(surviving.status,200);
+ assert.deepEqual(surviving.body.entries,['Pessoa viva']);
+
 });
 
 // Preview mode must not expose account, subscription, or payment endpoints.
