@@ -51,4 +51,27 @@ jobs:
           console.log('Room tables present:',room.filter(x=>names.includes(x)).join(', ')||'(none)');
           console.log('Room tables absent:',room.filter(x=>!names.includes(x)).join(', ')||'(none)');
           console.log('No row contents or personal data were requested. No migrations were applied.');
+          const base=['users','sessions','subscriptions','saved_lists','payment_events','billing_locks','billing_checkout','billing_events'];
+          const missingBase=base.filter(x=>!names.includes(x));
+          if(missingBase.length)throw Error('Missing expected existing tables: '+missingBase.join(', '));
+          const presentRooms=room.filter(x=>names.includes(x));
+          if(presentRooms.length!==0&&presentRooms.length!==room.length)throw Error('PARTIAL ROOM SCHEMA: stop release and investigate manually');
+          console.log(presentRooms.length===0?'Release status: room migrations 0003 and 0004 not yet applied':'Release status: room tables present; verify migration history before any deployment');
+          NODE
+      - name: Inspect migration history names only (SELECT)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx wrangler d1 execute DB --remote --config wrangler.jsonc --command "SELECT name FROM d1_migrations ORDER BY id;" --json > production-migration-history.json
+          node --input-type=module <<'NODE'
+          import {readFileSync} from 'node:fs';
+          const raw=JSON.parse(readFileSync('production-migration-history.json','utf8'));
+          const names=raw.flatMap(x=>x.results||[]).map(x=>x.name);
+          const expected=['0003_public_rooms.sql','0004_room_rate_limits.sql'];
+          const applied=expected.filter(x=>names.includes(x));
+          console.log('Recorded migration filenames:',names.join(', ')||'(none)');
+          console.log('Room migrations recorded:',applied.join(', ')||'(none)');
+          if(applied.length===1)throw Error('PARTIAL ROOM MIGRATION HISTORY: investigate before deployment');
+          console.log('Metadata-only inspection completed; no D1 changes made.');
           NODE
