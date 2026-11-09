@@ -6,7 +6,7 @@
 
 1. Executar novamente o workflow manual **Production D1 inspection (read-only, manual)** no commit atual, com `INSPECIONAR-PRODUCAO`. Confirmar as oito tabelas existentes, ausência de estado parcial e histórico de migrações coerente. Interromper em qualquer divergência.
 2. Executar **Production rooms preflight (read-only)** e verificar os testes de integração, segurança e HTTP de homologação.
-3. Revisar vulnerabilidades de dependências (`npm audit` relatou duas moderadas e uma alta na inspeção de 09/11/2026); determinar alcance em produção antes de liberar.
+3. Executar [Dependency security audit (read-only)](https://github.com/pauloalbertoofc-hue/sorteador-universal/actions/workflows/dependency-security-audit.yml) na branch `main`, baixar o relatório de artefatos e revisar cada pacote afetado. `npm audit` relatou duas vulnerabilidades moderadas e uma alta na inspeção de 09/11/2026; determinar alcance em produção e validar correções sem usar `npm audit fix --force` automaticamente.
 4. Validar manualmente a interface em celular e desktop: criação, convite, inscrição, limite, fechamento, expiração, mensagens de erro e acessibilidade.
 5. Criar e **verificar um backup recuperável do D1 de produção** por mecanismo oficial Cloudflare antes de qualquer alteração. Registrar horário, identificador do backup e procedimento de restauração em local privado. Nunca anexar um dump de usuários ou pagamentos a logs ou artefatos públicos do GitHub.
 6. Aprovação humana explícita para a janela de mudança, com responsável disponível para acompanhar erros, logs e reversão.
