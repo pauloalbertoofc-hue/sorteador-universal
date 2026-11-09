@@ -1,0 +1,23 @@
+name: Production rooms preflight (read-only)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Validate production migration safety locally (no credentials)
+        run: node scripts/verify-production-room-migration.mjs
+      - name: Run room and migration integration tests (isolated D1)
+        run: node --test tests/preview.test.mjs tests/rooms-integration.test.mjs
