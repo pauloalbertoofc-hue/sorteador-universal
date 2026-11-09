@@ -59,6 +59,7 @@ test('two mobile clients: classic remains private, live wheel shares winner and 
  await owner.locator('#roomJoin').click();
  await owner.locator('#roomRefresh').click();
  assert.match(await owner.locator('#roomMeta').innerText(),/2 de 3 inscritos/);
+ owner.once('dialog',dialog=>dialog.accept());
  await owner.locator('#roomClose').click();
  await owner.locator('#roomDraw').waitFor({state:'visible'});
  await owner.locator('#roomDraw').click();
