@@ -23,8 +23,8 @@ test('two mobile clients: classic remains private, live wheel shares winner and 
   try{
    if(req.url.startsWith('/api/')){
     const chunks=[];for await(const chunk of req)chunks.push(chunk);
-    const response=await mf.dispatchFetch('https://example.test'+req.url,{
-     method:req.method,headers:{origin:'https://example.test','content-type':req.headers['content-type']||'application/json','x-room-admin-token':req.headers['x-room-admin-token']||'','cf-connecting-ip':'203.0.113.71'},
+    const response=await mf.dispatchFetch('http://'+req.headers.host+req.url,{
+     method:req.method,headers:{origin:'http://'+req.headers.host,'content-type':req.headers['content-type']||'application/json','x-room-admin-token':req.headers['x-room-admin-token']||'','cf-connecting-ip':'203.0.113.71'},
      ...(chunks.length?{body:Buffer.concat(chunks)}:{})
     });
     res.writeHead(response.status,{'content-type':'application/json'});res.end(Buffer.from(await response.arrayBuffer()));return;
