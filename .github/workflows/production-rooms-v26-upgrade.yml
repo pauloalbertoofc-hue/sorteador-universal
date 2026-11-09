@@ -14,7 +14,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: sorteador-universal-production-rooms-migration
+  group: sorteador-universal-production-rooms-release
   cancel-in-progress: false
 jobs:
   upgrade:
