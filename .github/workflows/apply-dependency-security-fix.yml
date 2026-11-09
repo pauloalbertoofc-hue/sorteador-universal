@@ -1,0 +1,64 @@
+name: Apply verified dependency security fix (manual)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dependency-security-fix
+  cancel-in-progress: false
+
+jobs:
+  apply-fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked baseline
+        run: npm ci
+      - name: Apply tested, pinned toolchain and transitive fix
+        run: |
+          npm install --save-dev --save-exact --ignore-scripts --no-audit wrangler@4.158.0
+          npm pkg set 'overrides.undici=^7.30.1'
+          npm install --ignore-scripts --no-audit
+          npm ls wrangler miniflare undici --all
+      - name: Check syntax and integration
+        run: |
+          npm run check
+          node --test tests/preview.test.mjs tests/rooms-integration.test.mjs
+      - name: Verify npm audit has no high or critical findings
+        shell: bash
+        run: |
+          npm audit --json > dependency-audit.json || true
+          node --input-type=module <<'NODE'
+          import {readFileSync} from 'node:fs';
+          const a=JSON.parse(readFileSync('dependency-audit.json','utf8'));
+          if(a.error)throw Error(JSON.stringify(a.error));
+          console.log('Vulnerability counts:',JSON.stringify(a.metadata?.vulnerabilities||{}));
+          if((a.metadata?.vulnerabilities?.high||0)+(a.metadata?.vulnerabilities?.critical||0)>0)throw Error('High or critical vulnerabilities remain');
+          NODE
+      - name: Verify generated lockfile reproducibly installs
+        run: |
+          npm ci
+          npm run check
+          node --test tests/preview.test.mjs tests/rooms-integration.test.mjs
+      - name: Commit dependency files only
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- package.json package-lock.json
+          if git diff --cached --quiet; then
+            echo 'Dependency files already up to date.'
+            exit 0
+          fi
+          git commit -m 'fix(deps): pin verified Wrangler and patched undici dependency'
+          git push origin HEAD:main
