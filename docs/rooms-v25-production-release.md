@@ -1,12 +1,12 @@
 # Sorteador Universal 2.5 — plano de publicação controlada
 
-**Estado em 09/11/2026:** homologação HTTP e testes de integração aprovados; inspeção remota #42541049684 identificou as oito tabelas de negócio existentes e `d1_migrations`, sem nenhuma das três tabelas de salas. **Não há autorização para migração ou deploy de produção neste documento.**
+**Estado em 09/11/2026:** homologação HTTP e bateria completa de qualidade **aprovadas no commit `92ab6364`** (execução #42543477855, incluindo testes Node, Chromium e navegador móvel). A inspeção remota anterior #42541049684 identificou as oito tabelas de negócio existentes e `d1_migrations`, sem nenhuma das três tabelas de salas; **essa inspeção precisa ser repetida antes da publicação**. **Não há autorização para migração ou deploy de produção neste documento.**
 
 ## 1. Portões obrigatórios
 
 1. Executar novamente o workflow manual **Production D1 inspection (read-only, manual)** no commit atual, com `INSPECIONAR-PRODUCAO`. Confirmar as oito tabelas existentes, ausência de estado parcial e histórico de migrações coerente. Interromper em qualquer divergência.
-2. Executar **Production rooms preflight (read-only)** e verificar os testes de integração, segurança e HTTP de homologação.
-3. Executar [Dependency security audit (read-only)](https://github.com/pauloalbertoofc-hue/sorteador-universal/actions/workflows/dependency-security-audit.yml) na branch `main`, baixar o relatório de artefatos e revisar cada pacote afetado. `npm audit` relatou duas vulnerabilidades moderadas e uma alta na inspeção de 09/11/2026; determinar alcance em produção e validar correções sem usar `npm audit fix --force` automaticamente.
+2. Executar **Production rooms preflight (read-only)** no commit atual. A bateria automatizada geral já passou em #42543477855, mas isso não substitui a inspeção do banco remoto nem a checagem de prontidão para publicação.
+3. Executar [Dependency security audit (read-only)](https://github.com/pauloalbertoofc-hue/sorteador-universal/actions/workflows/dependency-security-audit.yml) na branch `main`, baixar o relatório de artefatos e revisar cada pacote afetado. A correção de dependências foi aplicada no commit `0e0f83dc`; **um novo relatório de auditoria na árvore atual ainda é obrigatório**. A inspeção anterior havia relatado duas vulnerabilidades moderadas e uma alta; não presumir que o relatório atual está limpo sem executá-lo.
 4. Validar manualmente a interface em celular e desktop: criação, convite, inscrição, limite, fechamento, expiração, mensagens de erro e acessibilidade.
 5. Criar e **verificar um backup recuperável do D1 de produção** por mecanismo oficial Cloudflare antes de qualquer alteração. Registrar horário, identificador do backup e procedimento de restauração em local privado. Nunca anexar um dump de usuários ou pagamentos a logs ou artefatos públicos do GitHub.
 6. Aprovação humana explícita para a janela de mudança, com responsável disponível para acompanhar erros, logs e reversão.
@@ -31,5 +31,7 @@
 - Inspeção remota inicial: https://github.com/pauloalbertoofc-hue/sorteador-universal/actions/runs/42541049684
 - Pré-produção isolada: https://github.com/pauloalbertoofc-hue/sorteador-universal/actions/runs/42540304572
 - Teste HTTP de homologação: https://github.com/pauloalbertoofc-hue/sorteador-universal/actions/runs/42539982879
+- Bateria completa de qualidade (Node 24.14 + Chromium + testes móveis), aprovada: https://github.com/pauloalbertoofc-hue/sorteador-universal/actions/runs/42543477855
+- Correção de dependências aplicada: https://github.com/pauloalbertoofc-hue/sorteador-universal/actions/runs/42542550316
 
 **Status:** somente preparação; nenhuma migração nem publicação de produção autorizada ou executada.
