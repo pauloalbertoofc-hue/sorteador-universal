@@ -5,7 +5,7 @@
 ## 1. Portões obrigatórios
 
 1. **Concluído em `a6d243d7` (#42543969138):** inspeção remota somente leitura confirmou banco correto, tabelas base e histórico coerente, sem estado parcial. Reconfirmar na janela de mudança se houver qualquer alteração intermediária.
-2. Executar [**Production rooms preflight (read-only)**](https://github.com/pauloalbertoofc-hue/sorteador-universal/actions/workflows/production-rooms-preflight.yml) no commit atual. A bateria automatizada geral já passou em #42543477855, mas isso não substitui a inspeção do banco remoto nem a checagem de prontidão para publicação.
+2. **Concluído em `79a89161` (#42544336770):** **Production rooms preflight (read-only)** aprovado, com verificação local das migrações e testes de integração de salas em D1 isolado. A bateria geral já passou em #42543477855.
 3. **Concluído em `a6d243d7` (#42544022209):** `npm audit` reportou **0 vulnerabilidades** (informativas, baixas, moderadas, altas e críticas). Correção de dependências aplicada no commit `0e0f83dc`.
 4. Validar manualmente a interface em celular e desktop: criação, convite, inscrição, limite, fechamento, expiração, mensagens de erro e acessibilidade.
 5. Criar e **verificar um backup recuperável do D1 de produção** por mecanismo oficial Cloudflare antes de qualquer alteração. Registrar horário, identificador do backup e procedimento de restauração em local privado. Nunca anexar um dump de usuários ou pagamentos a logs ou artefatos públicos do GitHub.
@@ -49,5 +49,6 @@
 - Correção de dependências aplicada: https://github.com/pauloalbertoofc-hue/sorteador-universal/actions/runs/42542550316
 - Inspeção remota D1 de produção, aprovada: https://github.com/pauloalbertoofc-hue/sorteador-universal/actions/runs/42543969138
 - Auditoria de dependências, 0 vulnerabilidades: https://github.com/pauloalbertoofc-hue/sorteador-universal/actions/runs/42544022209
+- Pré-lançamento de salas, somente leitura, aprovado: https://github.com/pauloalbertoofc-hue/sorteador-universal/actions/runs/42544336770
 
 **Status:** somente preparação; nenhuma migração nem publicação de produção autorizada ou executada.
