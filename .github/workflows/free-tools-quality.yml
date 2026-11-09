@@ -11,15 +11,18 @@ on:
       - 'tests/free-tools-browser.test.mjs'
       - 'tests/rooms-api-contract.test.mjs'
       - 'tests/rooms-integration.test.mjs'
+      - 'tests/rooms-multiclient-browser.test.mjs'
       - 'tests/preview.test.mjs'
       - '.github/workflows/preview-d1-homologation.yml'
       - 'migrations/preview/0003_public_rooms.sql'
       - 'migrations/preview/0004_room_rate_limits.sql'
       - 'migrations/preview/0005_room_live_draw.sql'
+      - 'migrations/preview/0006_room_draw_mode.sql'
       - 'src/worker.js'
       - 'migrations/0003_public_rooms.sql'
       - 'migrations/0004_room_rate_limits.sql'
       - 'migrations/0005_room_live_draw.sql'
+      - 'migrations/0006_room_draw_mode.sql'
       - 'wrangler.jsonc'
       - 'wrangler.rooms-preview.jsonc'
       - '.github/workflows/rooms-preview-http.yml'
@@ -34,15 +37,18 @@ on:
       - 'tests/free-tools-browser.test.mjs'
       - 'tests/rooms-api-contract.test.mjs'
       - 'tests/rooms-integration.test.mjs'
+      - 'tests/rooms-multiclient-browser.test.mjs'
       - 'tests/preview.test.mjs'
       - '.github/workflows/preview-d1-homologation.yml'
       - 'migrations/preview/0003_public_rooms.sql'
       - 'migrations/preview/0004_room_rate_limits.sql'
       - 'migrations/preview/0005_room_live_draw.sql'
+      - 'migrations/preview/0006_room_draw_mode.sql'
       - 'src/worker.js'
       - 'migrations/0003_public_rooms.sql'
       - 'migrations/0004_room_rate_limits.sql'
       - 'migrations/0005_room_live_draw.sql'
+      - 'migrations/0006_room_draw_mode.sql'
       - 'wrangler.jsonc'
       - 'wrangler.rooms-preview.jsonc'
       - '.github/workflows/rooms-preview-http.yml'
@@ -77,7 +83,7 @@ jobs:
       - name: Mobile browser smoke tests
         run: |
           set -o pipefail
-          node --test tests/free-tools-browser.test.mjs 2>&1 | tee free-tools-browser.log
+          node --test --test-concurrency=1 tests/free-tools-browser.test.mjs tests/rooms-multiclient-browser.test.mjs 2>&1 | tee free-tools-browser.log
       - name: Upload mobile layout screenshots
         if: always()
         uses: actions/upload-artifact@v4
