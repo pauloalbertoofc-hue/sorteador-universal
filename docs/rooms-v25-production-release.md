@@ -8,7 +8,7 @@
 2. **Concluído em `79a89161` (#42544336770):** **Production rooms preflight (read-only)** aprovado, com verificação local das migrações e testes de integração de salas em D1 isolado. A bateria geral já passou em #42543477855.
 3. **Concluído em `a6d243d7` (#42544022209):** `npm audit` reportou **0 vulnerabilidades** (informativas, baixas, moderadas, altas e críticas). Correção de dependências aplicada no commit `0e0f83dc`.
 4. Validar manualmente a interface em celular e desktop: criação, convite, inscrição, limite, fechamento, expiração, mensagens de erro e acessibilidade.
-5. Criar e **verificar um backup recuperável do D1 de produção** por mecanismo oficial Cloudflare antes de qualquer alteração. Registrar horário, identificador do backup e procedimento de restauração em local privado. Nunca anexar um dump de usuários ou pagamentos a logs ou artefatos públicos do GitHub.
+5. **Bookmark ID do Time Travel salvo pelo responsável (informado em conversa, 09/11/2026).** Ainda é necessário confirmar retenção, alcance e procedimento de restauração; o bookmark sozinho não comprova backup independente ou recuperação testada. Criar e **verificar um backup recuperável do D1 de produção** por mecanismo oficial Cloudflare antes de qualquer alteração. Registrar horário, identificador do backup e procedimento de restauração em local privado. Nunca anexar um dump de usuários ou pagamentos a logs ou artefatos públicos do GitHub.
 6. Aprovação humana explícita para a janela de mudança, com responsável disponível para acompanhar erros, logs e reversão.
 
 
@@ -19,11 +19,11 @@
 1. No painel Cloudflare, abrir **Workers & Pages → D1** e selecionar **`sorteador-universal-db`**. Conferir o identificador de produção **`24fe67dc-7003-4557-9de0-cf6658e713c2`**; não selecionar a base de prévia.
 2. Verificar as opções de recuperação/backup disponíveis para esse banco e plano (por exemplo, **Time Travel / Restore** quando disponível). Registrar **privadamente** o instante UTC de recuperação e a retenção disponível. Uma referência de restauração não deve ser confundida com uma cópia exportada independente.
 3. Se a estratégia adotada for exportação independente, criar o backup **somente em ambiente privado controlado**, conforme as instruções atuais do Cloudflare D1, e guardá-lo criptografado, com acesso restrito. Não executar exportação para GitHub Actions ou anexar o arquivo ao repositório.
-4. Verificar que o mecanismo realmente permite recuperar o estado escolhido: conferir existência, integridade e instruções de restauração, idealmente ensaiando a recuperação em um **banco separado**, nunca sobrescrevendo a produção durante o ensaio. Se não houver como verificar recuperação, **interromper o lançamento**.
+4. Verificar que o mecanismo realmente permite recuperar o estado escolhido: conferir existência, integridade e instruções de restauração, idealmente ensaiando a recuperação em um **banco separado**, nunca sobrescrevendo a produção durante o ensaio. **Atenção:** o Time Travel do D1 restaura o próprio banco selecionado; não pressionar **Restore database** na produção para realizar um teste. Para ensaio isolado, usar um procedimento de exportação/importação em banco separado, se suportado, ou confirmar o método oficialmente disponível antes de prosseguir. Se não houver como verificar recuperação, **interromper o lançamento**.
 5. Registrar privadamente: responsável, data/hora UTC, identificador do banco, método de backup, referência de recuperação, prazo de retenção, verificação realizada e procedimento de reversão. Não incluir tokens ou dados pessoais.
 6. Repetir a inspeção de metadados somente leitura se o estado do banco mudar entre a verificação anterior e a janela de publicação.
 
-**Portão obrigatório:** sem backup comprovadamente recuperável, sem aprovação explícita ou com migração parcial detectada, **não aplicar migrações e não fazer deploy**.
+**Portão obrigatório:** sem backup comprovadamente recuperável, sem aprovação explícita ou com migração parcial detectada, **não aplicar migrações e não fazer deploy**. A informação de que o Bookmark ID foi salvo **não é** autorização para restaurar, migrar ou publicar.
 
 ## 2. Ordem da mudança (somente após aprovação)
 
