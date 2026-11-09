@@ -11,7 +11,7 @@ test('public rooms: create, duplicate/capacity, close, expiry cleanup and rate l
  }));
  t.after(()=>mf.dispose());await mf.ready;
  const db=await mf.getD1Database('DB');
- for(const file of ['migrations/0003_public_rooms.sql','migrations/0004_room_rate_limits.sql']){
+ for(const file of ['migrations/0003_public_rooms.sql','migrations/0004_room_rate_limits.sql','migrations/0005_room_live_draw.sql']){
   const sql=(await readFile(file,'utf8')).replace(/^--.*$/gm,'');
   for(const statement of sql.split(';').filter(s=>s.trim()))await db.prepare(statement).run();
  }
@@ -36,8 +36,22 @@ test('public rooms: create, duplicate/capacity, close, expiry cleanup and rate l
  const room=await api('/api/rooms/'+id);assert.equal(room.status,200);
  assert.deepEqual(room.body.entries,['Ana Silva','Bruno']);assert.equal(room.body.adminToken,undefined);
  assert.equal((await api('/api/rooms/'+id+'/close',{data:{},token:'0'.repeat(64)})).status,403);
+ assert.equal((await api('/api/rooms/'+id+'/draw',{data:{},token:adminToken})).status,409,'draw requires closed registrations');
  assert.equal((await api('/api/rooms/'+id+'/close',{data:{},token:adminToken})).status,200);
  assert.equal((await api('/api/rooms/'+id+'/join',{data:{name:'Davi'}})).status,409);
+ assert.equal((await api('/api/rooms/'+id+'/draw',{data:{},token:'0'.repeat(64)})).status,403);
+ const firstDraw=await api('/api/rooms/'+id+'/draw',{data:{},token:adminToken});
+ assert.equal(firstDraw.status,201);
+ assert.ok(['Ana Silva','Bruno'].includes(firstDraw.body.winner));
+ assert.equal(firstDraw.body.round,1);
+ const secondDraw=await api('/api/rooms/'+id+'/draw',{data:{},token:adminToken});
+ assert.equal(secondDraw.status,201);
+ assert.notEqual(secondDraw.body.winner,firstDraw.body.winner);
+ assert.equal(secondDraw.body.round,2);
+ assert.equal((await api('/api/rooms/'+id+'/draw',{data:{},token:adminToken})).status,409);
+ const drawn=await api('/api/rooms/'+id);
+ assert.deepEqual(drawn.body.draws.map(x=>x.round),[1,2]);
+ assert.deepEqual(new Set(drawn.body.draws.map(x=>x.winner)),new Set(['Ana Silva','Bruno']));
  // Concurrent registrations must not exceed room capacity, even when submitted together.
  const concurrent=await api('/api/rooms',{data:{title:'Sala simultânea',maxEntries:2},ip:'203.0.113.8'});
  assert.equal(concurrent.status,201);
@@ -64,6 +78,7 @@ test('public rooms: create, duplicate/capacity, close, expiry cleanup and rate l
  await worker.scheduled({}, {DB:db});
  assert.equal((await api('/api/rooms/'+id)).status,404);
  assert.equal((await db.prepare('SELECT COUNT(*) AS n FROM draw_room_entries WHERE room_id=?').bind(id).first()).n,0);
+ assert.equal((await db.prepare('SELECT COUNT(*) AS n FROM draw_room_events WHERE room_id=?').bind(id).first()).n,0);
  assert.equal(await db.prepare('SELECT key FROM draw_room_rate_limits WHERE key=?').bind('qa-expired').first(),null);
  assert.equal((await db.prepare('SELECT key FROM draw_room_rate_limits WHERE key=?').bind('qa-active').first()).key,'qa-active');
  // Cleanup is repeatable and must preserve non-expired rooms and their entries.
