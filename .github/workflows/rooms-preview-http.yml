@@ -41,3 +41,5 @@ jobs:
         run: |
           test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
           npx wrangler deploy --config wrangler.rooms-preview.jsonc
+      - name: Smoke-test real preview HTTP endpoints
+        run: node scripts/preview-rooms-smoke.mjs
