@@ -28,8 +28,6 @@ jobs:
         run: |
           if [ "${{ matrix.candidate }}" = "wrangler-only" ]; then
             npm install --save-dev --save-exact --ignore-scripts --no-audit wrangler@4.158.0
-          elif [ "${{ matrix.candidate }}" = "wrangler-and-miniflare" ]; then
-            npm install --save-dev --save-exact --ignore-scripts --no-audit wrangler@4.158.0 miniflare@latest
           else
             npm install --save-dev --save-exact --ignore-scripts --no-audit wrangler@4.158.0
             npm pkg set 'overrides.undici=^7.30.1'
