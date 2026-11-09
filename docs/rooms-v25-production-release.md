@@ -5,11 +5,25 @@
 ## 1. Portões obrigatórios
 
 1. **Concluído em `a6d243d7` (#42543969138):** inspeção remota somente leitura confirmou banco correto, tabelas base e histórico coerente, sem estado parcial. Reconfirmar na janela de mudança se houver qualquer alteração intermediária.
-2. Executar **Production rooms preflight (read-only)** no commit atual. A bateria automatizada geral já passou em #42543477855, mas isso não substitui a inspeção do banco remoto nem a checagem de prontidão para publicação.
-3. Executar [Dependency security audit (read-only)](https://github.com/pauloalbertoofc-hue/sorteador-universal/actions/workflows/dependency-security-audit.yml) na branch `main`, baixar o relatório de artefatos e revisar cada pacote afetado. **Concluído em `a6d243d7` (#42544022209):** `npm audit` reportou **0 vulnerabilidades** (informativas, baixas, moderadas, altas e críticas). Correção de dependências aplicada no commit `0e0f83dc`.
+2. Executar [**Production rooms preflight (read-only)**](https://github.com/pauloalbertoofc-hue/sorteador-universal/actions/workflows/production-rooms-preflight.yml) no commit atual. A bateria automatizada geral já passou em #42543477855, mas isso não substitui a inspeção do banco remoto nem a checagem de prontidão para publicação.
+3. **Concluído em `a6d243d7` (#42544022209):** `npm audit` reportou **0 vulnerabilidades** (informativas, baixas, moderadas, altas e críticas). Correção de dependências aplicada no commit `0e0f83dc`.
 4. Validar manualmente a interface em celular e desktop: criação, convite, inscrição, limite, fechamento, expiração, mensagens de erro e acessibilidade.
 5. Criar e **verificar um backup recuperável do D1 de produção** por mecanismo oficial Cloudflare antes de qualquer alteração. Registrar horário, identificador do backup e procedimento de restauração em local privado. Nunca anexar um dump de usuários ou pagamentos a logs ou artefatos públicos do GitHub.
 6. Aprovação humana explícita para a janela de mudança, com responsável disponível para acompanhar erros, logs e reversão.
+
+
+## 1A. Procedimento de backup e verificação (antes de qualquer escrita)
+
+**Executar fora de logs públicos do GitHub.** O banco contém dados de contas e faturamento. Não copiar dumps para issues, artefatos públicos, commits ou conversas. Usar apenas a conta Cloudflare autorizada.
+
+1. No painel Cloudflare, abrir **Workers & Pages → D1** e selecionar **`sorteador-universal-db`**. Conferir o identificador de produção **`24fe67dc-7003-4557-9de0-cf6658e713c2`**; não selecionar a base de prévia.
+2. Verificar as opções de recuperação/backup disponíveis para esse banco e plano (por exemplo, **Time Travel / Restore** quando disponível). Registrar **privadamente** o instante UTC de recuperação e a retenção disponível. Uma referência de restauração não deve ser confundida com uma cópia exportada independente.
+3. Se a estratégia adotada for exportação independente, criar o backup **somente em ambiente privado controlado**, conforme as instruções atuais do Cloudflare D1, e guardá-lo criptografado, com acesso restrito. Não executar exportação para GitHub Actions ou anexar o arquivo ao repositório.
+4. Verificar que o mecanismo realmente permite recuperar o estado escolhido: conferir existência, integridade e instruções de restauração, idealmente ensaiando a recuperação em um **banco separado**, nunca sobrescrevendo a produção durante o ensaio. Se não houver como verificar recuperação, **interromper o lançamento**.
+5. Registrar privadamente: responsável, data/hora UTC, identificador do banco, método de backup, referência de recuperação, prazo de retenção, verificação realizada e procedimento de reversão. Não incluir tokens ou dados pessoais.
+6. Repetir a inspeção de metadados somente leitura se o estado do banco mudar entre a verificação anterior e a janela de publicação.
+
+**Portão obrigatório:** sem backup comprovadamente recuperável, sem aprovação explícita ou com migração parcial detectada, **não aplicar migrações e não fazer deploy**.
 
 ## 2. Ordem da mudança (somente após aprovação)
 
