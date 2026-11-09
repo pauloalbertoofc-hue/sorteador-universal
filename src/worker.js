@@ -18,7 +18,7 @@ async function api(req,env,url){const path=url.pathname,method=req.method;
  if(!['GET','POST','DELETE'].includes(method))return fail('Método não permitido',405);
  if(method!=='GET'&&!originOk(req)&&path!=='/api/webhooks/mercadopago')return fail('Origem inválida',403);
  // Public rooms: anonymous registration, short lifetime, bounded capacity and no account data.
- const roomMatch=path.match(/^\/api\/rooms\/([0-9a-f]{32})(?:\/(join|close))?$/);
+ const roomMatch=path.match(/^\/api\/rooms\/([0-9a-f]{32})(?:\/(join|close|draw))?$/);
  async function roomRateLimit(scope,identity,limit,windowMs){
   const bucket=Math.floor(Date.now()/windowMs),key=await sha(scope+':'+identity+':'+bucket);
   await env.DB.prepare('INSERT INTO draw_room_rate_limits(key,hits,expires_at) VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET hits=hits+1').bind(key,(bucket+1)*windowMs).run();
@@ -42,7 +42,8 @@ async function api(req,env,url){const path=url.pathname,method=req.method;
   // Expired rooms stop exposing participant names immediately, before cron cleanup.
   const expired=room.expires_at<=Date.now();
   const entries=expired?[]:(await env.DB.prepare('SELECT display_name FROM draw_room_entries WHERE room_id=? ORDER BY created_at,id LIMIT 100').bind(room.id).all()).results.map(e=>e.display_name);
-  return json({id:room.id,title:room.title,status:room.status==='open'&&!expired?'open':'closed',expiresAt:room.expires_at,maxEntries:room.max_entries,entries});
+  const draws=expired?[]:(await env.DB.prepare('SELECT round_number,winner_name,drawn_at FROM draw_room_events WHERE room_id=? ORDER BY round_number LIMIT 100').bind(room.id).all()).results.map(x=>({round:x.round_number,winner:x.winner_name,at:x.drawn_at}));
+  return json({id:room.id,title:room.title,status:room.status==='open'&&!expired?'open':'closed',expiresAt:room.expires_at,maxEntries:room.max_entries,entries,draws,serverTime:Date.now()});
  }
  if(roomMatch&&method==='POST'&&roomMatch[2]==='join'){
   if(!await roomRateLimit('join',requester,30,3600000))return fail('Muitas inscrições. Tente mais tarde.',429);
@@ -67,6 +68,29 @@ async function api(req,env,url){const path=url.pathname,method=req.method;
   if(!room||!equal(room.admin_hash,await sha(token)))return fail('Acesso negado',403);
   await env.DB.prepare("UPDATE draw_rooms SET status='closed' WHERE id=?").bind(roomMatch[1]).run();
   return json({ok:true});
+ }
+ if(roomMatch&&method==='POST'&&roomMatch[2]==='draw'){
+  if(!await roomRateLimit('draw',requester,30,3600000))return fail('Muitos sorteios. Tente mais tarde.',429);
+  const token=req.headers.get('x-room-admin-token')||'';
+  if(!/^[0-9a-f]{64}$/.test(token))return fail('Acesso negado',403);
+  const room=await env.DB.prepare('SELECT admin_hash,status,expires_at FROM draw_rooms WHERE id=?').bind(roomMatch[1]).first();
+  if(!room||!equal(room.admin_hash,await sha(token)))return fail('Acesso negado',403);
+  if(room.expires_at<=Date.now())return fail('Sala expirada',409);
+  if(room.status!=='closed')return fail('Encerre as inscrições antes de sortear.',409);
+  // One atomic SQL statement picks an eligible participant and records the next round.
+  // UNIQUE(room_id,round_number) prevents duplicate rounds in concurrent requests.
+  const now=Date.now();
+  const result=await env.DB.prepare(`INSERT OR IGNORE INTO draw_room_events(id,room_id,round_number,winner_name,drawn_at)
+   SELECT ?,r.id,COALESCE((SELECT MAX(round_number)+1 FROM draw_room_events WHERE room_id=r.id),1),
+     e.display_name,?
+   FROM draw_rooms r JOIN draw_room_entries e ON e.room_id=r.id
+   WHERE r.id=? AND r.status='closed' AND r.expires_at>?
+     AND (SELECT COUNT(*) FROM draw_room_events WHERE room_id=r.id)<100
+     AND NOT EXISTS (SELECT 1 FROM draw_room_events d WHERE d.room_id=r.id AND d.winner_name=e.display_name)
+   ORDER BY random() LIMIT 1`).bind(random(16),now,roomMatch[1],now).run();
+  if(!result.meta?.changes)return fail('Todos os participantes já foram sorteados ou houve uma tentativa simultânea. Atualize a sala.',409);
+  const event=await env.DB.prepare('SELECT round_number,winner_name,drawn_at FROM draw_room_events WHERE room_id=? ORDER BY round_number DESC LIMIT 1').bind(roomMatch[1]).first();
+  return json({round:event.round_number,winner:event.winner_name,at:event.drawn_at},201);
  }
  if(path==='/api/health'&&method==='GET')return json({ok:true,version:'2.0.4'});
  if(path==='/api/register'&&method==='POST'){
@@ -116,10 +140,11 @@ export default {async scheduled(_event,env){
   if(!env.DB)return;
   const now=Date.now();
   // D1 does not necessarily enforce FK cascades: delete dependent entries first.
+  await env.DB.prepare('DELETE FROM draw_room_events WHERE room_id IN (SELECT id FROM draw_rooms WHERE expires_at<=?)').bind(now).run();
   await env.DB.prepare('DELETE FROM draw_room_entries WHERE room_id IN (SELECT id FROM draw_rooms WHERE expires_at<=?)').bind(now).run();
   await env.DB.prepare('DELETE FROM draw_rooms WHERE expires_at<=?').bind(now).run();
   await env.DB.prepare('DELETE FROM draw_room_rate_limits WHERE expires_at<=?').bind(now).run();
-},async fetch(req,env){const url=new URL(req.url);if(env.PREVIEW_ROOMS_ONLY==='true'&&url.pathname.startsWith('/api/')&&url.pathname!=='/api/rooms'&&!/^\/api\/rooms\/[a-f0-9]{32}(?:\/(?:join|close))?$/.test(url.pathname))return fail('Rota indisponível no ambiente de prévia',404);if(url.pathname.startsWith('/api/')){try{return await api(req,env,url)}catch(e){
+},async fetch(req,env){const url=new URL(req.url);if(env.PREVIEW_ROOMS_ONLY==='true'&&url.pathname.startsWith('/api/')&&url.pathname!=='/api/rooms'&&!/^\/api\/rooms\/[a-f0-9]{32}(?:\/(?:join|close|draw))?$/.test(url.pathname))return fail('Rota indisponível no ambiente de prévia',404);if(url.pathname.startsWith('/api/')){try{return await api(req,env,url)}catch(e){
    if(e instanceof BillingError){
      if(url.pathname==='/api/webhooks/mercadopago' && e.message==='Webhook indisponível.'){
        // Diagnostics expose only validation outcomes, never secret values or request data.
