@@ -72,7 +72,7 @@ test('two mobile clients: classic remains private, live wheel shares winner and 
  assert.equal(await guest.locator('#roomWheelStage').isVisible(),true);
  owner.once('dialog',dialog=>dialog.accept());
  await owner.locator('#roomClose').click();
- await owner.waitForFunction(()=>{const button=document.querySelector('#roomDraw');return button&&!button.hidden&&!button.disabled&&button.textContent.includes('Sortear para todos')},{timeout:12000});
+ await owner.waitForFunction(()=>{const button=document.querySelector('#roomDraw');return button&&!button.hidden&&!button.disabled&&button.textContent.includes('Sortear para todos')},null,{timeout:12000});
  assert.equal(await owner.locator('#roomDraw').isEnabled(),true);
  await owner.locator('#roomDraw').click();
  await guest.locator('#roomDrawHistory li').first().waitFor({timeout:12000});
