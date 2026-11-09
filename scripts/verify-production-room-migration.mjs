@@ -15,7 +15,13 @@ for(const filename of ['0003_public_rooms.sql','0004_room_rate_limits.sql']){
  const b=readFileSync('migrations/preview/'+filename,'utf8');
  assert.equal(a,b,filename+' differs between preview and production');
  assert.match(a,/CREATE TABLE IF NOT EXISTS/);
- assert.doesNotMatch(a,/\b(?:DROP|TRUNCATE|ALTER|DELETE|UPDATE|INSERT)\b/i);
+ const statements=a.replace(/--[^\n]*/g,'').split(';').map(x=>x.trim()).filter(Boolean);
+ assert.ok(statements.length>0,'empty migration');
+ for(const statement of statements){
+  assert.match(statement,/^CREATE\s+(?:TABLE|INDEX)\s+IF\s+NOT\s+EXISTS\b/i,'only additive CREATE TABLE/INDEX statements are allowed');
+  assert.doesNotMatch(statement,/\b(?:DROP|TRUNCATE|ALTER|UPDATE|INSERT|REPLACE|PRAGMA|ATTACH|DETACH)\b/i);
+  assert.doesNotMatch(statement,/\bDELETE\s+FROM\b/i);
+ }
 }
 assert.ok(prod.triggers?.crons?.includes('17 3 * * *'),'production cleanup cron must be configured');
 console.log('Read-only production migration preflight passed: IDs distinct, schemas identical, non-destructive migration SQL, cron declared.');
