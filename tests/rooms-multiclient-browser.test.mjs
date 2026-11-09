@@ -59,6 +59,10 @@ test('two mobile clients: classic remains private, live wheel shares winner and 
  await owner.locator('#roomJoin').click();
  await owner.locator('#roomRefresh').click();
  assert.match(await owner.locator('#roomMeta').innerText(),/2 de 3 inscritos/);
+ await guest.locator('#roomRefresh').click();
+ assert.equal(await guest.locator('#roomWheel .room-wheel-label').count(),2);
+ assert.equal(await owner.locator('#roomWheel .room-wheel-label').count(),2);
+ assert.equal(await guest.locator('#roomWheelStage').isVisible(),true);
  owner.once('dialog',dialog=>dialog.accept());
  await owner.locator('#roomClose').click();
  await owner.locator('#roomDraw').waitFor({state:'visible'});
@@ -68,6 +72,11 @@ test('two mobile clients: classic remains private, live wheel shares winner and 
  assert.equal(await guest.locator('#roomDrawHistory li').first().innerText(),first);
  await guest.locator('#roomWinner').waitFor({state:'visible',timeout:8000});
  assert.match(await guest.locator('#roomWinner').innerText(),/Convidado|Organizador/);
+ const selected=await guest.locator('#roomWinner').innerText();
+ const selectedIndex=selected.includes('Convidado')?0:1;
+ const expectedAngle=(360*5-(selectedIndex+.5)*180)%360;
+ await guest.waitForTimeout(300);
+ assert.equal(await guest.locator('#roomWheel').evaluate(el=>el.style.transform),'rotate('+expectedAngle+'deg)');
  await owner.locator('#roomDraw').click();
  await guest.locator('#roomDrawHistory li').nth(1).waitFor({timeout:12000});
  const winners=await guest.locator('#roomDrawHistory li').allInnerTexts();
