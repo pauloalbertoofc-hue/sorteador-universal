@@ -1,10 +1,10 @@
-name: Production rooms v2.5 deploy (manual, guarded)
+name: Production rooms v2.6 deploy (manual, guarded)
 
 on:
   workflow_dispatch:
     inputs:
       confirmation:
-        description: 'Type PUBLICAR-SALAS-V25 after the production migration has passed'
+        description: 'Type PUBLICAR-SALAS-V26 after the v2.6 production migration and browser tests pass'
         required: true
         type: string
 
@@ -32,6 +32,8 @@ jobs:
         run: |
           npm run check
           node scripts/verify-production-room-migration.mjs
+      - name: Run isolated room integration tests
+        run: node --test tests/rooms-api-contract.test.mjs tests/rooms-integration.test.mjs
       - name: Require completed room migration before deploy (read-only)
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
