@@ -1,0 +1,63 @@
+name: Dependency upgrade trial (isolated, no commit)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-upgrade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        candidate:
+          - wrangler-only
+          - wrangler-and-miniflare
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Install candidate versions without writing package manifests
+        shell: bash
+        run: |
+          if [ "${{ matrix.candidate }}" = "wrangler-only" ]; then
+            npm install --no-save --package-lock=false --ignore-scripts --no-audit wrangler@4.158.0
+          else
+            npm install --no-save --package-lock=false --ignore-scripts --no-audit wrangler@4.158.0 miniflare@latest
+          fi
+          npm ls wrangler miniflare undici --all || true
+      - name: Verify syntax and D1 integration tests
+        run: |
+          npm run check
+          node --test tests/preview.test.mjs tests/rooms-integration.test.mjs
+      - name: Check candidate dependency vulnerabilities
+        shell: bash
+        run: |
+          npm audit --json > candidate-audit.json || true
+          node --input-type=module <<'NODE'
+          import {readFileSync,writeFileSync} from 'node:fs';
+          const data=JSON.parse(readFileSync('candidate-audit.json','utf8'));
+          if(data.error)throw Error(JSON.stringify(data.error));
+          const counts=data.metadata?.vulnerabilities||{};
+          const findings=Object.entries(data.vulnerabilities||{}).map(([name,v])=>({name,severity:v.severity,range:v.range,fixAvailable:v.fixAvailable}));
+          const summary={candidate:process.env.CANDIDATE,counts,findings};
+          console.log(JSON.stringify(summary,null,2));
+          writeFileSync('candidate-summary.json',JSON.stringify(summary,null,2));
+          if((counts.high||0)+(counts.critical||0)>0)process.exitCode=1;
+          NODE
+        env:
+          CANDIDATE: ${{ matrix.candidate }}
+      - name: Upload isolated candidate report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-${{ matrix.candidate }}
+          path: candidate-summary.json
+          if-no-files-found: ignore
+          retention-days: 7
