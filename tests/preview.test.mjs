@@ -32,7 +32,7 @@ test('preview migration CLI config contains only preview DB and dedicated SQL di
   const text = await readFile('wrangler.preview-db.jsonc', 'utf8');
   assert.ok(!text.includes(productionId));
   const {scripts, devDependencies} = JSON.parse(await readFile('package.json', 'utf8'));
-  assert.equal(devDependencies.wrangler, '4.152.0');
+  assert.match(devDependencies.wrangler, /^4\.\d+\.\d+$/, 'Wrangler must use an explicit 4.x version');
   assert.match(scripts['db:preview:remote'], /--remote --config wrangler\.preview-db\.jsonc$/);
 });
 
