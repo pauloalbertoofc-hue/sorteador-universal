@@ -32,18 +32,20 @@ async function api(req,env,url){const path=url.pathname,method=req.method;
   if(title.length<3||title.length>80||/[<>\x00-\x1f]/.test(title))return fail('Título inválido (3 a 80 caracteres).');
   const max=Number(body.maxEntries);
   if(!Number.isInteger(max)||max<2||max>100)return fail('Limite inválido (2 a 100).');
+  const drawMode=body.drawMode===undefined?'classic':body.drawMode;
+  if(!['classic','live'].includes(drawMode))return fail('Modo de sorteio inválido.');
   const id=random(16),adminToken=random(32),now=Date.now(),expiresAt=now+24*3600000;
-  await env.DB.prepare('INSERT INTO draw_rooms(id,admin_hash,title,status,created_at,expires_at,max_entries) VALUES(?,?,?,?,?,?,?)').bind(id,await sha(adminToken),title,'open',now,expiresAt,max).run();
-  return json({id,title,maxEntries:max,expiresAt,adminToken},201);
+  await env.DB.prepare('INSERT INTO draw_rooms(id,admin_hash,title,status,created_at,expires_at,max_entries,draw_mode) VALUES(?,?,?,?,?,?,?,?)').bind(id,await sha(adminToken),title,'open',now,expiresAt,max,drawMode).run();
+  return json({id,title,maxEntries:max,expiresAt,adminToken,drawMode},201);
  }
  if(roomMatch&&method==='GET'&&!roomMatch[2]){
-  const room=await env.DB.prepare('SELECT id,title,status,expires_at,max_entries FROM draw_rooms WHERE id=?').bind(roomMatch[1]).first();
+  const room=await env.DB.prepare('SELECT id,title,status,expires_at,max_entries,draw_mode FROM draw_rooms WHERE id=?').bind(roomMatch[1]).first();
   if(!room)return fail('Sala não encontrada',404);
   // Expired rooms stop exposing participant names immediately, before cron cleanup.
   const expired=room.expires_at<=Date.now();
   const entries=expired?[]:(await env.DB.prepare('SELECT display_name FROM draw_room_entries WHERE room_id=? ORDER BY created_at,id LIMIT 100').bind(room.id).all()).results.map(e=>e.display_name);
-  const draws=expired?[]:(await env.DB.prepare('SELECT round_number,winner_name,drawn_at FROM draw_room_events WHERE room_id=? ORDER BY round_number LIMIT 100').bind(room.id).all()).results.map(x=>({round:x.round_number,winner:x.winner_name,at:x.drawn_at}));
-  return json({id:room.id,title:room.title,status:room.status==='open'&&!expired?'open':'closed',expiresAt:room.expires_at,maxEntries:room.max_entries,entries,draws,serverTime:Date.now()});
+  const draws=expired||room.draw_mode!=='live'?[]:(await env.DB.prepare('SELECT round_number,winner_name,drawn_at FROM draw_room_events WHERE room_id=? ORDER BY round_number LIMIT 100').bind(room.id).all()).results.map(x=>({round:x.round_number,winner:x.winner_name,at:x.drawn_at}));
+  return json({id:room.id,title:room.title,status:room.status==='open'&&!expired?'open':'closed',expiresAt:room.expires_at,maxEntries:room.max_entries,drawMode:room.draw_mode,entries,draws,serverTime:Date.now()});
  }
  if(roomMatch&&method==='POST'&&roomMatch[2]==='join'){
   if(!await roomRateLimit('join',requester,30,3600000))return fail('Muitas inscrições. Tente mais tarde.',429);
@@ -73,9 +75,10 @@ async function api(req,env,url){const path=url.pathname,method=req.method;
   if(!await roomRateLimit('draw',requester,30,3600000))return fail('Muitos sorteios. Tente mais tarde.',429);
   const token=req.headers.get('x-room-admin-token')||'';
   if(!/^[0-9a-f]{64}$/.test(token))return fail('Acesso negado',403);
-  const room=await env.DB.prepare('SELECT admin_hash,status,expires_at FROM draw_rooms WHERE id=?').bind(roomMatch[1]).first();
+  const room=await env.DB.prepare('SELECT admin_hash,status,expires_at,draw_mode FROM draw_rooms WHERE id=?').bind(roomMatch[1]).first();
   if(!room||!equal(room.admin_hash,await sha(token)))return fail('Acesso negado',403);
   if(room.expires_at<=Date.now())return fail('Sala expirada',409);
+  if(room.draw_mode!=='live')return fail('Esta sala utiliza o sorteio tradicional do organizador.',409);
   if(room.status!=='closed')return fail('Encerre as inscrições antes de sortear.',409);
   // One atomic SQL statement picks an eligible participant and records the next round.
   // UNIQUE(room_id,round_number) prevents duplicate rounds in concurrent requests.
@@ -84,7 +87,7 @@ async function api(req,env,url){const path=url.pathname,method=req.method;
    SELECT ?,r.id,COALESCE((SELECT MAX(round_number)+1 FROM draw_room_events WHERE room_id=r.id),1),
      e.display_name,?
    FROM draw_rooms r JOIN draw_room_entries e ON e.room_id=r.id
-   WHERE r.id=? AND r.status='closed' AND r.expires_at>?
+   WHERE r.id=? AND r.status='closed' AND r.draw_mode='live' AND r.expires_at>?
      AND (SELECT COUNT(*) FROM draw_room_events WHERE room_id=r.id)<100
      AND NOT EXISTS (SELECT 1 FROM draw_room_events d WHERE d.room_id=r.id AND d.winner_name=e.display_name)
    ORDER BY random() LIMIT 1`).bind(random(16),now,roomMatch[1],now).run();
