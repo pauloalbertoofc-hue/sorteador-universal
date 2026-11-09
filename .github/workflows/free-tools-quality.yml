@@ -64,12 +64,12 @@ jobs:
           node --test tests/free-tools-ui.test.mjs tests/rooms-api-contract.test.mjs
       - name: Install locked dependencies
         run: npm ci
-      - name: Full non-browser Node test suite and syntax checks
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Full Node integration tests (Chromium available)
         run: |
           npm run check
           node --test --test-concurrency=1 tests/auth.test.mjs tests/billing-checkout-validation.test.mjs tests/billing-pilot.test.mjs tests/billing.test.mjs tests/free-tools-ui.test.mjs tests/hosted-claim.test.mjs tests/hosted-plan-checkout.test.mjs tests/mp-admin-transport.test.mjs tests/mp-plan-admin.test.mjs tests/mp-planless-response.test.mjs tests/mp-subscription-contract.test.mjs tests/preview.test.mjs tests/rooms-api-contract.test.mjs tests/rooms-integration.test.mjs tests/webhook-hmac-simulator.test.mjs
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
       - name: Mobile browser smoke tests
         run: |
           set -o pipefail
