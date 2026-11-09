@@ -11,7 +11,7 @@ test('public rooms: create, duplicate/capacity, close, expiry cleanup and rate l
  }));
  t.after(()=>mf.dispose());await mf.ready;
  const db=await mf.getD1Database('DB');
- for(const file of ['migrations/0003_public_rooms.sql','migrations/0004_room_rate_limits.sql','migrations/0005_room_live_draw.sql']){
+ for(const file of ['migrations/0003_public_rooms.sql','migrations/0004_room_rate_limits.sql','migrations/0005_room_live_draw.sql','migrations/0006_room_draw_mode.sql']){
   const sql=(await readFile(file,'utf8')).replace(/^--.*$/gm,'');
   for(const statement of sql.split(';').filter(s=>s.trim()))await db.prepare(statement).run();
  }
@@ -24,8 +24,9 @@ test('public rooms: create, duplicate/capacity, close, expiry cleanup and rate l
  assert.equal((await api('/api/rooms',{data:{title:'AB',maxEntries:2},ip:'203.0.113.50'})).status,400);
  assert.equal((await api('/api/rooms',{data:{title:'Turma <script>',maxEntries:2},ip:'203.0.113.51'})).status,400);
  assert.equal((await api('/api/rooms',{data:{title:'Sala',maxEntries:101},ip:'203.0.113.52'})).status,400);
- const created=await api('/api/rooms',{data:{title:'Turma de Direito',maxEntries:2}});
+ const created=await api('/api/rooms',{data:{title:'Turma de Direito',maxEntries:2,drawMode:'live'}});
  assert.equal(created.status,201);const {id,adminToken}=created.body;
+ assert.equal(created.body.drawMode,'live');
  assert.match(id,/^[a-f0-9]{32}$/);assert.match(adminToken,/^[a-f0-9]{64}$/);
  assert.equal((await api('/api/rooms/'+id+'/join',{data:{name:'<img src=x>'},ip:'203.0.113.60'})).status,400);
  assert.equal((await api('/api/rooms/'+id+'/join',{data:{name:'A'},ip:'203.0.113.61'})).status,400);
@@ -53,6 +54,14 @@ test('public rooms: create, duplicate/capacity, close, expiry cleanup and rate l
  assert.deepEqual(drawn.body.draws.map(x=>x.round),[1,2]);
  assert.deepEqual(new Set(drawn.body.draws.map(x=>x.winner)),new Set(['Ana Silva','Bruno']));
  // Concurrent registrations must not exceed room capacity, even when submitted together.
+ const classic=await api('/api/rooms',{data:{title:'Sorteio privado',maxEntries:2},ip:'203.0.113.80'});
+ assert.equal(classic.status,201);assert.equal(classic.body.drawMode,'classic');
+ assert.equal((await api('/api/rooms/'+classic.body.id)).body.drawMode,'classic');
+ assert.equal((await api('/api/rooms/'+classic.body.id+'/join',{data:{name:'Pessoa privada'},ip:'203.0.113.81'})).status,201);
+ assert.equal((await api('/api/rooms/'+classic.body.id+'/close',{data:{},token:classic.body.adminToken,ip:'203.0.113.82'})).status,200);
+ assert.equal((await api('/api/rooms/'+classic.body.id+'/draw',{data:{},token:classic.body.adminToken,ip:'203.0.113.83'})).status,409);
+ assert.deepEqual((await api('/api/rooms/'+classic.body.id)).body.draws,[]);
+ assert.equal((await api('/api/rooms',{data:{title:'Modo inválido',maxEntries:2,drawMode:'unknown'},ip:'203.0.113.84'})).status,400);
  const concurrent=await api('/api/rooms',{data:{title:'Sala simultânea',maxEntries:2},ip:'203.0.113.8'});
  assert.equal(concurrent.status,201);
  const attempts=await Promise.all(Array.from({length:8},(_,i)=>api('/api/rooms/'+concurrent.body.id+'/join',{data:{name:'Pessoa '+i},ip:'203.0.113.'+(20+i)})));
