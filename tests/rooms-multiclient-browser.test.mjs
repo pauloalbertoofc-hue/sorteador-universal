@@ -75,7 +75,7 @@ test('two mobile clients: classic remains private, live wheel shares winner and 
  const selected=await guest.locator('#roomWinner').innerText();
  const selectedIndex=selected.includes('Convidado')?0:1;
  const expectedAngle=(360*5-(selectedIndex+.5)*180)%360;
- await guest.waitForTimeout(300);
+ await guest.waitForFunction(expected=>{const el=document.querySelector('#roomWheel');return el&&!el.classList.contains('is-spinning')&&el.style.transform==='rotate('+expected+'deg)'},expectedAngle,{timeout:12000});
  assert.equal(await guest.locator('#roomWheel').evaluate(el=>el.style.transform),'rotate('+expectedAngle+'deg)');
  await owner.locator('#roomDraw').click();
  await guest.locator('#roomDrawHistory li').nth(1).waitFor({timeout:12000});
