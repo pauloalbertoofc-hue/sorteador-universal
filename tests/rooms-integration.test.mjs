@@ -55,11 +55,17 @@ test('public rooms: create, duplicate/capacity, close, expiry cleanup and rate l
  assert.equal(expiredRoom.body.status,'closed');
  assert.deepEqual(expiredRoom.body.entries,[],'expired rooms must not expose names before cleanup');
  await db.prepare('UPDATE draw_rooms SET expires_at=? WHERE id=?').bind(Date.now()-1,id).run();
+ // Cleanup must preserve active rate-limit buckets while deleting expired ones.
+ const now=Date.now();
+ await db.prepare('INSERT INTO draw_room_rate_limits(key,hits,expires_at) VALUES(?,?,?)').bind('qa-expired',3,now-1000).run();
+ await db.prepare('INSERT INTO draw_room_rate_limits(key,hits,expires_at) VALUES(?,?,?)').bind('qa-active',2,now+3600000).run();
  // Scheduled cleanup runs against the same isolated DB, using Worker scheduled handler.
  const worker=(await import('../src/worker.js')).default;
  await worker.scheduled({}, {DB:db});
  assert.equal((await api('/api/rooms/'+id)).status,404);
  assert.equal((await db.prepare('SELECT COUNT(*) AS n FROM draw_room_entries WHERE room_id=?').bind(id).first()).n,0);
+ assert.equal(await db.prepare('SELECT key FROM draw_room_rate_limits WHERE key=?').bind('qa-expired').first(),null);
+ assert.equal((await db.prepare('SELECT key FROM draw_room_rate_limits WHERE key=?').bind('qa-active').first()).key,'qa-active');
 });
 
 // Preview mode must not expose account, subscription, or payment endpoints.
