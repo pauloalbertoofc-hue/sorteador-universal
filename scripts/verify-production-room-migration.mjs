@@ -10,7 +10,7 @@ assert.equal(prod.d1_databases[0].database_id,'24fe67dc-7003-4557-9de0-cf6658e71
 assert.equal(preview.d1_databases?.length,1);
 assert.equal(preview.d1_databases[0].database_id,'9701cfcf-9c77-4b09-8411-0f4a13f8c584');
 assert.notEqual(prod.d1_databases[0].database_id,preview.d1_databases[0].database_id);
-for(const filename of ['0003_public_rooms.sql','0004_room_rate_limits.sql','0005_room_live_draw.sql']){
+for(const filename of ['0003_public_rooms.sql','0004_room_rate_limits.sql','0005_room_live_draw.sql','0006_room_draw_mode.sql']){
  const a=readFileSync('migrations/'+filename,'utf8');
  const b=readFileSync('migrations/preview/'+filename,'utf8');
  assert.equal(a,b,filename+' differs between preview and production');
@@ -18,6 +18,10 @@ for(const filename of ['0003_public_rooms.sql','0004_room_rate_limits.sql','0005
  const statements=a.replace(/--[^\n]*/g,'').split(';').map(x=>x.trim()).filter(Boolean);
  assert.ok(statements.length>0,'empty migration');
  for(const statement of statements){
+  if(filename==='0006_room_draw_mode.sql') {
+   assert.match(statement,/^ALTER TABLE draw_rooms ADD COLUMN draw_mode TEXT NOT NULL DEFAULT 'classic' CHECK\(draw_mode IN \('classic','live'\)\)$/i,'only approved additive draw_mode column allowed');
+   continue;
+  }
   assert.match(statement,/^CREATE\s+(?:TABLE|INDEX)\s+IF\s+NOT\s+EXISTS\b/i,'only additive CREATE TABLE/INDEX statements are allowed');
   assert.doesNotMatch(statement,/\b(?:DROP|TRUNCATE|ALTER|UPDATE|INSERT|REPLACE|PRAGMA|ATTACH|DETACH)\b/i);
   assert.doesNotMatch(statement,/\bDELETE\s+FROM\b/i);
