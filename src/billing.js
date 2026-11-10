@@ -1,3 +1,5 @@
+import { pendingSubscriptionRequest } from './mp-subscription-contract.js';
+import { validatePlanlessPendingSubscription } from './mp-planless-response.js';
 // No card data enters this Worker. Provider responses never go into logs.
 const API = 'https://api.mercadopago.com';
 const PRICE = 490;
@@ -10,7 +12,7 @@ const denied = () => { throw new BillingError('Não foi possível validar a assi
 const cents = value => Number.isFinite(Number(value)) && Math.abs(Number(value) * 100 - Math.round(Number(value) * 100)) < 1e-6 ? Math.round(Number(value) * 100) : NaN;
 const date = value => typeof value === 'string' ? Date.parse(value) : NaN;
 const sameId = (a, b) => a != null && b != null && String(a) === String(b);
-export const billingConfigured = env => !!(env.MP_ACCESS_TOKEN && env.MP_WEBHOOK_SECRET && /^[a-f0-9]{32}$/i.test(env.MP_PLAN_ID || '') && site(env));
+export const billingConfigured = env => !!(env.MP_ACCESS_TOKEN && env.MP_WEBHOOK_SECRET && site(env));
 function site(env) {
   try { const u = new URL(env.PUBLIC_SITE_URL); return u.protocol === 'https:' && !u.username && !u.password && u.pathname === '/' && !u.search && !u.hash ? u.origin : null; } catch { return null; }
 }
@@ -22,14 +24,14 @@ async function mp(env, path, {method = 'GET', body, key, allowNotFound = false} 
       authorization: `Bearer ${env.MP_ACCESS_TOKEN}`, 'content-type': 'application/json', ...(key ? {'X-Idempotency-Key': key} : {})
     }, ...(body ? {body: JSON.stringify(body)} : {})});
   } catch (error) {
-    if (method === 'POST' && path === '/preapproval/') console.warn('[SU_BILLING] checkout_provider_diagnostic', {
+    if (method === 'POST' && path === '/preapproval') console.warn('[SU_BILLING] checkout_provider_diagnostic', {
       phase: 'transport', category: error?.name === 'TimeoutError' ? 'timeout' : 'network_failure'
     });
     throw new BillingError('Mercado Pago indisponível. Tente consultar sua assinatura novamente.', 502);
   }
   if (allowNotFound && res.status === 404) return null;
   if (!res.ok) {
-    if (method === 'POST' && path === '/preapproval/') {
+    if (method === 'POST' && path === '/preapproval') {
       // Only log an allowlisted provider classification; never print raw bodies,
       // account identifiers, payment details, access tokens or checkout URLs.
       let providerCode = 'unclassified';
@@ -55,7 +57,7 @@ async function mp(env, path, {method = 'GET', body, key, allowNotFound = false} 
     throw new BillingError('Não foi possível confirmar a operação no Mercado Pago.', 502);
   }
   try { return await res.json(); } catch {
-    if (method === 'POST' && path === '/preapproval/') console.warn('[SU_BILLING] checkout_provider_diagnostic', {phase: 'invalid_json'});
+    if (method === 'POST' && path === '/preapproval') console.warn('[SU_BILLING] checkout_provider_diagnostic', {phase: 'invalid_json'});
     throw new BillingError('Resposta inválida do Mercado Pago.', 502);
   }
 }
@@ -82,9 +84,12 @@ export const mpGet = (env, id, options = {}) => {
 function schedule(value) {
   return value && value.frequency === 1 && value.frequency_type === 'months' && value.currency_id === 'BRL' && cents(value.transaction_amount) === PRICE && !value.free_trial && !value.repetitions;
 }
-async function context(env, requireActive = false) {
+async function context(env, requireActive = false, planless = false) {
   if (!billingConfigured(env)) throw new BillingError('Pagamento ainda não configurado.');
   const seller = await mp(env, '/users/me');
+  if (seller.id == null) denied();
+  if (planless) return {seller, plan: null, planless: true};
+  if (!/^[a-f0-9]{32}$/i.test(env.MP_PLAN_ID || '')) throw new BillingError('Plano não configurado.');
   const plan = await mp(env, `/preapproval_plan/${encodeURIComponent(env.MP_PLAN_ID)}`);
   if (!sameId(plan.id, env.MP_PLAN_ID) || !sameId(plan.collector_id, seller.id) || !(requireActive ? ['active'] : ['active', 'inactive']).includes(plan.status) || !schedule(plan.auto_recurring)) {
     throw new BillingError('O plano precisa ser conferido pelo responsável antes de novas assinaturas.');
@@ -92,11 +97,12 @@ async function context(env, requireActive = false) {
   return {seller, plan};
 }
 function owned(sub, user, ctx, expectedId) {
-  if (!sub || !idPattern.test(String(sub.id)) || (expectedId && !sameId(sub.id, expectedId)) || sub.external_reference !== user.id || !sameId(sub.collector_id, ctx.seller.id) || sub.preapproval_plan_id !== ctx.plan.id || !schedule(sub.auto_recurring)) denied();
-  if (!['pending', 'authorized', 'paused', 'cancelled'].includes(sub.status)) denied();
+  if (!sub || !idPattern.test(String(sub.id)) || (expectedId && !sameId(sub.id, expectedId)) || sub.external_reference !== user.id || !sameId(sub.collector_id, ctx.seller.id) || !(ctx.planless ? sub.preapproval_plan_id == null : sub.preapproval_plan_id === ctx.plan.id) || !schedule(sub.auto_recurring)) denied();
+  if (!['pending', 'authorized', 'paused', 'canceled', 'cancelled'].includes(sub.status)) denied();
   const end = sub.auto_recurring.end_date;
   if (end && !Number.isFinite(date(end))) denied();
-  return sub;
+  // Mercado Pago uses "canceled"; the product and existing D1 rows use "cancelled".
+  return sub.status === 'canceled' ? {...sub, status: 'cancelled'} : sub;
 }
 // A hosted plan URL is not a user-specific subscription or proof of payment.
 // This validator can be used by a future account-binding flow, but must never
@@ -197,7 +203,7 @@ export async function syncSubscription(env, user, sub, ctx, fence) {
   await fence.write(`INSERT INTO subscriptions(id,user_id,mp_subscription_id,mp_plan_id,status,amount_cents,currency,current_period_end)
     SELECT ?,?,?,?,?,490,'BRL',? WHERE $LEASE ON CONFLICT(user_id) DO UPDATE SET status=excluded.status,mp_plan_id=excluded.mp_plan_id,
     current_period_end=excluded.current_period_end,updated_at=CURRENT_TIMESTAMP
-    WHERE subscriptions.mp_subscription_id=excluded.mp_subscription_id AND $LEASE`, [crypto.randomUUID(), user.id, sub.id, ctx.plan.id, sub.status, state.current_period_end || null]);
+    WHERE subscriptions.mp_subscription_id=excluded.mp_subscription_id AND $LEASE`, [crypto.randomUUID(), user.id, sub.id, ctx.plan?.id ?? null, sub.status, state.current_period_end || null]);
   return entitlement(sub.status, state);
 }
 export async function subscriptionState(env, user) {
@@ -206,14 +212,14 @@ export async function subscriptionState(env, user) {
   if (!billingConfigured(env)) return {active: false, status: 'unverified', renewal_status: 'unverified', access_status: 'unverified', can_cancel: !!env.MP_ACCESS_TOKEN};
   try {
     return await withLock(env, user.id, async fence => {
-      const ctx = await context(env), sub = owned(await mpGet(env, row.mp_subscription_id), user, ctx, row.mp_subscription_id);
+      const ctx = await context(env, false, row.mp_plan_id === null), sub = owned(await mpGet(env, row.mp_subscription_id), user, ctx, row.mp_subscription_id);
       return syncSubscription(env, user, sub, ctx, fence);
     });
   } catch { return {active: false, status: 'unverified', renewal_status: 'unverified', access_status: 'unverified', can_cancel: true}; }
 }
 export async function billingInfo(env, user) {
   if (!checkoutAllowed(env, user) || !billingConfigured(env)) return {configured: false, amount_cents: PRICE, currency: 'BRL', interval: 'month'};
-  try { await context(env, true); return {configured: true, amount_cents: PRICE, currency: 'BRL', interval: 'month'}; }
+  try { await context(env, true, env.MP_PLANLESS_CHECKOUT === 'true'); return {configured: true, amount_cents: PRICE, currency: 'BRL', interval: 'month'}; }
   catch { return {configured: false, amount_cents: PRICE, currency: 'BRL', interval: 'month'}; }
 }
 async function bindPending(env, user, sub, ctx, fence) {
@@ -222,14 +228,14 @@ async function bindPending(env, user, sub, ctx, fence) {
   await fence.write(`INSERT INTO subscriptions(id,user_id,mp_subscription_id,mp_plan_id,status,amount_cents,currency)
     SELECT ?,?,?,?,?,490,'BRL' WHERE $LEASE ON CONFLICT(user_id) DO UPDATE SET mp_subscription_id=excluded.mp_subscription_id,
     mp_plan_id=excluded.mp_plan_id,status=excluded.status,current_period_end=NULL,updated_at=CURRENT_TIMESTAMP
-    WHERE (subscriptions.mp_subscription_id IS NULL OR subscriptions.status='cancelled') AND $LEASE`, [crypto.randomUUID(), user.id, sub.id, ctx.plan.id, sub.status]);
+    WHERE (subscriptions.mp_subscription_id IS NULL OR subscriptions.status='cancelled') AND $LEASE`, [crypto.randomUUID(), user.id, sub.id, ctx.plan?.id ?? null, sub.status]);
   const row = await local(env, user.id);
   if (row.mp_subscription_id !== sub.id) denied();
   await fence.write("UPDATE billing_checkout SET state='bound',provider_id=?,updated_at=? WHERE user_id=? AND $LEASE", [sub.id, Date.now(), user.id]);
 }
 async function recover(env, user, ctx) {
-  const results = await searchAll(env, `/preapproval/search?payer_email=${encodeURIComponent(user.email)}&preapproval_plan_id=${encodeURIComponent(ctx.plan.id)}`);
-  const matches = results.filter(sub => sub.external_reference === user.id && sub.preapproval_plan_id === ctx.plan.id && sub.status !== 'cancelled');
+  const results = await searchAll(env, `/preapproval/search?payer_email=${encodeURIComponent(user.email)}${ctx.planless ? '' : `&preapproval_plan_id=${encodeURIComponent(ctx.plan.id)}`}`);
+  const matches = results.filter(sub => sub.external_reference === user.id && (ctx.planless ? sub.preapproval_plan_id == null : sub.preapproval_plan_id === ctx.plan.id) && !['canceled', 'cancelled'].includes(sub.status));
   if (matches.length !== 1) throw new BillingError('Contratação em reconciliação. Não iniciaremos outra cobrança. Consulte novamente ou contate o responsável.', 409);
   return owned(await mpGet(env, matches[0].id), user, ctx, matches[0].id);
 }
@@ -244,8 +250,8 @@ export function checkoutAllowed(env, user) {
 export async function checkout(env, user) {
   if (!checkoutAllowed(env, user) || !billingConfigured(env)) throw new BillingError('Pagamento ainda não configurado.');
   return withLock(env, user.id, async fence => {
-    const ctx = await context(env, true);
     const row = await local(env, user.id);
+    let ctx = await context(env, true, row?.mp_subscription_id ? row.mp_plan_id === null : env.MP_PLANLESS_CHECKOUT === 'true');
     if (row?.mp_subscription_id) {
       const sub = owned(await mpGet(env, row.mp_subscription_id), user, ctx, row.mp_subscription_id);
       if (sub.status === 'pending') return {checkout_url: checkoutUrl(sub)};
@@ -255,6 +261,7 @@ export async function checkout(env, user) {
       await fence();
       await fence.write("UPDATE subscriptions SET status='cancelled' WHERE user_id=? AND mp_subscription_id=? AND $LEASE", [user.id, sub.id]);
       row.status = 'cancelled';
+      if (ctx.planless !== (env.MP_PLANLESS_CHECKOUT === 'true')) ctx = await context(env, true, env.MP_PLANLESS_CHECKOUT === 'true');
     }
     const attempt = await env.DB.prepare('SELECT * FROM billing_checkout WHERE user_id=?').bind(user.id).first();
     if (attempt && !(attempt.state === 'bound' && row?.mp_subscription_id === attempt.provider_id && row.status === 'cancelled')) {
@@ -268,13 +275,19 @@ export async function checkout(env, user) {
     await fence.write(`INSERT INTO billing_checkout(user_id,attempt_id,state,created_at,updated_at) SELECT ?,?,'creating',?,? WHERE $LEASE
       ON CONFLICT(user_id) DO UPDATE SET attempt_id=excluded.attempt_id,state='creating',provider_id=NULL,created_at=excluded.created_at,updated_at=excluded.updated_at WHERE $LEASE`, [user.id, attemptId, Date.now(), Date.now()]);
     // Persist the intent before POST. Never repeat an ambiguous POST, even if the provider ignores its idempotency header.
-    const providerResponse = await mp(env, '/preapproval/', {method: 'POST', key: attemptId, body: {
-      preapproval_plan_id: ctx.plan.id, reason: 'Sorteador Universal Pro', external_reference: user.id,
-      payer_email: user.email, back_url: `${site(env)}/?billing=return`, status: 'pending'
-    }});
+    const requestBody = ctx.planless
+      ? pendingSubscriptionRequest({userId:user.id,email:user.email,backUrl:`${site(env)}/?billing=return`})
+      : {
+          preapproval_plan_id: ctx.plan.id, reason: 'Sorteador Universal Pro', external_reference: user.id,
+          payer_email: user.email, back_url: `${site(env)}/?billing=return`, status: 'pending'
+        };
+    const providerResponse = await mp(env, '/preapproval', {method: 'POST', key: attemptId, body: requestBody});
     // Never print provider payloads, tokens, IDs, emails, or checkout URLs.
     let created;
-    try { created = owned(providerResponse, user, ctx); }
+    try {
+      if (ctx.planless) validatePlanlessPendingSubscription({subscription:providerResponse,account:user,sellerId:ctx.seller.id});
+      created = owned(providerResponse, user, ctx);
+    }
     catch (error) {
       console.warn('[SU_BILLING] checkout_provider_diagnostic', {phase: 'response_validation'});
       throw error;
@@ -292,18 +305,16 @@ export async function cancelSubscription(env, user) {
   return withLock(env, user.id, async fence => {
     const row = await local(env, user.id);
     if (!row?.mp_subscription_id) throw new BillingError('Nenhuma assinatura para cancelar.', 404);
-    const seller = await mp(env, '/users/me'), sub = await mpGet(env, row.mp_subscription_id);
-    if (!sameId(sub.id, row.mp_subscription_id) || sub.external_reference !== user.id || !sameId(sub.collector_id, seller.id)) denied();
+    const ctx = await context(env, false, row.mp_plan_id === null);
+    const sub = owned(await mpGet(env, row.mp_subscription_id), user, ctx, row.mp_subscription_id);
     await fence();
-    if (sub.status !== 'cancelled') await mp(env, `/preapproval/${encodeURIComponent(sub.id)}`, {method: 'PUT', body: {status: 'cancelled'}});
-    const confirmed = await mpGet(env, sub.id);
-    if (confirmed.status !== 'cancelled' || confirmed.external_reference !== user.id || !sameId(confirmed.collector_id, seller.id) || !sameId(confirmed.id, sub.id)) throw new BillingError('Cancelamento ainda não confirmado. Consulte novamente.', 502);
+    if (sub.status !== 'cancelled') await mp(env, `/preapproval/${encodeURIComponent(sub.id)}`, {method: 'PUT', body: {status: 'canceled'}});
+    const confirmed = owned(await mpGet(env, sub.id), user, ctx, sub.id);
+    if (confirmed.status !== 'cancelled') throw new BillingError('Cancelamento ainda não confirmado. Consulte novamente.', 502);
     await fence();
     await fence.write("UPDATE subscriptions SET status='cancelled',updated_at=CURRENT_TIMESTAMP WHERE user_id=? AND mp_subscription_id=? AND $LEASE", [user.id, sub.id]);
     // The provider has stopped recurrence. Payment verification may independently fail.
     try {
-      const ctx = await context(env);
-      owned(confirmed, user, ctx, sub.id);
       return {ok: true, subscription: await syncSubscription(env, user, confirmed, ctx, fence)};
     } catch {
       return {ok: true, subscription: {active: false, status: 'cancelled', renewal_status: 'cancelled', access_status: 'unverified', verified_at: Date.now(), can_cancel: false}};
@@ -385,7 +396,7 @@ export async function webhook(req, env, url) {
   if (!user || !row?.mp_subscription_id || (providerId && !sameId(providerId, row.mp_subscription_id))) return {ok: true, ignored: true};
   return withLock(env, userId, async fence => {
     if (await env.DB.prepare('SELECT event_key FROM billing_events WHERE event_key=?').bind(eventKey).first()) return {ok: true, duplicate: true};
-    const ctx = await context(env), sub = owned(await mpGet(env, row.mp_subscription_id), user, ctx, row.mp_subscription_id);
+    const ctx = await context(env, false, row.mp_plan_id === null), sub = owned(await mpGet(env, row.mp_subscription_id), user, ctx, row.mp_subscription_id);
     // Ignore event body state/order; reconcile the current canonical resources under the same lock as checkout.
     await syncSubscription(env, user, sub, ctx, fence);
     await fence();

@@ -165,7 +165,7 @@ test('provider checkout HTTP error logs only a redacted status and never retries
     const path = String(url);
     if (path.endsWith('/users/me')) return Response.json({id: sellerId});
     if (path.includes('/preapproval_plan/')) return Response.json({id: planId, collector_id: sellerId, status: 'active', auto_recurring: schedule});
-    if (path.endsWith('/preapproval/') && options.method === 'POST') {
+    if (path.endsWith('/preapproval') && options.method === 'POST') {
       postCount++;
       return Response.json({message: 'sensitive-provider-response'}, {status: 422});
     }
