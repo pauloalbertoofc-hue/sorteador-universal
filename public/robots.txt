@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://sorteador-universal.paulo-alberto-ofc.workers.dev/sitemap.xml
+Sitemap: https://sorteador.shadownink.com/sitemap.xml
