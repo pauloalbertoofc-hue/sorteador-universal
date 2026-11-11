@@ -61,6 +61,9 @@ test('two mobile clients: classic remains private, live wheel shares winner and 
  await owner.locator('#roomName').fill('Organizador');
  await owner.locator('#roomJoin').click();
  await owner.locator('#roomRefresh').click();
+ // Join responses, background polling and manual refresh can finish out of order.
+ // Observe the eventual server-backed state, not the first rendered snapshot.
+ await owner.waitForFunction(()=>/2 de 3 inscritos/.test(document.querySelector('#roomMeta')?.textContent||''),null,{timeout:12000});
  assert.match(await owner.locator('#roomMeta').innerText(),/2 de 3 inscritos/);
  await guest.locator('#roomRefresh').click();
  // Room refresh can overlap an in-flight automatic poll. Wait for both browsers
