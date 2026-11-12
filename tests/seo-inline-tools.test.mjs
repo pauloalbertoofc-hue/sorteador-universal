@@ -10,3 +10,5 @@ test('SEO pages do not duplicate ad units outside embedded app',()=>{for(const [
 
 
 for(const [slug] of cases){test('SEO page has specific guide and FAQ: '+slug,()=>{const html=readFileSync(new URL('../public/'+slug+'/index.html',import.meta.url),'utf8');assert.match(html,/<h2>Como /);assert.match(html,/<h2>Perguntas frequentes<\/h2>/);assert.match(html,/<ol>/);assert.match(html,/<h3>/);assert.match(html,/name="description" content="[^"]{90,}"/);assert.ok(!html.includes('id="adBannerExtra"'))})}
+
+for(const [slug] of cases){test('SEO page provides mobile-first access and no self-navigation: '+slug,()=>{const html=readFileSync(new URL('../public/'+slug+'/index.html',import.meta.url),'utf8');assert.match(html,/href="#ferramenta"/);assert.match(html,/id="ferramenta" class="inline-tool"/);assert.match(html,/min-height:640px/);assert.match(html,/@media\(min-width:700px\)/);const nav=html.match(/<nav aria-label="Outras ferramentas">([\s\S]*?)<\/nav>/)?.[1]||'';assert.ok(!nav.includes('href="/'+slug+'/"'));assert.match(html,/id="sorteador-embed"/)})}
