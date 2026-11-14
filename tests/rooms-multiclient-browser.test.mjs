@@ -112,6 +112,9 @@ test('two mobile clients: classic remains private, live wheel shares winner and 
  await guest.locator('#roomName').fill('Alberto');
  await guest.locator('#roomJoin').click();
  await owner.locator('#roomRefresh').click();
+ // Both joins are asynchronous. The first refresh may see only one registration;
+ // wait until the owner's UI reflects both server-backed entries before import.
+ await owner.waitForFunction(()=>/2 de 30 inscritos/.test(document.querySelector('#roomMeta')?.textContent||''),null,{timeout:12000});
  await owner.locator('#roomUse').click();
  assert.equal(await owner.locator('#items').inputValue(),'Paulo\nAlberto');
  assert.equal(await owner.locator('#wheelDisc .wheel-label').count(),2);
