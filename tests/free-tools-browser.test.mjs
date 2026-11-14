@@ -21,6 +21,11 @@ test('free tools browser smoke tests', async t => {
     page.on('pageerror', error => pageErrors.push(error.message));
     await page.route(/^https?:\/\//, route => route.request().url().startsWith('http://127.0.0.1:') ? route.continue() : route.abort());
     await page.goto(`http://127.0.0.1:${server.address().port}/`);
+    // Analytics consent is optional: reject it explicitly before exercising app controls.
+    // Otherwise the first-visit consent panel covers mobile navigation and causes click timeouts.
+    await page.getByRole('button', { name: 'Recusar análise' }).click();
+    assert.equal(await page.evaluate(() => localStorage.getItem('su-ga4-consent-v1')), 'rejected');
+    assert.equal(await page.locator('#su-analytics-choice').count(), 0);
     await t.test('mobile v2.2: bottom navigation and touch targets', async () => {
       const nav = page.locator('.tabs');
       const metrics = await nav.evaluate(node => {
