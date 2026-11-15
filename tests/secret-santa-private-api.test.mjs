@@ -68,3 +68,20 @@ test('enrollment closure is owner-only, requires two members and respects legacy
  assert.ok(api.includes("event.enrollment_closed_at!==null"));
  assert.ok(!api.includes("SET status='enrollment_closed'"));
 });
+
+test('closed-event draw is owner-bound and does not return pairings or claim credentials',()=>{
+ assert.ok(api.includes("close-enrollment"));
+ assert.ok(api.includes("account\\/events\\/([0-9a-f-]{36})\\/draw"));
+ assert.ok(api.includes("event.enrollment_closed_at===null"));
+ assert.ok(api.includes("members.length<2||members.length>100"));
+ assert.ok(api.includes("const assignments=drawSecretSanta(members.map(m=>m.display_name))"));
+ assert.ok(api.includes("await env.DB.batch(statements)"));
+ assert.ok(api.includes("return reply({id:draw[1],status:'drawn',participants:members.length,privacy:event.privacy_mode})"));
+});
+test('individual reveal requires participant-held claim hash, not a display name',()=>{
+ assert.ok(api.includes("claim-reveal"));
+ assert.ok(api.includes("n.claim_token_hash=? AND e.status='drawn'"));
+ assert.ok(api.includes("p.id=n.id AND p.event_id=n.event_id"));
+ assert.ok(api.includes("r.id=p.recipient_id AND r.event_id=p.event_id"));
+ assert.ok(api.includes("await digest(claim)"));
+});
