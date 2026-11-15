@@ -158,6 +158,23 @@ export async function secretSantaApi(req,env,path,rateLimit,requester,authentica
     if(!row)return error('Resultado indisponível ou credencial inválida.',403);
     return reply({title:row.title,giver:row.giver,recipient:row.recipient,expiresAt:row.expires_at});
   }
+  // Only the owner of a supervised event may audit the assignments.
+  // Private events never expose an organizer-facing assignment endpoint.
+  const audit=path.match(/^\/api\/secret-santa\/account\/events\/([0-9a-f-]{36})\/assignments$/);
+  if(audit){
+    if(!authenticatedUser)return error('Entre na sua conta para consultar o sorteio.',401);
+    const event=await env.DB.prepare(`SELECT id,title,status,privacy_mode,expires_at
+      FROM secret_santa_events WHERE id=? AND owner_user_id=? AND expires_at>?`)
+      .bind(audit[1],authenticatedUser.id,Date.now()).first();
+    if(!event)return error('Evento não encontrado ou sem permissão.',404);
+    if(event.privacy_mode!=='supervised')return error('Este sorteio é sigiloso para o organizador.',403);
+    if(event.status!=='drawn')return error('O sorteio ainda não foi realizado.',409);
+    const rows=(await env.DB.prepare(`SELECT p.display_name AS giver,r.display_name AS recipient
+      FROM secret_santa_participants p
+      JOIN secret_santa_participants r ON r.id=p.recipient_id AND r.event_id=p.event_id
+      WHERE p.event_id=? ORDER BY p.display_name`).bind(audit[1]).all()).results;
+    return reply({id:audit[1],title:event.title,privacy:'supervised',assignments:rows});
+  }
   const accountCreation=path==='/api/secret-santa/account/events';
   if(accountCreation&&!authenticatedUser)return error('Entre na sua conta para organizar o sorteio.',401);
   if(path==='/api/secret-santa/events'||accountCreation){
