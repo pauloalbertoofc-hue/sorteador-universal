@@ -110,3 +110,13 @@ test('group rate limits allow a shared Wi-Fi without removing abuse protection',
  assert.match(api,/rateLimit\('secret-santa-enroll-event',requester\+':'\+enroll\[1\],120,3600000\)/);
  assert.match(api,/groupEvent\?'secret-santa-group-'/);
 });
+
+test('account access is session-bound while guest access warns about bearer links',()=>{
+ assert.match(html,/id="claimAccessNotice"/);
+ assert.match(app,/message\('claimAccessNotice','Seu resultado está protegido pela sua conta/);
+ assert.match(app,/message\('claimAccessNotice','Este endereço contém sua credencial individual/);
+ assert.match(app,/privateUrl\(eventId,'account','1'\)/);
+ assert.match(app,/privateUrl\(eventId,'claim',data.claimToken\)/);
+ assert.match(app,/hide\('copyClaim'\)/);
+ assert.match(app,/\$\('signInPassword'\)\.value='';\$\('signInButton'\)\.disabled=false/);
+});
