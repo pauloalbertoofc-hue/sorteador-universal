@@ -39,3 +39,13 @@ test('protected guest flow requires high-entropy code, atomic redemption and sco
  assert.ok(api.includes("e.distribution_mode='protected'"));
  assert.ok(api.includes("rateLimit('secret-santa-join',requester,12,3600000)"));
 });
+
+test('new draft lifecycle separates privacy from participant entry and discloses supervision',()=>{
+ assert.ok(api.includes("path==='/api/secret-santa/account/drafts'"));
+ assert.ok(api.includes("privacy!=='private'&&privacy!=='supervised'"));
+ assert.ok(api.includes("VALUES(?,?,?,'draft'"));
+ assert.ok(api.includes("invite_token_hash"));
+ assert.ok(api.includes("invite-info"));
+ assert.ok(api.includes("organizerCanViewResults:event.privacy_mode==='supervised'"));
+ assert.ok(api.includes("if(!authenticatedUser)return error('Entre na sua conta para organizar o sorteio.',401)"));
+});
