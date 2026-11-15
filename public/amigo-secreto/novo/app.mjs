@@ -62,6 +62,8 @@ $('signInForm').addEventListener('submit',async event=>{
   const response=await fetch('/api/login',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'content-type':'application/json'},body:JSON.stringify({email:$('signInEmail').value.trim(),password:$('signInPassword').value})});
   const data=await response.json();
   if(!response.ok)throw Error(data.error||'Não foi possível entrar na conta.');
+  const sessionResponse=await fetch('/api/me',{credentials:'same-origin',cache:'no-store'});
+  if(!sessionResponse.ok||!(await sessionResponse.json()).user)throw Error('Não foi possível confirmar sua sessão. Verifique se os cookies estão habilitados.');
   $('signInPassword').value='';
   hide('signIn');message('joinStatus','Conta conectada. Confirme sua inscrição.');
  }catch(error){message('signInStatus',error.message);}
