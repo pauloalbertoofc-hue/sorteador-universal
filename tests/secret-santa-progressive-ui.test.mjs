@@ -85,3 +85,11 @@ test('group page restricts scripts, network and embedded third parties',()=>{
  assert.match(html,/name="referrer" content="no-referrer"/);
  assert.doesNotMatch(html,/<script[^>]*src="https?:/);
 });
+
+test('participant must acknowledge organizer visibility before enrollment',()=>{
+ assert.match(html,/id="privacyNotice"/);
+ assert.match(html,/id="privacyConsent" type="checkbox" required/);
+ assert.match(app,/organizador poderá consultar a lista completa/);
+ assert.match(app,/organizador não poderá consultar a lista completa/);
+ assert.match(html,/input:not\(\[type="checkbox"\]\)/);
+});
