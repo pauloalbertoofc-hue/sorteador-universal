@@ -18,9 +18,9 @@ if(eventId||inviteToken||claimToken||accountResult){
  hide('organizer');hide('myEvents');
  if(!uuid.test(eventId||'')||(!secret.test(inviteToken||'')&&!secret.test(claimToken||'')&&!accountResult)){show('join');message('joinStatus','Convite ou acesso inválido.');}
  else if(accountResult){
-  activeClaim={id:eventId,entry:'account'};show('claim');hide('copyClaim');message('claimStatus','Resultado vinculado à sua conta. Entre na conta utilizada na inscrição para consultar.');
+  activeClaim={id:eventId,entry:'account'};show('claim');hide('copyClaim');message('claimAccessNotice','Seu resultado está protegido pela sua conta. Este endereço não concede acesso sem autenticação.');message('claimStatus','Resultado vinculado à sua conta. Entre na conta utilizada na inscrição para consultar.');
  }else if(secret.test(claimToken||'')){
-  activeClaim={id:eventId,token:claimToken};show('claim');
+  activeClaim={id:eventId,token:claimToken};show('claim');message('claimAccessNotice','Este endereço contém sua credencial individual. Não compartilhe: quem tiver o link poderá consultar seu resultado.');
  }else{
   show('join');
   $('enrollButton').disabled=true;
@@ -67,7 +67,7 @@ $('signInForm').addEventListener('submit',async event=>{
   $('signInPassword').value='';
   hide('signIn');message('joinStatus','Conta conectada. Confirme sua inscrição.');
  }catch(error){message('signInStatus',error.message);}
- finally{$('signInButton').disabled=false;}
+ finally{$('signInPassword').value='';$('signInButton').disabled=false;}
 });
 $('enroll').addEventListener('submit',async event=>{
  event.preventDefault();$('enrollButton').disabled=true;
@@ -78,8 +78,8 @@ $('enroll').addEventListener('submit',async event=>{
   activeClaim={id:eventId,token:account?null:data.claimToken,entry:data.entry};
   history.replaceState(null,'',account?privateUrl(eventId,'account','1'):privateUrl(eventId,'claim',data.claimToken));
   hide('join');show('claim');
-  if(account){hide('copyClaim');message('claimStatus','Inscrição confirmada e vinculada à sua conta. Guarde este endereço ou retorne com a mesma conta.');}
-  else message('claimStatus','Inscrição confirmada. Guarde seu acesso antes de sair.');
+  if(account){hide('copyClaim');message('claimAccessNotice','Seu resultado está protegido pela sua conta. Este endereço não concede acesso sem autenticação.');message('claimStatus','Inscrição confirmada e vinculada à sua conta. Guarde este endereço ou retorne com a mesma conta.');}
+  else {message('claimAccessNotice','Este endereço contém sua credencial individual. Não compartilhe: quem tiver o link poderá consultar seu resultado.');message('claimStatus','Inscrição confirmada. Guarde seu acesso antes de sair.');}
  }catch(e){$('enrollButton').disabled=false;message('joinStatus',e.message);if($('entry').value==='account'&&e.message.includes('Entre na sua conta'))show('signIn');}
 });
 $('copyClaim').addEventListener('click',async()=>{try{await copy(privateUrl(activeClaim.id,'claim',activeClaim.token));message('claimStatus','Acesso individual copiado.');}catch(e){message('claimStatus',e.message);}});
