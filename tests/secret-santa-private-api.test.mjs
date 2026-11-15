@@ -58,3 +58,13 @@ test('shared invitation enrollment refuses duplicate accounts and closed registr
  assert.ok(api.includes("claim_token_hash"));
  assert.ok(worker.includes("/enroll$/.test(path)"));
 });
+
+test('enrollment closure is owner-only, requires two members and respects legacy status constraint',()=>{
+ assert.ok(api.includes("close-enrollment$/"));
+ assert.ok(api.includes("WHERE id=? AND owner_user_id=? AND privacy_mode IS NOT NULL"));
+ assert.ok(api.includes("if(Number(row?.total)<2)"));
+ assert.ok(api.includes("SET enrollment_closed_at=?"));
+ assert.ok(api.includes("AND enrollment_closed_at IS NULL"));
+ assert.ok(api.includes("event.enrollment_closed_at!==null"));
+ assert.ok(!api.includes("SET status='enrollment_closed'"));
+});
