@@ -6,7 +6,7 @@ import {Miniflare,convertV4MiniflareOptions} from 'miniflare';
 // Real workerd + isolated in-memory D1. No production credentials or network.
 test('public rooms: create, duplicate/capacity, close, expiry cleanup and rate limits',async t=>{
  const mf=new Miniflare(convertV4MiniflareOptions({
-  name:'room-integration',modules:[{type:'ESModule',path:'src/worker.js'},{type:'ESModule',path:'src/billing.js'}],
+  name:'room-integration',modules:[{type:'ESModule',path:'src/worker.js'},{type:'ESModule',path:'src/billing.js'},{type:'ESModule',path:'src/secret-santa.js'},{type:'ESModule',path:'public/amigo-secreto/engine.mjs'}],
   compatibilityDate:'2026-10-24',d1Databases:['DB']
  }));
  t.after(()=>mf.dispose());await mf.ready;

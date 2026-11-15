@@ -1,3 +1,4 @@
+import { secretSantaApi } from './secret-santa.js';
 import {BillingError, subscriptionState, billingInfo, checkout, cancelSubscription, webhook} from './billing.js';
 const enc = new TextEncoder();
 const json = (value, status=200, headers={}) => new Response(JSON.stringify(value), {status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store',...headers}});
@@ -26,6 +27,7 @@ async function api(req,env,url){const path=url.pathname,method=req.method;
   return record.hits<=limit;
  }
  const requester=req.headers.get('cf-connecting-ip')||'unknown';
+ if(path.startsWith('/api/secret-santa/'))return secretSantaApi(req,env,path,roomRateLimit,requester);
  if(path==='/api/rooms'&&method==='POST'){
   if(!await roomRateLimit('create',requester,5,3600000))return fail('Muitas salas criadas. Tente mais tarde.',429);
   const body=await readBody(req);const title=typeof body.title==='string'?body.title.trim():'';
