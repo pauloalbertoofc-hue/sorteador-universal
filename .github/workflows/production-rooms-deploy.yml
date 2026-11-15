@@ -55,6 +55,22 @@ jobs:
           for(const name of ['0003_public_rooms.sql','0004_room_rate_limits.sql','0005_room_live_draw.sql','0006_room_draw_mode.sql'])if(!history.includes(name))throw Error('Room migration not recorded: '+name);
           console.log('Production D1 rooms migration verified; no user data read.');
           NODE
+      - name: Require Secret Santa tables and recorded migration before deploy (read-only)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute DB --remote --config wrangler.jsonc --command "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('secret_santa_events','secret_santa_participants') ORDER BY name;" --json > santa-tables.json
+          npx wrangler d1 execute DB --remote --config wrangler.jsonc --command "SELECT name FROM d1_migrations WHERE name='0007_secret_santa_private_storage.sql';" --json > santa-history.json
+          node --input-type=module <<'NODE'
+          import {readFileSync} from 'node:fs';
+          const rows=file=>JSON.parse(readFileSync(file,'utf8')).flatMap(x=>x.results||[]).map(x=>x.name);
+          const tables=rows('santa-tables.json');
+          if(JSON.stringify(tables)!==JSON.stringify(['secret_santa_events','secret_santa_participants']))throw Error('Secret Santa tables absent; production deployment blocked');
+          if(!rows('santa-history.json').includes('0007_secret_santa_private_storage.sql'))throw Error('Secret Santa migration not recorded; production deployment blocked');
+          console.log('Secret Santa D1 schema verified; no participant data accessed.');
+          NODE
       - name: Deploy worker and static assets (existing production secrets preserved)
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
