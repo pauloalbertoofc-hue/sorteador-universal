@@ -114,3 +114,57 @@ test('Amigo Secreto: two isolated mobile browsers, private links and unique reci
   assert.equal(await guest.locator('#revealResult').isVisible(),false);
   assert.deepEqual(errors,[]);
 });
+
+test('group mode: mobile navigation, organizer recovery and guest private link', {timeout:30000},async t=>{
+ const html=await readFile('public/amigo-secreto/novo/index.html');
+ const js=await readFile('public/amigo-secreto/novo/app.mjs');
+ const eventId='12345678-1234-4123-8123-123456789abc';
+ const inviteToken='a'.repeat(64),claimToken='b'.repeat(64);
+ let server,browser;
+ t.after(async()=>{await browser?.close();if(server)await new Promise(resolve=>server.close(resolve));});
+ server=createServer(async(req,res)=>{
+  const pathname=new URL(req.url,'http://localhost').pathname;
+  if(pathname==='/amigo-secreto/novo/app.mjs'){res.writeHead(200,{'content-type':'text/javascript'});res.end(js);return;}
+  if(pathname==='/amigo-secreto/novo/'||pathname==='/amigo-secreto/novo/index.html'){res.writeHead(200,{'content-type':'text/html'});res.end(html);return;}
+  if(pathname.startsWith('/api/')){
+   const chunks=[];for await(const chunk of req)chunks.push(chunk);
+   const body=chunks.length?JSON.parse(Buffer.concat(chunks).toString()):{};
+   let data={},status=200;
+   if(pathname.endsWith('/invite-info'))data={id:eventId,title:'Amigos da turma',privacy:'private',status:'draft',enrollmentClosed:false};
+   else if(pathname.endsWith('/enroll'))data={id:'member',name:body.name,entry:body.entry,claimToken,status:'enrolled'};
+   else if(pathname.endsWith('/claim-reveal'))data={title:'Amigos da turma',giver:'Ana',recipient:'Bruno'};
+   else if(pathname.endsWith('/account/events')&&req.method==='GET')data={events:[{id:eventId,title:'Amigos da turma',status:'draft'}]};
+   else if(pathname.endsWith('/manage'))data={id:eventId,title:'Amigos da turma',status:'draft',privacy:'private',enrollmentClosed:false,participants:2};
+   else if(pathname.endsWith('/rotate-invite'))data={id:eventId,inviteToken,previousInvitesRevoked:true};
+   else {status=404;data={error:'Rota inesperada'};}
+   res.writeHead(status,{'content-type':'application/json','cache-control':'no-store'});res.end(JSON.stringify(data));return;
+  }
+  res.writeHead(404);res.end();
+ });
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ const origin='http://127.0.0.1:'+server.address().port;
+ browser=await chromium.launch({headless:true});
+ const organizer=await browser.newPage({viewport:{width:390,height:844}});
+ const guest=await browser.newPage({viewport:{width:390,height:844}});
+ const errors=[];for(const page of [organizer,guest])page.on('pageerror',e=>errors.push(e.message));
+ await organizer.goto(origin+'/amigo-secreto/novo/');
+ await organizer.locator('#loadEvents').click();
+ await organizer.locator('#eventList button').click();
+ await organizer.locator('#manage').waitFor({state:'visible'});
+ assert.equal(await organizer.locator('#share').isDisabled(),true);
+ assert.equal(await organizer.locator('#rotateInvite').isEnabled(),true);
+ await organizer.locator('#rotateInvite').click({noWaitAfter:true});
+ // The confirmation dialog is deliberately accepted only in this test.
+ await organizer.locator('#manageStatus').waitFor({state:'visible'});
+ const inviteUrl=origin+'/amigo-secreto/novo/#event='+eventId+'&invite='+inviteToken;
+ await guest.goto(inviteUrl);
+ await guest.locator('#enrollButton').waitFor({state:'visible'});
+ await guest.locator('#name').fill('Ana');
+ await guest.locator('#enrollButton').click();
+ await guest.locator('#claim').waitFor({state:'visible'});
+ assert.match(guest.url(),/claim=/);
+ assert.doesNotMatch(guest.url(),/invite=/);
+ await guest.locator('#checkResult').click();
+ await guest.getByText('Olá, Ana! Você tirou: Bruno.').waitFor();
+ assert.deepEqual(errors,[]);
+});
