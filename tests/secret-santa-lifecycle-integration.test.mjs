@@ -87,12 +87,25 @@ test('new Secret Santa lifecycle: two guests, owner isolation, private and super
  const recoveredData=await recovered.json();
  assert.equal(recoveredData.privacy,'private');
  assert.equal(Object.hasOwn(recoveredData,'inviteToken'),false);
+ const enrolledBeforeRotation=await call('/api/secret-santa/events/'+resumeId+'/enroll',{inviteToken:resumable.data.inviteToken,name:'Convidada antes da troca',entry:'guest',privacyAccepted:true,acceptedPrivacyMode:'private'});
+ assert.equal(enrolledBeforeRotation.status,201);
+ const retainedClaim=enrolledBeforeRotation.data.claimToken;
  const rotated=await call(resumePath+'/rotate-invite',{},owner);
  assert.equal(rotated.status,200);
  assert.notEqual(rotated.data.inviteToken,resumable.data.inviteToken);
  assert.equal((await call('/api/secret-santa/events/'+resumeId+'/invite-info',{inviteToken:resumable.data.inviteToken})).status,404);
  assert.equal((await call('/api/secret-santa/events/'+resumeId+'/invite-info',{inviteToken:rotated.data.inviteToken})).status,200);
  assert.equal((await call(resumePath+'/rotate-invite',{},stranger)).status,409);
+ const enrolledAfterRotation=await call('/api/secret-santa/events/'+resumeId+'/enroll',{inviteToken:rotated.data.inviteToken,name:'Convidado depois da troca',entry:'guest',privacyAccepted:true,acceptedPrivacyMode:'private'});
+ assert.equal(enrolledAfterRotation.status,201);
+ assert.equal((await call('/api/secret-santa/events/'+resumeId+'/enroll',{inviteToken:resumable.data.inviteToken,name:'Convite revogado',entry:'guest',privacyAccepted:true,acceptedPrivacyMode:'private'})).status,404);
+ assert.equal((await call(resumePath+'/close-enrollment',{},owner)).status,200);
+ assert.equal((await call(resumePath+'/draw',{},owner)).status,200);
+ const retainedResult=await call('/api/secret-santa/events/'+resumeId+'/claim-reveal',{claimToken:retainedClaim});
+ assert.equal(retainedResult.status,200);
+ assert.equal(retainedResult.data.giver,'Convidada antes da troca');
+ assert.equal((await call('/api/secret-santa/events/'+resumeId+'/claim-reveal',{claimToken:enrolledAfterRotation.data.claimToken})).status,200);
+
  const missingConsent=await call('/api/secret-santa/events/'+resumeId+'/enroll',{inviteToken:rotated.data.inviteToken,name:'Sem consentimento',entry:'guest'});
  assert.equal(missingConsent.status,422);
  const accountEvent=await call('/api/secret-santa/account/drafts',{title:'Grupo com conta',privacy:'private'},owner);
