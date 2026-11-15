@@ -16,6 +16,21 @@ export async function secretSantaApi(req,env,path,rateLimit,requester,authentica
       .bind(authenticatedUser.id).all()).results;
     return reply({events:events.map(e=>({id:e.id,title:e.title,status:e.status,mode:e.distribution_mode,createdAt:e.created_at,expiresAt:e.expires_at}))});
   }
+  // Event management resumes from the owner's authenticated session.
+  // The original invitation secret is never stored in plaintext; rotating it
+  // issues a new link and invalidates all previously shared invitations.
+  const resume=path.match(/^\/api\/secret-santa\/account\/events\/([0-9a-f-]{36})\/manage$/);
+  if(resume && req.method==='GET'){
+    if(!authenticatedUser)return error('Entre na sua conta para gerenciar o evento.',401);
+    const event=await env.DB.prepare(`SELECT id,title,status,privacy_mode,enrollment_closed_at,expires_at
+      FROM secret_santa_events WHERE id=? AND owner_user_id=? AND privacy_mode IS NOT NULL AND expires_at>?`)
+      .bind(resume[1],authenticatedUser.id,Date.now()).first();
+    if(!event)return error('Evento não encontrado ou sem permissão.',404);
+    const row=await env.DB.prepare('SELECT COUNT(*) AS total FROM secret_santa_enrollments WHERE event_id=?')
+      .bind(resume[1]).first();
+    return reply({id:event.id,title:event.title,status:event.status,privacy:event.privacy_mode,
+      enrollmentClosed:event.enrollment_closed_at!==null,participants:Number(row?.total||0),expiresAt:event.expires_at});
+  }
   if(req.method!=='POST')return error('Método não permitido',405);
   if(!await rateLimit('secret-santa',requester,10,3600000))return error('Muitas solicitações. Tente mais tarde.',429);
   const raw=await req.text();
@@ -158,6 +173,17 @@ export async function secretSantaApi(req,env,path,rateLimit,requester,authentica
       .bind(accountReveal[1],authenticatedUser.id,Date.now()).first();
     if(!row)return error('Resultado indisponível ou você não participa deste evento.',404);
     return reply({title:row.title,giver:row.giver,recipient:row.recipient,expiresAt:row.expires_at});
+  }
+  const rotate=path.match(/^\/api\/secret-santa\/account\/events\/([0-9a-f-]{36})\/rotate-invite$/);
+  if(rotate){
+    if(!authenticatedUser)return error('Entre na sua conta para renovar o convite.',401);
+    const fresh=token(),now=Date.now();
+    const updated=await env.DB.prepare(`UPDATE secret_santa_events SET invite_token_hash=?
+      WHERE id=? AND owner_user_id=? AND privacy_mode IS NOT NULL
+        AND status='draft' AND enrollment_closed_at IS NULL AND expires_at>?`)
+      .bind(await digest(fresh),rotate[1],authenticatedUser.id,now).run();
+    if(updated.meta?.changes!==1)return error('Convite indisponível, inscrições encerradas ou sem permissão.',409);
+    return reply({id:rotate[1],inviteToken:fresh,previousInvitesRevoked:true});
   }
   const claimReveal=path.match(/^\/api\/secret-santa\/events\/([0-9a-f-]{36})\/claim-reveal$/);
   if(claimReveal){
