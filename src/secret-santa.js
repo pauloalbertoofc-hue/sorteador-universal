@@ -74,10 +74,11 @@ export async function secretSantaApi(req,env,path,rateLimit,requester,authentica
     if(body?.privacyAccepted!==true)return error('Confirme que leu e aceitou a modalidade de privacidade do evento.',422);
     if(kind==='account'&&!authenticatedUser)return error('Entre na sua conta para continuar.',401);
     if(name.length<1||name.length>80||/[<>\x00-\x1f]/.test(name))return error('Nome inválido.',422);
-    const event=await env.DB.prepare(`SELECT id,status,enrollment_closed_at,expires_at FROM secret_santa_events
+    const event=await env.DB.prepare(`SELECT id,status,privacy_mode,enrollment_closed_at,expires_at FROM secret_santa_events
       WHERE id=? AND invite_token_hash=? AND privacy_mode IS NOT NULL AND expires_at>?`)
       .bind(enroll[1],await digest(invite),Date.now()).first();
     if(!event)return error('Convite inválido ou expirado.',404);
+    if(body?.acceptedPrivacyMode!==event.privacy_mode)return error('A modalidade de privacidade confirmada não corresponde à do evento.',409);
     if(event.status!=='draft'||event.enrollment_closed_at!==null)return error('As inscrições deste evento estão encerradas.',409);
     // A permanent account may enroll only once per event, regardless of display name.
     if(kind==='account'){
