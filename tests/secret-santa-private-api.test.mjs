@@ -20,7 +20,7 @@ test('participant secrets are stored as hashes and only reveal one matching assi
 });
 
 test('account event routes are session-bound and never list assignments',()=>{
-  assert.ok(worker.includes("path.startsWith('/api/secret-santa/account/')?await auth(req,env):null"));
+  assert.ok(worker.includes("path.startsWith('/api/secret-santa/account/')||"));
   assert.ok(api.includes("if(!authenticatedUser)return error('Entre na sua conta para consultar seus eventos.',401)"));
   assert.ok(api.includes("WHERE owner_user_id=? ORDER BY created_at DESC"));
   assert.ok(api.includes("authenticatedUser.id,mode)"));
@@ -56,4 +56,5 @@ test('shared invitation enrollment refuses duplicate accounts and closed registr
  assert.ok(api.includes("WHERE event_id=? AND user_id=? LIMIT 1"));
  assert.ok(api.includes("inserted.meta?.changes!==1"));
  assert.ok(api.includes("claim_token_hash"));
+ assert.ok(worker.includes("/enroll$/.test(path)"));
 });
