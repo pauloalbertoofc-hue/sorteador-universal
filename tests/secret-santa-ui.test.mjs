@@ -5,9 +5,9 @@ import { readFileSync } from 'node:fs';
 const html = readFileSync(new URL('../public/amigo-secreto/index.html', import.meta.url), 'utf8');
 const js = readFileSync(new URL('../public/amigo-secreto/app.mjs', import.meta.url), 'utf8');
 
-test('private Secret Santa page is mobile-friendly and not indexed prematurely', () => {
+test('public Secret Santa landing page is indexable while private links use URL fragments', () => {
   assert.match(html, /name="viewport" content="width=device-width, initial-scale=1"/);
-  assert.match(html, /name="robots" content="noindex,nofollow"/);
+  assert.match(html, /name="robots" content="index,follow/);
   assert.match(html, /name="referrer" content="no-referrer"/);
   assert.match(html, /id="createForm"/);
   assert.match(html, /id="revealSection"/);
