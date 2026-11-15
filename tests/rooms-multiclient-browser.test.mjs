@@ -9,7 +9,7 @@ import {Miniflare,convertV4MiniflareOptions} from 'miniflare';
 // No production Cloudflare credentials, no external services, no payments.
 test('two mobile clients: classic remains private, live wheel shares winner and history',async t=>{
  const mf=new Miniflare(convertV4MiniflareOptions({
-  name:'rooms-browser',modules:[{type:'ESModule',path:'src/worker.js'},{type:'ESModule',path:'src/billing.js'}],
+  name:'rooms-browser',modules:[{type:'ESModule',path:'src/worker.js'},{type:'ESModule',path:'src/billing.js'},{type:'ESModule',path:'src/secret-santa.js'},{type:'ESModule',path:'public/amigo-secreto/engine.mjs'}],
   compatibilityDate:'2026-10-24',d1Databases:['DB']
  }));
  await mf.ready;
