@@ -74,12 +74,13 @@ export async function secretSantaApi(req,env,path,rateLimit,requester,authentica
       .bind(join[1],await digest(entryCode),Date.now(),Date.now()).first();
     if(!row)return error('Credencial inválida, utilizada ou expirada.',403);
     const session=token(),now=Date.now(),expiry=Math.min(row.expires_at,now+24*3600000);
-    // D1 batch is transactional; conditional update avoids reusing an entry code.
-    await env.DB.batch([
-      env.DB.prepare('UPDATE secret_santa_guest_credentials SET redeemed_at=? WHERE id=? AND redeemed_at IS NULL').bind(now,row.id),
-      env.DB.prepare('INSERT INTO secret_santa_guest_sessions(token_hash,event_id,participant_id,expires_at,created_at) VALUES(?,?,?,?,?)')
-        .bind(await digest(session),join[1],row.participant_id,expiry,now)
-    ]);
+    // Atomic compare-and-set: only one concurrent redemption can succeed.
+    const claimed=await env.DB.prepare(
+      'UPDATE secret_santa_guest_credentials SET redeemed_at=? WHERE id=? AND redeemed_at IS NULL AND revoked_at IS NULL RETURNING id'
+    ).bind(now,row.id).first();
+    if(!claimed)return error('Credencial já utilizada.',403);
+    await env.DB.prepare('INSERT INTO secret_santa_guest_sessions(token_hash,event_id,participant_id,expires_at,created_at) VALUES(?,?,?,?,?)')
+      .bind(await digest(session),join[1],row.participant_id,expiry,now).run();
     return reply({sessionToken:session,expiresAt:expiry,title:row.title});
   }
   const guestReveal=path.match(/^\\/api\\/secret-santa\\/events\\/([0-9a-f-]{36})\\/guest-reveal$/);
