@@ -12,8 +12,8 @@ export async function secretSantaApi(req,env,path,rateLimit,requester,authentica
   if(path==='/api/secret-santa/account/events' && req.method==='GET'){
     if(!authenticatedUser)return error('Entre na sua conta para consultar seus eventos.',401);
     const events=(await env.DB.prepare(`SELECT id,title,status,distribution_mode,created_at,expires_at
-      FROM secret_santa_events WHERE owner_user_id=? AND privacy_mode IS NOT NULL ORDER BY created_at DESC LIMIT 100`)
-      .bind(authenticatedUser.id).all()).results;
+      FROM secret_santa_events WHERE owner_user_id=? AND privacy_mode IS NOT NULL AND expires_at>? ORDER BY created_at DESC LIMIT 100`)
+      .bind(authenticatedUser.id,Date.now()).all()).results;
     return reply({events:events.map(e=>({id:e.id,title:e.title,status:e.status,mode:e.distribution_mode,createdAt:e.created_at,expiresAt:e.expires_at}))});
   }
   // Event management resumes from the owner's authenticated session.
