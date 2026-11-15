@@ -50,3 +50,18 @@ test('supervised audit requires event owner and is forbidden for private draws',
  assert.match(app,/document.createElement\('li'\)/);
  assert.doesNotMatch(app,/innerHTML/);
 });
+
+test('saved account result link reopens participant view without guest credential',()=>{
+ assert.match(app,/if\(eventId\|\|inviteToken\|\|claimToken\|\|accountResult\)/);
+ assert.match(app,/else if\(accountResult\)/);
+ assert.match(app,/hide\('copyClaim'\)/);
+ assert.match(app,/my-result/);
+});
+test('recovered organizer controls follow closed and drawn event state',()=>{
+ assert.match(app,/const closed=data.enrollmentClosed\|\|data.status!=='draft'/);
+ assert.match(app,/\$\('close'\).disabled=closed/);
+ assert.match(app,/\$\('draw'\).disabled=data.status!=='draft'\|\|!data.enrollmentClosed/);
+ assert.match(app,/\$\('rotateInvite'\).disabled=closed/);
+ assert.match(app,/data.status==='drawn'&&data.privacy==='supervised'/);
+ assert.match(app,/hide\('auditResults'\)/);
+});
