@@ -58,11 +58,11 @@ export async function secretSantaApi(req,env,path,rateLimit,requester,authentica
     if(!kind)return error('Escolha entrar com conta ou como convidado.',422);
     if(kind==='account'&&!authenticatedUser)return error('Entre na sua conta para continuar.',401);
     if(name.length<1||name.length>80||/[<>\x00-\x1f]/.test(name))return error('Nome inválido.',422);
-    const event=await env.DB.prepare(`SELECT id,status,expires_at FROM secret_santa_events
+    const event=await env.DB.prepare(`SELECT id,status,enrollment_closed_at,expires_at FROM secret_santa_events
       WHERE id=? AND invite_token_hash=? AND privacy_mode IS NOT NULL AND expires_at>?`)
       .bind(enroll[1],await digest(invite),Date.now()).first();
     if(!event)return error('Convite inválido ou expirado.',404);
-    if(event.status!=='draft')return error('As inscrições deste evento estão encerradas.',409);
+    if(event.status!=='draft'||event.enrollment_closed_at!==null)return error('As inscrições deste evento estão encerradas.',409);
     // A permanent account may enroll only once per event, regardless of display name.
     if(kind==='account'){
       const existing=await env.DB.prepare('SELECT id FROM secret_santa_enrollments WHERE event_id=? AND user_id=? LIMIT 1')
@@ -74,8 +74,8 @@ export async function secretSantaApi(req,env,path,rateLimit,requester,authentica
       const inserted=await env.DB.prepare(`INSERT INTO secret_santa_enrollments
         (id,event_id,display_name,name_key,auth_kind,user_id,claim_token_hash,created_at)
         SELECT ?,?,?,?,?,?,?,? WHERE
-          (SELECT status FROM secret_santa_events WHERE id=?)='draft'`)
-        .bind(id,enroll[1],name,nameKey,kind,kind==='account'?authenticatedUser.id:null,await digest(claim),Date.now(),enroll[1]).run();
+          (SELECT status FROM secret_santa_events WHERE id=?)='draft' AND (SELECT enrollment_closed_at FROM secret_santa_events WHERE id=?) IS NULL`)
+        .bind(id,enroll[1],name,nameKey,kind,kind==='account'?authenticatedUser.id:null,await digest(claim),Date.now(),enroll[1],enroll[1]).run();
       if(inserted.meta?.changes!==1)return error('As inscrições deste evento estão encerradas.',409);
     }catch(e){
       if(/UNIQUE constraint failed/i.test(String(e)))return error('Este nome já está inscrito neste evento.',409);
@@ -88,19 +88,19 @@ export async function secretSantaApi(req,env,path,rateLimit,requester,authentica
   const close=path.match(/^\/api\/secret-santa\/account\/events\/([0-9a-f-]{36})\/close-enrollment$/);
   if(close){
     if(!authenticatedUser)return error('Entre na sua conta para encerrar as inscrições.',401);
-    const event=await env.DB.prepare(`SELECT id,status,privacy_mode,expires_at FROM secret_santa_events
+    const event=await env.DB.prepare(`SELECT id,status,privacy_mode,enrollment_closed_at,expires_at FROM secret_santa_events
       WHERE id=? AND owner_user_id=? AND privacy_mode IS NOT NULL AND expires_at>?`)
       .bind(close[1],authenticatedUser.id,Date.now()).first();
     if(!event)return error('Evento não encontrado ou sem permissão.',404);
-    if(event.status!=='draft')return error('Inscrições já encerradas.',409);
+    if(event.status!=='draft'||event.enrollment_closed_at!==null)return error('Inscrições já encerradas.',409);
     const row=await env.DB.prepare('SELECT COUNT(*) AS total FROM secret_santa_enrollments WHERE event_id=?')
       .bind(close[1]).first();
     if(Number(row?.total)<2)return error('São necessários pelo menos dois participantes.',422);
     const now=Date.now();
     const updated=await env.DB.prepare(`UPDATE secret_santa_events
-      SET status='enrollment_closed',enrollment_closed_at=?
+      SET enrollment_closed_at=?
       WHERE id=? AND owner_user_id=? AND status='draft' AND privacy_mode IS NOT NULL
-        AND expires_at>? AND (SELECT COUNT(*) FROM secret_santa_enrollments WHERE event_id=?)>=2`)
+        AND expires_at>? AND enrollment_closed_at IS NULL AND (SELECT COUNT(*) FROM secret_santa_enrollments WHERE event_id=?)>=2`)
       .bind(now,close[1],authenticatedUser.id,now,close[1]).run();
     if(updated.meta?.changes!==1)return error('As inscrições já foram encerradas ou o evento expirou.',409);
     return reply({id:close[1],status:'enrollment_closed',participants:Number(row.total),privacy:event.privacy_mode});
