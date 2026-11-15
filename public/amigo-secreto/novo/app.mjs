@@ -55,6 +55,18 @@ $('draw').addEventListener('click',async()=>{
  try{const data=await request('/account/events/'+activeEvent.id+'/draw',{});activeEvent.status='drawn';message('manageStatus','Sorteio realizado para '+data.participants+' participantes. Cada um pode consultar seu próprio acesso.');if(activeEvent.privacy==='supervised')show('audit');}
  catch(e){$('draw').disabled=false;message('manageStatus',e.message);}
 });
+$('entry').addEventListener('change',()=>{if($('entry').value==='guest')hide('signIn');});
+$('signInForm').addEventListener('submit',async event=>{
+ event.preventDefault();$('signInButton').disabled=true;
+ try{
+  const response=await fetch('/api/login',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'content-type':'application/json'},body:JSON.stringify({email:$('signInEmail').value.trim(),password:$('signInPassword').value})});
+  const data=await response.json();
+  if(!response.ok)throw Error(data.error||'Não foi possível entrar na conta.');
+  $('signInPassword').value='';
+  hide('signIn');message('joinStatus','Conta conectada. Confirme sua inscrição.');
+ }catch(error){message('signInStatus',error.message);}
+ finally{$('signInButton').disabled=false;}
+});
 $('enroll').addEventListener('submit',async event=>{
  event.preventDefault();$('enrollButton').disabled=true;
  try{
@@ -66,7 +78,7 @@ $('enroll').addEventListener('submit',async event=>{
   hide('join');show('claim');
   if(account){hide('copyClaim');message('claimStatus','Inscrição confirmada e vinculada à sua conta. Guarde este endereço ou retorne com a mesma conta.');}
   else message('claimStatus','Inscrição confirmada. Guarde seu acesso antes de sair.');
- }catch(e){$('enrollButton').disabled=false;message('joinStatus',e.message+($('entry').value==='account'?' Entre na sua conta pelo cabeçalho do site.':''));}
+ }catch(e){$('enrollButton').disabled=false;message('joinStatus',e.message);if($('entry').value==='account'&&e.message.includes('Entre na sua conta'))show('signIn');}
 });
 $('copyClaim').addEventListener('click',async()=>{try{await copy(privateUrl(activeClaim.id,'claim',activeClaim.token));message('claimStatus','Acesso individual copiado.');}catch(e){message('claimStatus',e.message);}});
 $('checkResult').addEventListener('click',async()=>{
