@@ -113,4 +113,29 @@ test('new Secret Santa lifecycle: two guests, owner isolation, private and super
  assert.equal(mine.data.recipient,'Bruno');
  assert.equal((await call(accountPath,{},stranger)).status,404);
  assert.equal((await call(accountPath,{})).status,401);
+
+ // Simulate a whole classroom behind one IP with the actual API and a
+ // rate limiter enforcing the supplied per-scope limits.
+ const shared=await call('/api/secret-santa/account/drafts',{title:'Turma na mesma rede',privacy:'private'},owner);
+ assert.equal(shared.status,201);
+ const sharedRoot='/api/secret-santa/events/'+shared.data.id;
+ const counters=new Map();
+ const boundedLimit=async(scope,identity,limit)=>{
+  const key=scope+':'+identity;
+  const count=(counters.get(key)||0)+1;
+  counters.set(key,count);
+  return count<=limit;
+ };
+ const sharedCall=async(path,body)=>{
+  const req=new Request('https://example.test'+path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+  const res=await secretSantaApi(req,env,path,boundedLimit,'198.51.100.23');
+  return {status:res.status,data:await res.json()};
+ };
+ for(let i=0;i<20;i++){
+  const result=await sharedCall(sharedRoot+'/enroll',{inviteToken:shared.data.inviteToken,name:'Participante '+i,entry:'guest',privacyAccepted:true,acceptedPrivacyMode:'private'});
+  assert.equal(result.status,201,'Shared IP enrollment '+i+': '+JSON.stringify(result));
+ }
+ assert.equal((await db.prepare('SELECT COUNT(*) AS total FROM secret_santa_enrollments WHERE event_id=?').bind(shared.data.id).first()).total,20);
+ assert.equal(counters.get('secret-santa-group-enroll:198.51.100.23'),20);
+ assert.equal(counters.get('secret-santa-enroll-event:198.51.100.23:'+shared.data.id),20);
 });
