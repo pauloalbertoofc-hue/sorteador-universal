@@ -263,6 +263,11 @@ export async function checkout(env, user) {
       if (recovered.status !== 'pending') throw new BillingError('Assinatura recuperada. Atualize seu plano para consultar o estado.', 409);
       return {checkout_url: checkoutUrl(recovered)};
     }
+    // The old plan-associated + pending API payload is not a supported checkout
+    // contract. Fail BEFORE writing a new ambiguous D1 intent or contacting MP.
+    // Do not redirect to the generic plan URL until secure account binding exists.
+    throw new BillingError('Contratação temporariamente indisponível. Estamos ajustando o checkout seguro do Mercado Pago.', 503);
+    // Legacy path intentionally unreachable until replaced by a supported flow.
     const attemptId = crypto.randomUUID();
     await fence();
     await fence.write(`INSERT INTO billing_checkout(user_id,attempt_id,state,created_at,updated_at) SELECT ?,?,'creating',?,? WHERE $LEASE
