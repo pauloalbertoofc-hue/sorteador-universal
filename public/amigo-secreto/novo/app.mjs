@@ -1,7 +1,7 @@
 const $=id=>document.getElementById(id);
 const api='/api/secret-santa',hash=new URLSearchParams(location.hash.slice(1));
 const eventId=hash.get('event'),inviteToken=hash.get('invite'),claimToken=hash.get('claim');
-const uuid=/^[0-9a-f-]{36}$/,secret=/^[0-9a-f]{64}$/;
+const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,secret=/^[0-9a-f]{64}$/;
 let activeEvent=null,activeClaim=null;
 const show=id=>$(id).classList.remove('hidden');
 const hide=id=>$(id).classList.add('hidden');
@@ -21,7 +21,9 @@ if(eventId||inviteToken||claimToken){
   activeClaim={id:eventId,token:claimToken};show('claim');
  }else{
   show('join');
+  $('enrollButton').disabled=true;
   request('/events/'+eventId+'/invite-info',{inviteToken}).then(data=>{
+   $('enrollButton').disabled=false;
    message('eventInfo',data.title+' — '+(data.privacy==='private'?'sorteio privado':'sorteio supervisionado'));
    if(data.status!=='draft'){$('enrollButton').disabled=true;message('joinStatus','As inscrições deste evento não estão abertas.');}
   }).catch(error=>{$('enrollButton').disabled=true;message('joinStatus',error.message);});
@@ -53,6 +55,7 @@ $('enroll').addEventListener('submit',async event=>{
  event.preventDefault();$('enrollButton').disabled=true;
  try{
   const data=await request('/events/'+eventId+'/enroll',{inviteToken,name:$('name').value.trim(),entry:$('entry').value});
+  if(!secret.test(data.claimToken||''))throw Error('Resposta de inscrição sem credencial válida.');
   activeClaim={id:eventId,token:data.claimToken};
   history.replaceState(null,'',privateUrl(eventId,'claim',data.claimToken));
   hide('join');show('claim');message('claimStatus','Inscrição confirmada. Guarde seu acesso antes de sair.');
