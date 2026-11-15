@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Amigo Secreto | Sorteador Universal</title>
+<style>
+:root{font-family:system-ui,-apple-system,sans-serif;color-scheme:dark;background:#101522;color:#f5f7ff}*{box-sizing:border-box}body{margin:0;padding:20px 14px 56px}main{max-width:640px;margin:auto}a{color:#b7d1ff}h1{font-size:clamp(1.8rem,6vw,2.5rem);margin:20px 0 8px}p{line-height:1.55;color:#c5cde0}.card{background:#1b2436;border:1px solid #36435c;border-radius:16px;padding:20px;margin:20px 0}label{display:block;font-weight:650;margin:14px 0 6px}input,textarea,button{font:inherit}input,textarea{width:100%;background:#0e1626;border:1px solid #65718a;border-radius:10px;color:white;padding:12px}textarea{min-height:160px;resize:vertical}button{border:0;border-radius:10px;padding:12px 16px;font-weight:700;cursor:pointer;background:#8db4ff;color:#08152d}button:disabled{opacity:.5;cursor:wait}.muted{font-size:.9rem}.hidden{display:none}.person{border-top:1px solid #46536a;padding:14px 0;display:grid;gap:8px}.person strong{overflow-wrap:anywhere}.actions{display:flex;flex-wrap:wrap;gap:8px}.secondary{background:#35435e;color:white}.status{min-height:1.5em}code{overflow-wrap:anywhere}.recipient{font-size:1.7rem;font-weight:750;color:#a9e8bb}footer{margin-top:32px}
+</style>
+</head>
+<body><main>
+<a href="/">← Sorteador Universal</a>
+<h1>🎁 Amigo secreto online</h1>
+<p>Crie um sorteio privado e envie um link individual a cada participante. Cada pessoa descobre apenas quem tirou. Os links expiram em 30 dias.</p>
+<section class="card" id="createSection">
+<h2>Organizar um sorteio</h2>
+<form id="createForm">
+<label for="title">Nome do evento</label><input id="title" required minlength="3" maxlength="80" value="Amigo secreto 2026" autocomplete="off">
+<label for="names">Participantes — um nome por linha</label>
+<textarea id="names" required placeholder="Ana&#10;Bruno&#10;Carla" aria-describedby="namesHelp"></textarea>
+<p id="namesHelp" class="muted">De 2 a 100 pessoas. Use nomes diferentes para evitar confusões.</p>
+<button id="createButton" type="submit">Sortear e gerar links</button>
+</form><p id="createStatus" class="status" role="status" aria-live="polite"></p>
+</section>
+<section class="card hidden" id="linksSection">
+<h2>Links individuais</h2>
+<p><strong>Guarde esta página antes de sair.</strong> Os links não ficam salvos no navegador e não podem ser recuperados automaticamente. Envie cada link somente à pessoa indicada. Quem tiver acesso a um link poderá ver aquela revelação.</p>
+<div id="links"></div>
+<button class="secondary" id="copyAll" type="button">Copiar lista de links</button>
+<p class="muted">O organizador recebe todos os links; não compartilhe esta lista completa com os participantes.</p>
+</section>
+<section class="card hidden" id="revealSection">
+<h2>Sua revelação</h2>
+<p id="revealStatus" role="status" aria-live="polite">Carregando seu resultado…</p>
+<div id="revealResult" class="hidden"><p id="giver"></p><p>Você tirou:</p><p class="recipient" id="recipient"></p><p class="muted" id="expiry"></p></div>
+</section>
+<footer><p class="muted">Sorteio aleatório sem autoatribuições. Não há integração com WhatsApp: o envio é feito por você. Não compartilhe links privados em grupos públicos.</p></footer>
+</main><script type="module" src="./app.mjs"></script></body></html>
