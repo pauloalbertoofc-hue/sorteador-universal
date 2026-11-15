@@ -47,6 +47,35 @@ export async function secretSantaApi(req,env,path,rateLimit,requester,authentica
     return reply({id:event.id,title:event.title,status:event.status,privacy:event.privacy_mode,expiresAt:event.expires_at,
       organizerCanViewResults:event.privacy_mode==='supervised'});
   }
+  // Shared invitation: the participant chooses a persistent account or a temporary identity.
+  // A guest claim is a bearer secret. Never treat the display name as authentication.
+  const enroll=path.match(/^\\/api\\/secret-santa\\/events\\/([0-9a-f-]{36})\\/enroll$/);
+  if(enroll){
+    if(!await rateLimit('secret-santa-enroll',requester,8,3600000))return error('Muitas tentativas de inscrição.',429);
+    const invite=body?.inviteToken,name=typeof body?.name==='string'?body.name.trim():'';
+    const kind=body?.entry==='account'?'account':body?.entry==='guest'?'guest':null;
+    if(typeof invite!=='string'||!/^[0-9a-f]{64}$/.test(invite))return error('Convite inválido.',403);
+    if(!kind)return error('Escolha entrar com conta ou como convidado.',422);
+    if(kind==='account'&&!authenticatedUser)return error('Entre na sua conta para continuar.',401);
+    if(name.length<1||name.length>80||/[<>\\x00-\\x1f]/.test(name))return error('Nome inválido.',422);
+    const event=await env.DB.prepare(`SELECT id,status,expires_at FROM secret_santa_events
+      WHERE id=? AND invite_token_hash=? AND privacy_mode IS NOT NULL AND expires_at>?`)
+      .bind(enroll[1],await digest(invite),Date.now()).first();
+    if(!event)return error('Convite inválido ou expirado.',404);
+    if(event.status!=='draft')return error('As inscrições deste evento estão encerradas.',409);
+    const claim=token(),id=crypto.randomUUID(),nameKey=name.normalize('NFKC').toLocaleLowerCase('pt-BR');
+    try{
+      await env.DB.prepare(`INSERT INTO secret_santa_enrollments
+        (id,event_id,display_name,name_key,auth_kind,user_id,claim_token_hash,created_at)
+        SELECT ?,?,?,?,?,?,?,? WHERE
+          (SELECT status FROM secret_santa_events WHERE id=?)='draft'`)
+        .bind(id,enroll[1],name,nameKey,kind,kind==='account'?authenticatedUser.id:null,await digest(claim),Date.now(),enroll[1]).run();
+    }catch(e){
+      if(/UNIQUE constraint failed/i.test(String(e)))return error('Este nome já está inscrito neste evento.',409);
+      throw e;
+    }
+    return reply({id,name,entry:kind,claimToken:claim,status:'enrolled'},201);
+  }
   const accountCreation=path==='/api/secret-santa/account/events';
   if(accountCreation&&!authenticatedUser)return error('Entre na sua conta para organizar o sorteio.',401);
   if(path==='/api/secret-santa/events'||accountCreation){
