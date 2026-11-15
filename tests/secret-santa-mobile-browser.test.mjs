@@ -79,8 +79,11 @@ test('Amigo Secreto: two isolated mobile browsers, private links and unique reci
     const url=new URL(tokenLinks[i]);
     assert.equal(url.search,'');
     assert.match(url.hash,/#event=/);
+    // A new recipient opens their private link in a fresh tab; navigating only the hash
+    // of the same document does not rerun this page's initialization script.
+    await guest.goto(origin + '/amigo-secreto/');
     await guest.goto(url.toString());
-    await guest.waitForFunction(expected => document.querySelector('#giver')?.textContent === 'Olá, ' + expected + '!' && document.querySelector('#revealResult')?.classList.contains('hidden') === false, displayedNames[i]);
+    await guest.locator('#revealResult').waitFor({state:'visible',timeout:5000});
     const giver=await guest.locator('#giver').innerText();
     const recipient=await guest.locator('#recipient').innerText();
     assert.ok(giver.includes(displayedNames[i]),JSON.stringify({giver,expected:displayedNames[i],linkIndex:i}));
