@@ -57,7 +57,7 @@ $('draw').addEventListener('click',async()=>{
 $('enroll').addEventListener('submit',async event=>{
  event.preventDefault();$('enrollButton').disabled=true;
  try{
-  const data=await request('/events/'+eventId+'/enroll',{inviteToken,name:$('name').value.trim(),entry:$('entry').value});
+  const data=await request('/events/'+eventId+'/enroll',{inviteToken,name:$('name').value.trim(),entry:$('entry').value,privacyAccepted:$('privacyConsent').checked});
   const account=data.entry==='account';
   if(!account&&!secret.test(data.claimToken||''))throw Error('Resposta de inscrição sem credencial válida.');
   activeClaim={id:eventId,token:account?null:data.claimToken,entry:data.entry};
