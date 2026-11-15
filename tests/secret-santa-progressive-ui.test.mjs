@@ -93,3 +93,13 @@ test('participant must acknowledge organizer visibility before enrollment',()=>{
  assert.match(app,/organizador não poderá consultar a lista completa/);
  assert.match(html,/input:not\(\[type="checkbox"\]\)/);
 });
+
+test('existing-account sign-in stays on invitation page',()=>{
+ assert.match(html,/id="signInForm"/);
+ assert.match(html,/autocomplete="current-password"/);
+ assert.match(app,/fetch\('\/api\/login'/);
+ assert.match(app,/credentials:'same-origin'/);
+ assert.match(app,/\$\('signInPassword'\)\.value=''/);
+ assert.match(app,/hide\('signIn'\)/);
+ assert.doesNotMatch(app,/location\.href\s*=\s*['"]\//);
+});
