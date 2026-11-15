@@ -44,13 +44,13 @@ $('share').addEventListener('click',async()=>{try{if(!activeEvent.inviteToken)th
 $('close').addEventListener('click',async()=>{
  if(!confirm('Encerrar inscrições? Não será possível adicionar mais participantes.'))return;
  $('close').disabled=true;
- try{const data=await request('/account/events/'+activeEvent.id+'/close-enrollment',{});message('manageStatus','Inscrições encerradas com '+data.participants+' participantes.');$('draw').disabled=false;}
+ try{const data=await request('/account/events/'+activeEvent.id+'/close-enrollment',{});activeEvent.enrollmentClosed=true;message('manageStatus','Inscrições encerradas com '+data.participants+' participantes.');$('rotateInvite').disabled=true;$('draw').disabled=false;}
  catch(e){$('close').disabled=false;message('manageStatus',e.message);}
 });
 $('draw').addEventListener('click',async()=>{
  if(!confirm('Realizar sorteio agora?'))return;
  $('draw').disabled=true;
- try{const data=await request('/account/events/'+activeEvent.id+'/draw',{});message('manageStatus','Sorteio realizado para '+data.participants+' participantes. Cada um pode consultar seu próprio acesso.');if(activeEvent.privacy==='supervised')show('audit');}
+ try{const data=await request('/account/events/'+activeEvent.id+'/draw',{});activeEvent.status='drawn';message('manageStatus','Sorteio realizado para '+data.participants+' participantes. Cada um pode consultar seu próprio acesso.');if(activeEvent.privacy==='supervised')show('audit');}
  catch(e){$('draw').disabled=false;message('manageStatus',e.message);}
 });
 $('enroll').addEventListener('submit',async event=>{
