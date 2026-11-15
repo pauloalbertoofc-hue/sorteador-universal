@@ -61,7 +61,7 @@ export async function secretSantaApi(req,env,path,rateLimit,requester,authentica
   // Guest admission requires an individual high-entropy entry code.
   // Names are display hints, never authenticators. The organizer who distributes
   // codes can still impersonate guests: this is not organizer-blind delivery.
-  const join=path.match(/^\\/api\\/secret-santa\\/events\\/([0-9a-f-]{36})\\/join$/);
+  const join=path.match(/^\/api\/secret-santa\/events\/([0-9a-f-]{36})\/join$/);
   if(join){
     if(!await rateLimit('secret-santa-join',requester,12,3600000))return error('Muitas tentativas.',429);
     const entryCode=body?.entryCode;
@@ -83,7 +83,7 @@ export async function secretSantaApi(req,env,path,rateLimit,requester,authentica
       .bind(await digest(session),join[1],row.participant_id,expiry,now).run();
     return reply({sessionToken:session,expiresAt:expiry,title:row.title});
   }
-  const guestReveal=path.match(/^\\/api\\/secret-santa\\/events\\/([0-9a-f-]{36})\\/guest-reveal$/);
+  const guestReveal=path.match(/^\/api\/secret-santa\/events\/([0-9a-f-]{36})\/guest-reveal$/);
   if(guestReveal){
     const sessionToken=body?.sessionToken;
     if(typeof sessionToken!=='string'||!/^[0-9a-f]{64}$/.test(sessionToken))return error('Acesso negado.',403);
