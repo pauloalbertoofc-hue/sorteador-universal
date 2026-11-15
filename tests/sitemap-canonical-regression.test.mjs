@@ -7,7 +7,7 @@ const origin = 'https://sorteador.shadownink.com';
 const paths = [
   '/', '/sortear-nomes/', '/sortear-numeros/', '/sortear-equipes/',
   '/roleta-online/', '/sorteio-rifa-online/', '/cara-ou-coroa-online/',
-  '/sortear-aluno-online/', '/dividir-turma-em-grupos/',
+  '/sortear-aluno-online/', '/dividir-turma-em-grupos/', '/amigo-secreto/',
 ];
 
 test('sitemap includes each published landing URL exactly once', () => {
@@ -22,7 +22,7 @@ test('each sitemap page has a matching canonical URL and indexable metadata', ()
     const html = readFileSync(new URL(path === '/' ? 'index.html' : path.slice(1) + 'index.html', root), 'utf8');
     assert.ok(html.includes(`href="${origin + path}"`), `canonical missing: ${path}`);
     assert.doesNotMatch(html, /<meta[^>]+name="robots"[^>]+content="[^"]*noindex/i, `noindex directive: ${path}`);
-    if (path !== '/') assert.match(html, /<meta name="robots" content="index,follow"/, `robots meta missing: ${path}`);
+    if (path !== '/') assert.match(html, /<meta name="robots" content="index,follow(?:,|")/, `robots meta missing: ${path}`);
   }
 });
 
