@@ -170,4 +170,24 @@ test('new Secret Santa lifecycle: two guests, owner isolation, private and super
  assert.deepEqual([first.status,last.status].sort((a,b)=>a-b),[201,409]);
  const finalCount=await db.prepare('SELECT COUNT(*) AS total FROM secret_santa_enrollments WHERE event_id=?').bind(race.data.id).first();
  assert.equal(finalCount.total,100);
+
+ // Concurrent draw attempts must never replace or duplicate the assignments.
+ const drawRace=await call('/api/secret-santa/account/drafts',{title:'Sorteio concorrente',privacy:'private'},owner);
+ assert.equal(drawRace.status,201);
+ const drawRaceRoot='/api/secret-santa/events/'+drawRace.data.id;
+ const drawClaims=[];
+ for(const name of ['Aline','Beto','Cecília']){
+  const enrolled=await call(drawRaceRoot+'/enroll',{inviteToken:drawRace.data.inviteToken,name,entry:'guest',privacyAccepted:true,acceptedPrivacyMode:'private'});
+  assert.equal(enrolled.status,201);
+  drawClaims.push(enrolled.data.claimToken);
+ }
+ const drawEndpoint='/api/secret-santa/account/events/'+drawRace.data.id+'/draw';
+ assert.equal((await call('/api/secret-santa/account/events/'+drawRace.data.id+'/close-enrollment',{},owner)).status,200);
+ const drawAttempts=await Promise.allSettled([call(drawEndpoint,{},owner),call(drawEndpoint,{},owner)]);
+ assert.equal(drawAttempts.filter(x=>x.status==='fulfilled'&&x.value.status===200).length,1,JSON.stringify(drawAttempts));
+ assert.equal(drawAttempts.filter(x=>x.status==='fulfilled'&&x.value.status===409).length,1,JSON.stringify(drawAttempts));
+ const saved=(await db.prepare('SELECT id,recipient_id FROM secret_santa_participants WHERE event_id=?').bind(drawRace.data.id).all()).results;
+ assert.equal(saved.length,3);
+ assert.equal(new Set(saved.map(x=>x.recipient_id)).size,3);
+ for(const claimToken of drawClaims)assert.equal((await call(drawRaceRoot+'/claim-reveal',{claimToken})).status,200);
 });
