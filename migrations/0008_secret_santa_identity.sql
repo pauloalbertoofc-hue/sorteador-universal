@@ -52,3 +52,4 @@ CREATE TABLE IF NOT EXISTS secret_santa_enrollments (
   CHECK((auth_kind='account' AND user_id IS NOT NULL) OR (auth_kind='guest' AND user_id IS NULL))
 );
 CREATE INDEX IF NOT EXISTS idx_secret_santa_enrollments_event ON secret_santa_enrollments(event_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_secret_santa_enrollments_account ON secret_santa_enrollments(event_id,user_id) WHERE user_id IS NOT NULL;
