@@ -114,6 +114,11 @@ test('new Secret Santa lifecycle: two guests, owner isolation, private and super
  assert.notEqual((await call(expiredRoot+'/claim-reveal',{claimToken:expiredGuest.data.claimToken})).status,200);
  const expiredManage=await secretSantaApi(new Request('https://example.test/api/secret-santa/account/events/'+expired.data.id+'/manage'),env,'/api/secret-santa/account/events/'+expired.data.id+'/manage',async()=>true,'203.0.113.2',owner);
  assert.equal(expiredManage.status,404);
+ const expiredList=await secretSantaApi(new Request('https://example.test/api/secret-santa/account/events'),env,'/api/secret-santa/account/events',async()=>true,'203.0.113.2',owner);
+ assert.equal(expiredList.status,200);
+ const expiredListData=await expiredList.json();
+ assert.equal(expiredListData.events.some(event=>event.id===expired.data.id),false);
+
 
  const resumable=await call('/api/secret-santa/account/drafts',{title:'Evento recuperável',privacy:'private'},owner);
  assert.equal(resumable.status,201);
