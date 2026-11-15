@@ -95,7 +95,9 @@ test('new Secret Santa lifecycle: two guests, owner isolation, private and super
  assert.equal(accountEvent.status,201);
  const accountId=accountEvent.data.id,accountInvite=accountEvent.data.inviteToken;
  const accountRoot='/api/secret-santa/events/'+accountId;
- assert.equal((await call(accountRoot+'/enroll',{inviteToken:accountInvite,name:'Ana',entry:'account'},owner)).status,201);
+ const accountEnrollment=await call(accountRoot+'/enroll',{inviteToken:accountInvite,name:'Ana',entry:'account'},owner);
+ assert.equal(accountEnrollment.status,201);
+ assert.equal(Object.hasOwn(accountEnrollment.data,'claimToken'),false);
  assert.equal((await call(accountRoot+'/enroll',{inviteToken:accountInvite,name:'Ana outra',entry:'account'},owner)).status,409);
  assert.equal((await call(accountRoot+'/enroll',{inviteToken:accountInvite,name:'Bruno',entry:'guest'})).status,201);
  assert.equal((await call('/api/secret-santa/account/events/'+accountId+'/close-enrollment',{},owner)).status,200);
