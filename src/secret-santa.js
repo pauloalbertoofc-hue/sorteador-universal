@@ -27,7 +27,8 @@ export async function secretSantaApi(req,env,path,rateLimit,requester,authentica
   if(path==='/api/secret-santa/events'||accountCreation){
     // Protected guest entry requires a separate credential-issuance flow.
     // Until that flow is implemented, only the established links mode is accepted.
-    if(accountCreation && body.mode!==undefined && body.mode!=='links')return error('Modo protegido ainda não disponível.',422);
+    const mode=accountCreation?(body.mode||'links'):'links';
+    if(!['links','protected'].includes(mode))return error('Modo inválido.',422);
     const title=typeof body.title==='string'?body.title.trim():'';
     if(title.length<3||title.length>80||/[<>\x00-\x1f]/.test(title))return error('Título inválido');
     let names;
@@ -35,21 +36,66 @@ export async function secretSantaApi(req,env,path,rateLimit,requester,authentica
     if(names.some(name=>/[<>\x00-\x1f]/.test(name)))return error('Nome inválido');
     const assignments=drawSecretSanta(names);
     const id=crypto.randomUUID(),admin=token(),now=Date.now(),expires=now+30*86400000;
-    const members=names.map(name=>({id:crypto.randomUUID(),name,accessToken:token()}));
+    const members=names.map(name=>({id:crypto.randomUUID(),name,accessToken:token(),entryCode:mode==='protected'?token():null}));
     const byName=new Map(members.map(member=>[member.name,member]));
     const statements=[accountCreation
-      ?env.DB.prepare('INSERT INTO secret_santa_events(id,title,admin_token_hash,status,created_at,expires_at,owner_user_id,distribution_mode) VALUES(?,?,?,?,?,?,?,?)').bind(id,title,await digest(admin),'drawn',now,expires,authenticatedUser.id,'links')
+      ?env.DB.prepare('INSERT INTO secret_santa_events(id,title,admin_token_hash,status,created_at,expires_at,owner_user_id,distribution_mode) VALUES(?,?,?,?,?,?,?,?)').bind(id,title,await digest(admin),'drawn',now,expires,authenticatedUser.id,mode)
       :env.DB.prepare('INSERT INTO secret_santa_events(id,title,admin_token_hash,status,created_at,expires_at) VALUES(?,?,?,?,?,?)').bind(id,title,await digest(admin),'drawn',now,expires)];
     for(const assignment of assignments){
       const member=byName.get(assignment.giver),recipient=byName.get(assignment.recipient);
       statements.push(env.DB.prepare('INSERT INTO secret_santa_participants(id,event_id,display_name,name_key,access_token_hash) VALUES(?,?,?,?,?)').bind(member.id,id,member.name,member.name.normalize('NFKC').toLocaleLowerCase('pt-BR'),await digest(member.accessToken)));
+    }
+    if(mode==='protected'){
+      for(const member of members)statements.push(env.DB.prepare(
+        'INSERT INTO secret_santa_guest_credentials(id,event_id,participant_id,credential_hash,expires_at,created_at) VALUES(?,?,?,?,?,?)'
+      ).bind(crypto.randomUUID(),id,member.id,await digest(member.entryCode),expires,now));
     }
     for(const assignment of assignments){
       statements.push(env.DB.prepare('UPDATE secret_santa_participants SET recipient_id=? WHERE id=? AND event_id=?').bind(byName.get(assignment.recipient).id,byName.get(assignment.giver).id,id));
     }
     // Insert participants before assigning references, avoiding immediate FK violations.
     await env.DB.batch(statements);
-    return reply({id,title,expiresAt:expires,participants:members.map(({name,accessToken})=>({name,accessToken}))},201);
+    return reply({id,title,expiresAt:expires,mode,participants:members.map(({name,accessToken,entryCode})=>
+      mode==='protected'?{name,entryCode}:{name,accessToken})},201);
+  }
+  // Guest admission requires an individual high-entropy entry code.
+  // Names are display hints, never authenticators. The organizer who distributes
+  // codes can still impersonate guests: this is not organizer-blind delivery.
+  const join=path.match(/^\\/api\\/secret-santa\\/events\\/([0-9a-f-]{36})\\/join$/);
+  if(join){
+    if(!await rateLimit('secret-santa-join',requester,12,3600000))return error('Muitas tentativas.',429);
+    const entryCode=body?.entryCode;
+    if(typeof entryCode!=='string'||!/^[0-9a-f]{64}$/.test(entryCode))return error('Credencial inválida.',403);
+    const row=await env.DB.prepare(`SELECT c.id,c.participant_id,e.title,e.expires_at
+      FROM secret_santa_guest_credentials c JOIN secret_santa_events e ON e.id=c.event_id
+      WHERE c.event_id=? AND c.credential_hash=? AND c.redeemed_at IS NULL
+        AND c.revoked_at IS NULL AND c.expires_at>? AND e.expires_at>?
+        AND e.status='drawn' AND e.distribution_mode='protected'`)
+      .bind(join[1],await digest(entryCode),Date.now(),Date.now()).first();
+    if(!row)return error('Credencial inválida, utilizada ou expirada.',403);
+    const session=token(),now=Date.now(),expiry=Math.min(row.expires_at,now+24*3600000);
+    // D1 batch is transactional; conditional update avoids reusing an entry code.
+    await env.DB.batch([
+      env.DB.prepare('UPDATE secret_santa_guest_credentials SET redeemed_at=? WHERE id=? AND redeemed_at IS NULL').bind(now,row.id),
+      env.DB.prepare('INSERT INTO secret_santa_guest_sessions(token_hash,event_id,participant_id,expires_at,created_at) VALUES(?,?,?,?,?)')
+        .bind(await digest(session),join[1],row.participant_id,expiry,now)
+    ]);
+    return reply({sessionToken:session,expiresAt:expiry,title:row.title});
+  }
+  const guestReveal=path.match(/^\\/api\\/secret-santa\\/events\\/([0-9a-f-]{36})\\/guest-reveal$/);
+  if(guestReveal){
+    const sessionToken=body?.sessionToken;
+    if(typeof sessionToken!=='string'||!/^[0-9a-f]{64}$/.test(sessionToken))return error('Acesso negado.',403);
+    const row=await env.DB.prepare(`SELECT e.title,e.expires_at,p.display_name AS giver,r.display_name AS recipient
+      FROM secret_santa_guest_sessions s
+      JOIN secret_santa_events e ON e.id=s.event_id
+      JOIN secret_santa_participants p ON p.id=s.participant_id AND p.event_id=s.event_id
+      JOIN secret_santa_participants r ON r.id=p.recipient_id AND r.event_id=p.event_id
+      WHERE s.event_id=? AND s.token_hash=? AND s.revoked_at IS NULL AND s.expires_at>?
+        AND e.status='drawn' AND e.distribution_mode='protected' AND e.expires_at>?`)
+      .bind(guestReveal[1],await digest(sessionToken),Date.now(),Date.now()).first();
+    if(!row)return error('Sessão inválida ou expirada.',403);
+    return reply({title:row.title,giver:row.giver,recipient:row.recipient,expiresAt:row.expires_at});
   }
   const match=path.match(/^\/api\/secret-santa\/events\/([0-9a-f-]{36})\/reveal$/);
   if(match){
