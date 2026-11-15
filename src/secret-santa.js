@@ -63,13 +63,20 @@ export async function secretSantaApi(req,env,path,rateLimit,requester,authentica
       .bind(enroll[1],await digest(invite),Date.now()).first();
     if(!event)return error('Convite inválido ou expirado.',404);
     if(event.status!=='draft')return error('As inscrições deste evento estão encerradas.',409);
+    // A permanent account may enroll only once per event, regardless of display name.
+    if(kind==='account'){
+      const existing=await env.DB.prepare('SELECT id FROM secret_santa_enrollments WHERE event_id=? AND user_id=? LIMIT 1')
+        .bind(enroll[1],authenticatedUser.id).first();
+      if(existing)return error('Esta conta já está inscrita no evento.',409);
+    }
     const claim=token(),id=crypto.randomUUID(),nameKey=name.normalize('NFKC').toLocaleLowerCase('pt-BR');
     try{
-      await env.DB.prepare(`INSERT INTO secret_santa_enrollments
+      const inserted=await env.DB.prepare(`INSERT INTO secret_santa_enrollments
         (id,event_id,display_name,name_key,auth_kind,user_id,claim_token_hash,created_at)
         SELECT ?,?,?,?,?,?,?,? WHERE
           (SELECT status FROM secret_santa_events WHERE id=?)='draft'`)
         .bind(id,enroll[1],name,nameKey,kind,kind==='account'?authenticatedUser.id:null,await digest(claim),Date.now(),enroll[1]).run();
+      if(inserted.meta?.changes!==1)return error('As inscrições deste evento estão encerradas.',409);
     }catch(e){
       if(/UNIQUE constraint failed/i.test(String(e)))return error('Este nome já está inscrito neste evento.',409);
       throw e;
