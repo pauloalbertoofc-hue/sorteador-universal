@@ -23,8 +23,8 @@ test('account event routes are session-bound and never list assignments',()=>{
   assert.ok(worker.includes("path.startsWith('/api/secret-santa/account/')?await auth(req,env):null"));
   assert.ok(api.includes("if(!authenticatedUser)return error('Entre na sua conta para consultar seus eventos.',401)"));
   assert.ok(api.includes("WHERE owner_user_id=? ORDER BY created_at DESC"));
-  assert.ok(api.includes("authenticatedUser.id,'links'"));
-  assert.ok(api.includes("Modo protegido ainda não disponível."));
+  assert.ok(api.includes("authenticatedUser.id,mode)"));
+  assert.ok(api.includes("if(!['links','protected'].includes(mode))"));
   assert.ok(!api.includes("SELECT * FROM secret_santa_events"));
 });
 
