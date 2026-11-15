@@ -155,4 +155,19 @@ test('new Secret Santa lifecycle: two guests, owner isolation, private and super
   recipients.add(reveal.data.recipient);
  }
  assert.equal(recipients.size,100);
+
+ // Two simultaneous requests compete for the final seat. The capacity check
+ // is inside the INSERT statement, not a stale application-side preflight.
+ const race=await call('/api/secret-santa/account/drafts',{title:'Última vaga concorrente',privacy:'private'},owner);
+ assert.equal(race.status,201);
+ const raceRoot='/api/secret-santa/events/'+race.data.id;
+ for(let i=0;i<99;i++){
+  const enrolled=await call(raceRoot+'/enroll',{inviteToken:race.data.inviteToken,name:'Pessoa '+i,entry:'guest',privacyAccepted:true,acceptedPrivacyMode:'private'});
+  assert.equal(enrolled.status,201);
+ }
+ const [first,last]=await Promise.all(['Pessoa final A','Pessoa final B'].map(name=>
+  call(raceRoot+'/enroll',{inviteToken:race.data.inviteToken,name,entry:'guest',privacyAccepted:true,acceptedPrivacyMode:'private'})));
+ assert.deepEqual([first.status,last.status].sort((a,b)=>a-b),[201,409]);
+ const finalCount=await db.prepare('SELECT COUNT(*) AS total FROM secret_santa_enrollments WHERE event_id=?').bind(race.data.id).first();
+ assert.equal(finalCount.total,100);
 });
