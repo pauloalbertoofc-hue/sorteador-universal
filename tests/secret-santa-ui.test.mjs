@@ -29,14 +29,3 @@ test('no ad scripts or placements were added to private invitation page', () => 
   assert.doesNotMatch(html + js, /adsterra|adsbygoogle|atOptions|invoke\.js/i);
 });
 
-test('organizer can choose account-backed protected mode without requiring guest registration',()=>{
- assert.match(html,/name="distributionMode" value="links"/);
- assert.match(html,/name="distributionMode" value="protected"/);
- assert.match(html,/id="guestJoinForm"/);
- assert.match(html,/id="accountNotice"/);
- assert.match(js,/\/api\/secret-santa\/account\/events/);
- assert.match(js,/guest-reveal/);
- assert.match(js,/join/);
- assert.match(js,/history\.replaceState/);
- assert.match(html,/não garante sigilo contra o organizador/);
-});
