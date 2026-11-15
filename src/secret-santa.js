@@ -6,14 +6,28 @@ const digest = async value => [...new Uint8Array(await crypto.subtle.digest('SHA
 const reply = (value,status=200) => new Response(JSON.stringify(value),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','referrer-policy':'no-referrer'}});
 const error = (message,status=400) => reply({error:message},status);
 
-export async function secretSantaApi(req,env,path,rateLimit,requester){
+export async function secretSantaApi(req,env,path,rateLimit,requester,authenticatedUser=null){
+  // Account endpoints are opt-in: legacy private links continue to work unchanged.
+  // Do not enable these routes in production until migration 0008 is applied.
+  if(path==='/api/secret-santa/account/events' && req.method==='GET'){
+    if(!authenticatedUser)return error('Entre na sua conta para consultar seus eventos.',401);
+    const events=(await env.DB.prepare(`SELECT id,title,status,distribution_mode,created_at,expires_at
+      FROM secret_santa_events WHERE owner_user_id=? ORDER BY created_at DESC LIMIT 100`)
+      .bind(authenticatedUser.id).all()).results;
+    return reply({events:events.map(e=>({id:e.id,title:e.title,status:e.status,mode:e.distribution_mode,createdAt:e.created_at,expiresAt:e.expires_at}))});
+  }
   if(req.method!=='POST')return error('Método não permitido',405);
   if(!await rateLimit('secret-santa',requester,10,3600000))return error('Muitas solicitações. Tente mais tarde.',429);
   const raw=await req.text();
   if(raw.length>12000)return error('Dados muito extensos',413);
   let body;
   try{body=JSON.parse(raw)}catch{return error('JSON inválido')}
-  if(path==='/api/secret-santa/events'){
+  const accountCreation=path==='/api/secret-santa/account/events';
+  if(accountCreation&&!authenticatedUser)return error('Entre na sua conta para organizar o sorteio.',401);
+  if(path==='/api/secret-santa/events'||accountCreation){
+    // Protected guest entry requires a separate credential-issuance flow.
+    // Until that flow is implemented, only the established links mode is accepted.
+    if(accountCreation && body.mode!==undefined && body.mode!=='links')return error('Modo protegido ainda não disponível.',422);
     const title=typeof body.title==='string'?body.title.trim():'';
     if(title.length<3||title.length>80||/[<>\x00-\x1f]/.test(title))return error('Título inválido');
     let names;
@@ -23,7 +37,9 @@ export async function secretSantaApi(req,env,path,rateLimit,requester){
     const id=crypto.randomUUID(),admin=token(),now=Date.now(),expires=now+30*86400000;
     const members=names.map(name=>({id:crypto.randomUUID(),name,accessToken:token()}));
     const byName=new Map(members.map(member=>[member.name,member]));
-    const statements=[env.DB.prepare('INSERT INTO secret_santa_events(id,title,admin_token_hash,status,created_at,expires_at) VALUES(?,?,?,?,?,?)').bind(id,title,await digest(admin),'drawn',now,expires)];
+    const statements=[accountCreation
+      ?env.DB.prepare('INSERT INTO secret_santa_events(id,title,admin_token_hash,status,created_at,expires_at,owner_user_id,distribution_mode) VALUES(?,?,?,?,?,?,?,?)').bind(id,title,await digest(admin),'drawn',now,expires,authenticatedUser.id,'links')
+      :env.DB.prepare('INSERT INTO secret_santa_events(id,title,admin_token_hash,status,created_at,expires_at) VALUES(?,?,?,?,?,?)').bind(id,title,await digest(admin),'drawn',now,expires)];
     for(const assignment of assignments){
       const member=byName.get(assignment.giver),recipient=byName.get(assignment.recipient);
       statements.push(env.DB.prepare('INSERT INTO secret_santa_participants(id,event_id,display_name,name_key,access_token_hash) VALUES(?,?,?,?,?)').bind(member.id,id,member.name,member.name.normalize('NFKC').toLocaleLowerCase('pt-BR'),await digest(member.accessToken)));
