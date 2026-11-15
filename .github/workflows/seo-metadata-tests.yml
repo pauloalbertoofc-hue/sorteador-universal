@@ -1,0 +1,29 @@
+name: SEO metadata regression
+
+on:
+  pull_request:
+    paths:
+      - 'tests/sitemap-canonical-regression.test.mjs'
+      - 'public/sitemap.xml'
+      - 'public/robots.txt'
+      - 'public/index.html'
+      - 'public/**/index.html'
+      - '.github/workflows/seo-metadata-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  seo-metadata:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check sitemap, canonical URLs and robots
+        run: node --test tests/sitemap-canonical-regression.test.mjs
