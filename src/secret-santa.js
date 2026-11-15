@@ -12,7 +12,7 @@ export async function secretSantaApi(req,env,path,rateLimit,requester,authentica
   if(path==='/api/secret-santa/account/events' && req.method==='GET'){
     if(!authenticatedUser)return error('Entre na sua conta para consultar seus eventos.',401);
     const events=(await env.DB.prepare(`SELECT id,title,status,distribution_mode,created_at,expires_at
-      FROM secret_santa_events WHERE owner_user_id=? ORDER BY created_at DESC LIMIT 100`)
+      FROM secret_santa_events WHERE owner_user_id=? AND privacy_mode IS NOT NULL ORDER BY created_at DESC LIMIT 100`)
       .bind(authenticatedUser.id).all()).results;
     return reply({events:events.map(e=>({id:e.id,title:e.title,status:e.status,mode:e.distribution_mode,createdAt:e.created_at,expiresAt:e.expires_at}))});
   }
@@ -55,11 +55,11 @@ export async function secretSantaApi(req,env,path,rateLimit,requester,authentica
   if(inviteInfo){
     const invite=body?.inviteToken;
     if(typeof invite!=='string'||!/^[0-9a-f]{64}$/.test(invite))return error('Convite inválido.',403);
-    const event=await env.DB.prepare(`SELECT id,title,status,privacy_mode,expires_at
+    const event=await env.DB.prepare(`SELECT id,title,status,privacy_mode,enrollment_closed_at,expires_at
       FROM secret_santa_events WHERE id=? AND invite_token_hash=? AND privacy_mode IS NOT NULL AND expires_at>?`)
       .bind(inviteInfo[1],await digest(invite),Date.now()).first();
     if(!event)return error('Convite inválido ou expirado.',404);
-    return reply({id:event.id,title:event.title,status:event.status,privacy:event.privacy_mode,expiresAt:event.expires_at,
+    return reply({id:event.id,title:event.title,status:event.status,enrollmentClosed:event.enrollment_closed_at!==null,privacy:event.privacy_mode,expiresAt:event.expires_at,
       organizerCanViewResults:event.privacy_mode==='supervised'});
   }
   // Shared invitation: the participant chooses a persistent account or a temporary identity.
