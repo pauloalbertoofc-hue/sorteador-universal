@@ -4,7 +4,7 @@ export function normalizeParticipants(names) {
   if (!Array.isArray(names)) throw new TypeError('A lista deve ser um array.');
   const result = names.map(name => {
     if (typeof name !== 'string') throw new TypeError('Nome inválido.');
-    return name.trim().replace(/\\s+/g, ' ');
+    return name.trim().replace(/\s+/g, ' ');
   });
   if (result.length < 2 || result.length > 100) throw new RangeError('Informe de 2 a 100 participantes.');
   if (result.some(name => !name || name.length > 80)) throw new RangeError('Nome vazio ou longo demais.');
