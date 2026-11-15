@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
+const classic=readFileSync(new URL('../public/amigo-secreto/index.html',import.meta.url),'utf8');
 const html=readFileSync(new URL('../public/amigo-secreto/novo/index.html',import.meta.url),'utf8');
 const app=readFileSync(new URL('../public/amigo-secreto/novo/app.mjs',import.meta.url),'utf8');
 const api=readFileSync(new URL('../src/secret-santa.js',import.meta.url),'utf8');
@@ -64,4 +65,12 @@ test('recovered organizer controls follow closed and drawn event state',()=>{
  assert.match(app,/\$\('rotateInvite'\).disabled=closed/);
  assert.match(app,/data.status==='drawn'&&data.privacy==='supervised'/);
  assert.match(app,/hide\('auditResults'\)/);
+});
+
+test('classic secret santa links to the optional group flow without replacing legacy creation',()=>{
+ assert.match(classic,/href="\/amigo-secreto\/novo\/"/);
+ assert.match(classic,/id="createForm"/);
+ assert.match(classic,/id="linksSection"/);
+ assert.match(classic,/\.\/app\.mjs/);
+ assert.match(classic,/modalidade clássica/);
 });
