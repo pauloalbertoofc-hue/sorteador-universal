@@ -83,7 +83,7 @@ test('Amigo Secreto: two isolated mobile browsers, private links and unique reci
     await guest.locator('#revealResult').waitFor({state:'visible'});
     const giver=await guest.locator('#giver').innerText();
     const recipient=await guest.locator('#recipient').innerText();
-    assert.ok(giver.includes(displayedNames[i]));
+    assert.ok(giver.includes(displayedNames[i]),JSON.stringify({giver,expected:displayedNames[i],linkIndex:i}));
     assert.notEqual(recipient,displayedNames[i]);
     allRecipients.add(recipient);
     assert.equal(await guest.locator('#linksSection').isVisible(),false);
