@@ -71,6 +71,7 @@ export async function secretSantaApi(req,env,path,rateLimit,requester,authentica
     const kind=body?.entry==='account'?'account':body?.entry==='guest'?'guest':null;
     if(typeof invite!=='string'||!/^[0-9a-f]{64}$/.test(invite))return error('Convite inválido.',403);
     if(!kind)return error('Escolha entrar com conta ou como convidado.',422);
+    if(body?.privacyAccepted!==true)return error('Confirme que leu e aceitou a modalidade de privacidade do evento.',422);
     if(kind==='account'&&!authenticatedUser)return error('Entre na sua conta para continuar.',401);
     if(name.length<1||name.length>80||/[<>\x00-\x1f]/.test(name))return error('Nome inválido.',422);
     const event=await env.DB.prepare(`SELECT id,status,enrollment_closed_at,expires_at FROM secret_santa_events
