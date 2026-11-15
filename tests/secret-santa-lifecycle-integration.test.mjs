@@ -131,11 +131,28 @@ test('new Secret Santa lifecycle: two guests, owner isolation, private and super
   const res=await secretSantaApi(req,env,path,boundedLimit,'198.51.100.23');
   return {status:res.status,data:await res.json()};
  };
- for(let i=0;i<20;i++){
+ const sharedClaims=[];
+ for(let i=0;i<100;i++){
   const result=await sharedCall(sharedRoot+'/enroll',{inviteToken:shared.data.inviteToken,name:'Participante '+i,entry:'guest',privacyAccepted:true,acceptedPrivacyMode:'private'});
   assert.equal(result.status,201,'Shared IP enrollment '+i+': '+JSON.stringify(result));
+  sharedClaims.push(result.data.claimToken);
  }
- assert.equal((await db.prepare('SELECT COUNT(*) AS total FROM secret_santa_enrollments WHERE event_id=?').bind(shared.data.id).first()).total,20);
- assert.equal(counters.get('secret-santa-group-enroll:198.51.100.23'),20);
- assert.equal(counters.get('secret-santa-enroll-event:198.51.100.23:'+shared.data.id),20);
+ assert.equal((await db.prepare('SELECT COUNT(*) AS total FROM secret_santa_enrollments WHERE event_id=?').bind(shared.data.id).first()).total,100);
+ assert.equal(counters.get('secret-santa-group-enroll:198.51.100.23'),100);
+ assert.equal(counters.get('secret-santa-enroll-event:198.51.100.23:'+shared.data.id),100);
+ const overflow=await sharedCall(sharedRoot+'/enroll',{inviteToken:shared.data.inviteToken,name:'Participante 101',entry:'guest',privacyAccepted:true,acceptedPrivacyMode:'private'});
+ assert.notEqual(overflow.status,201);
+ assert.equal((await call('/api/secret-santa/account/events/'+shared.data.id+'/close-enrollment',{},owner)).status,200);
+ const fullDraw=await call('/api/secret-santa/account/events/'+shared.data.id+'/draw',{},owner);
+ assert.equal(fullDraw.status,200,JSON.stringify(fullDraw));
+ assert.equal(fullDraw.data.participants,100);
+ const recipients=new Set();
+ for(let i=0;i<100;i++){
+  const reveal=await call(sharedRoot+'/claim-reveal',{claimToken:sharedClaims[i]});
+  assert.equal(reveal.status,200,JSON.stringify(reveal));
+  assert.equal(reveal.data.giver,'Participante '+i);
+  assert.notEqual(reveal.data.giver,reveal.data.recipient);
+  recipients.add(reveal.data.recipient);
+ }
+ assert.equal(recipients.size,100);
 });
