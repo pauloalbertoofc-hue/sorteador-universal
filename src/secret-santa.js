@@ -35,7 +35,7 @@ export async function secretSantaApi(req,env,path,rateLimit,requester){
     await env.DB.batch(statements);
     return reply({id,title,expiresAt:expires,participants:members.map(({name,accessToken})=>({name,accessToken}))},201);
   }
-  const match=path.match(/^\\/api\\/secret-santa\\/events\\/([0-9a-f-]{36})\\/reveal$/);
+  const match=path.match(/^\/api\/secret-santa\/events\/([0-9a-f-]{36})\/reveal$/);
   if(match){
     const accessToken=body?.accessToken;
     if(typeof accessToken!=='string'||!(/^[0-9a-f]{64}$/.test(accessToken)))return error('Acesso negado',403);
