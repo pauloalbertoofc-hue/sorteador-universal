@@ -1,6 +1,6 @@
 const $=id=>document.getElementById(id);
 const api='/api/secret-santa',hash=new URLSearchParams(location.hash.slice(1));
-const eventId=hash.get('event'),inviteToken=hash.get('invite'),claimToken=hash.get('claim');
+const eventId=hash.get('event'),inviteToken=hash.get('invite'),claimToken=hash.get('claim'),accountResult=hash.get('account')==='1';
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,secret=/^[0-9a-f]{64}$/;
 let activeEvent=null,activeClaim=null;
 const show=id=>$(id).classList.remove('hidden');
@@ -16,8 +16,10 @@ function privateUrl(id,key,value){const url=new URL(location.pathname,location.o
 async function copy(value){if(!navigator.clipboard?.writeText)throw Error('Cópia indisponível neste navegador.');await navigator.clipboard.writeText(value);}
 if(eventId||inviteToken||claimToken){
  hide('organizer');
- if(!uuid.test(eventId||'')||(!secret.test(inviteToken||'')&&!secret.test(claimToken||''))){show('join');message('joinStatus','Convite ou acesso inválido.');}
- else if(secret.test(claimToken||'')){
+ if(!uuid.test(eventId||'')||(!secret.test(inviteToken||'')&&!secret.test(claimToken||'')&&!accountResult)){show('join');message('joinStatus','Convite ou acesso inválido.');}
+ else if(accountResult){
+  activeClaim={id:eventId,entry:'account'};show('claim');hide('copyClaim');message('claimStatus','Resultado vinculado à sua conta. Entre na conta utilizada na inscrição para consultar.');
+ }else if(secret.test(claimToken||'')){
   activeClaim={id:eventId,token:claimToken};show('claim');
  }else{
   show('join');
@@ -56,14 +58,17 @@ $('enroll').addEventListener('submit',async event=>{
  try{
   const data=await request('/events/'+eventId+'/enroll',{inviteToken,name:$('name').value.trim(),entry:$('entry').value});
   if(!secret.test(data.claimToken||''))throw Error('Resposta de inscrição sem credencial válida.');
-  activeClaim={id:eventId,token:data.claimToken};
-  history.replaceState(null,'',privateUrl(eventId,'claim',data.claimToken));
-  hide('join');show('claim');message('claimStatus','Inscrição confirmada. Guarde seu acesso antes de sair.');
+  const account=data.entry==='account';
+  activeClaim={id:eventId,token:account?null:data.claimToken,entry:data.entry};
+  history.replaceState(null,'',account?privateUrl(eventId,'account','1'):privateUrl(eventId,'claim',data.claimToken));
+  hide('join');show('claim');
+  if(account){hide('copyClaim');message('claimStatus','Inscrição confirmada e vinculada à sua conta. Guarde este endereço ou retorne com a mesma conta.');}
+  else message('claimStatus','Inscrição confirmada. Guarde seu acesso antes de sair.');
  }catch(e){$('enrollButton').disabled=false;message('joinStatus',e.message+($('entry').value==='account'?' Entre na sua conta pelo cabeçalho do site.':''));}
 });
 $('copyClaim').addEventListener('click',async()=>{try{await copy(privateUrl(activeClaim.id,'claim',activeClaim.token));message('claimStatus','Acesso individual copiado.');}catch(e){message('claimStatus',e.message);}});
 $('checkResult').addEventListener('click',async()=>{
- try{const data=await request('/events/'+activeClaim.id+'/claim-reveal',{claimToken:activeClaim.token});message('result','Olá, '+data.giver+'! Você tirou: '+data.recipient+'.');}
+ try{const data=activeClaim.entry==='account'?await request('/account/events/'+activeClaim.id+'/my-result',{}):await request('/events/'+activeClaim.id+'/claim-reveal',{claimToken:activeClaim.token});message('result','Olá, '+data.giver+'! Você tirou: '+data.recipient+'.');}
  catch(e){message('result',e.message);}
 });
 
