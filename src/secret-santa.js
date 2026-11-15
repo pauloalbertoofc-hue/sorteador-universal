@@ -32,7 +32,13 @@ export async function secretSantaApi(req,env,path,rateLimit,requester,authentica
       enrollmentClosed:event.enrollment_closed_at!==null,participants:Number(row?.total||0),expiresAt:event.expires_at});
   }
   if(req.method!=='POST')return error('Método não permitido',405);
-  if(!await rateLimit('secret-santa',requester,10,3600000))return error('Muitas solicitações. Tente mais tarde.',429);
+  // New group events can have up to 100 participants behind one shared NAT/Wi-Fi.
+  // Keep legacy limits unchanged; isolate public event reads and enrollments.
+  const groupEvent=/^\/api\/secret-santa\/events\/[0-9a-f-]{36}\/(invite-info|enroll|claim-reveal)$/.exec(path);
+  const groupOwner=path.startsWith('/api/secret-santa/account/');
+  const scope=groupEvent?'secret-santa-group-'+groupEvent[1]:groupOwner?'secret-santa-group-owner':'secret-santa';
+  const limit=groupEvent?(groupEvent[1]==='enroll'?120:240):groupOwner?60:10;
+  if(!await rateLimit(scope,requester,limit,3600000))return error('Muitas solicitações. Tente mais tarde.',429);
   const raw=await req.text();
   if(raw.length>12000)return error('Dados muito extensos',413);
   let body;
@@ -66,7 +72,7 @@ export async function secretSantaApi(req,env,path,rateLimit,requester,authentica
   // A guest claim is a bearer secret. Never treat the display name as authentication.
   const enroll=path.match(/^\/api\/secret-santa\/events\/([0-9a-f-]{36})\/enroll$/);
   if(enroll){
-    if(!await rateLimit('secret-santa-enroll',requester,8,3600000))return error('Muitas tentativas de inscrição.',429);
+    if(!await rateLimit('secret-santa-enroll-event',requester+':'+enroll[1],120,3600000))return error('Muitas tentativas de inscrição.',429);
     const invite=body?.inviteToken,name=typeof body?.name==='string'?body.name.trim():'';
     const kind=body?.entry==='account'?'account':body?.entry==='guest'?'guest':null;
     if(typeof invite!=='string'||!/^[0-9a-f]{64}$/.test(invite))return error('Convite inválido.',403);
