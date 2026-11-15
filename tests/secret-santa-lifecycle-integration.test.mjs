@@ -158,7 +158,7 @@ test('new Secret Santa lifecycle: two guests, owner isolation, private and super
  const secondAccount=await call('/api/secret-santa/account/drafts',{title:'Conta em outro evento',privacy:'private'},stranger);
  assert.equal(secondAccount.status,201);
  assert.equal((await call('/api/secret-santa/account/events/'+secondAccount.data.id+'/my-result',{},owner)).status,404);
- assert.equal((await call('/api/secret-santa/account/events/'+secondAccount.data.id+'/my-result',{},stranger)).status,409);
+ assert.equal((await call('/api/secret-santa/account/events/'+secondAccount.data.id+'/my-result',{},stranger)).status,404);
 
  // Simulate a whole classroom behind one IP with the actual API and a
  // rate limiter enforcing the supplied per-scope limits.
