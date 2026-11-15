@@ -74,3 +74,14 @@ test('classic secret santa links to the optional group flow without replacing le
  assert.match(classic,/\.\/app\.mjs/);
  assert.match(classic,/modalidade clássica/);
 });
+
+test('group page restricts scripts, network and embedded third parties',()=>{
+ assert.match(html,/http-equiv="Content-Security-Policy"/);
+ assert.match(html,/default-src 'none'/);
+ assert.match(html,/script-src 'self'/);
+ assert.match(html,/connect-src 'self'/);
+ assert.match(html,/base-uri 'none'/);
+ assert.match(html,/object-src 'none'/);
+ assert.match(html,/name="referrer" content="no-referrer"/);
+ assert.doesNotMatch(html,/<script[^>]*src="https?:/);
+});
