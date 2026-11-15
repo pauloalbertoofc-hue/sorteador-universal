@@ -67,6 +67,11 @@ test('new Secret Santa lifecycle: two guests, owner isolation, private and super
   }
   assert.equal(recipients.size,3);
   assert.equal((await call(root+'/claim-reveal',{claimToken:'0'.repeat(64)})).status,403);
+  // Guest credentials are scoped to their event and must not act as invites.
+  assert.equal((await call(root+'/claim-reveal',{claimToken:inviteToken})).status,403);
+  assert.equal((await call(root+'/invite-info',{inviteToken:claims[0]})).status,404);
+  assert.equal((await call(root+'/claim-reveal',{claimToken:claims[0].slice(0,-1)+(claims[0].endsWith('0')?'1':'0')})).status,403);
+  assert.equal((await call(root+'/claim-reveal',{claimToken:claims[0]})).status,200);
   const auditPath='/api/secret-santa/account/events/'+id+'/assignments';
   assert.equal((await call(auditPath,{},stranger)).status,404);
   assert.equal((await call(auditPath,{})).status,401);
@@ -84,6 +89,16 @@ test('new Secret Santa lifecycle: two guests, owner isolation, private and super
    }
   }
  }
+
+ // A valid guest credential from one event cannot reveal a different event.
+ const isolatedA=await call('/api/secret-santa/account/drafts',{title:'Evento isolado A',privacy:'private'},owner);
+ const isolatedB=await call('/api/secret-santa/account/drafts',{title:'Evento isolado B',privacy:'private'},owner);
+ assert.equal(isolatedA.status,201);
+ assert.equal(isolatedB.status,201);
+ const guestA=await call('/api/secret-santa/events/'+isolatedA.data.id+'/enroll',{inviteToken:isolatedA.data.inviteToken,name:'Visitante A',entry:'guest',privacyAccepted:true,acceptedPrivacyMode:'private'});
+ assert.equal(guestA.status,201);
+ assert.equal((await call('/api/secret-santa/events/'+isolatedB.data.id+'/claim-reveal',{claimToken:guestA.data.claimToken})).status,403);
+ assert.equal((await call('/api/secret-santa/events/'+isolatedB.data.id+'/invite-info',{inviteToken:isolatedA.data.inviteToken})).status,404);
 
  const resumable=await call('/api/secret-santa/account/drafts',{title:'Evento recuperável',privacy:'private'},owner);
  assert.equal(resumable.status,201);
