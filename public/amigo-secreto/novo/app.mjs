@@ -57,8 +57,8 @@ $('enroll').addEventListener('submit',async event=>{
  event.preventDefault();$('enrollButton').disabled=true;
  try{
   const data=await request('/events/'+eventId+'/enroll',{inviteToken,name:$('name').value.trim(),entry:$('entry').value});
-  if(!secret.test(data.claimToken||''))throw Error('Resposta de inscrição sem credencial válida.');
   const account=data.entry==='account';
+  if(!account&&!secret.test(data.claimToken||''))throw Error('Resposta de inscrição sem credencial válida.');
   activeClaim={id:eventId,token:account?null:data.claimToken,entry:data.entry};
   history.replaceState(null,'',account?privateUrl(eventId,'account','1'):privateUrl(eventId,'claim',data.claimToken));
   hide('join');show('claim');
