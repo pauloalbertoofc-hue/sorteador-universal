@@ -60,6 +60,8 @@ test('Amigo Secreto: two isolated mobile browsers, private links and unique reci
   const event=(await db.prepare('SELECT id FROM secret_santa_events').first()).id;
   const members=(await db.prepare('SELECT display_name FROM secret_santa_participants WHERE event_id=?').bind(event).all()).results;
   assert.equal(members.length,3);
+  const displayedNames=await organizer.locator('.person strong').allInnerTexts();
+  assert.deepEqual(new Set(displayedNames),new Set(members.map(member=>member.display_name)));
   const allRecipients=new Set();
   const tokenLinks=await organizer.evaluate(async()=>{
     const buttons=[...document.querySelectorAll('.person .secondary')];
@@ -81,8 +83,8 @@ test('Amigo Secreto: two isolated mobile browsers, private links and unique reci
     await guest.locator('#revealResult').waitFor({state:'visible'});
     const giver=await guest.locator('#giver').innerText();
     const recipient=await guest.locator('#recipient').innerText();
-    assert.ok(giver.includes(members[i].display_name));
-    assert.notEqual(recipient,members[i].display_name);
+    assert.ok(giver.includes(displayedNames[i]));
+    assert.notEqual(recipient,displayedNames[i]);
     allRecipients.add(recipient);
     assert.equal(await guest.locator('#linksSection').isVisible(),false);
   }
