@@ -107,8 +107,10 @@ test('Amigo Secreto: two isolated mobile browsers, private links and unique reci
     assert.equal(await guest.locator('#linksSection').isVisible(),false);
   }
   assert.equal(allRecipients.size,3);
+  // A fragment-only navigation does not rerun the reveal initializer.
+  await guest.goto('about:blank');
   await guest.goto(origin+'/amigo-secreto/#event='+event+'&token='+'0'.repeat(64));
-  await guest.waitForFunction(()=>document.querySelector('#revealStatus')?.textContent?.includes('Link inválido ou expirado'));
+  await guest.waitForFunction(()=>document.querySelector('#revealStatus')?.textContent?.includes('Link inválido ou expirado'),null,{timeout:5000});
   assert.equal(await guest.locator('#revealResult').isVisible(),false);
   assert.deepEqual(errors,[]);
 });
