@@ -81,7 +81,8 @@ test('Amigo Secreto: two isolated mobile browsers, private links and unique reci
     assert.match(url.hash,/#event=/);
     // A new recipient opens their private link in a fresh tab; navigating only the hash
     // of the same document does not rerun this page's initialization script.
-    await guest.goto(origin + '/amigo-secreto/');
+    // Force a new document so app.mjs re-runs for each private fragment link.
+    await guest.goto('about:blank');
     await guest.goto(url.toString());
     // Wait for an actual terminal state, not the intermediate loading message.
     await guest.waitForFunction(() => {
