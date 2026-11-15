@@ -143,6 +143,22 @@ export async function secretSantaApi(req,env,path,rateLimit,requester,authentica
     }
     return reply({id:draw[1],status:'drawn',participants:members.length,privacy:event.privacy_mode});
   }
+  // A signed-in participant can retrieve their own assignment without
+  // needing to retain a guest claim token. Never return another member's pair.
+  const accountReveal=path.match(/^\/api\/secret-santa\/account\/events\/([0-9a-f-]{36})\/my-result$/);
+  if(accountReveal){
+    if(!authenticatedUser)return error('Entre na sua conta para consultar seu resultado.',401);
+    const row=await env.DB.prepare(`SELECT e.title,e.expires_at,p.display_name AS giver,r.display_name AS recipient
+      FROM secret_santa_enrollments n
+      JOIN secret_santa_events e ON e.id=n.event_id
+      JOIN secret_santa_participants p ON p.id=n.id AND p.event_id=n.event_id
+      JOIN secret_santa_participants r ON r.id=p.recipient_id AND r.event_id=p.event_id
+      WHERE n.event_id=? AND n.user_id=? AND n.auth_kind='account'
+        AND e.status='drawn' AND e.privacy_mode IS NOT NULL AND e.expires_at>?`)
+      .bind(accountReveal[1],authenticatedUser.id,Date.now()).first();
+    if(!row)return error('Resultado indisponível ou você não participa deste evento.',404);
+    return reply({title:row.title,giver:row.giver,recipient:row.recipient,expiresAt:row.expires_at});
+  }
   const claimReveal=path.match(/^\/api\/secret-santa\/events\/([0-9a-f-]{36})\/claim-reveal$/);
   if(claimReveal){
     const claim=body?.claimToken;
