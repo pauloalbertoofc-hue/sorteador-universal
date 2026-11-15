@@ -26,9 +26,12 @@ export async function secretSantaApi(req,env,path,rateLimit,requester){
     const statements=[env.DB.prepare('INSERT INTO secret_santa_events(id,title,admin_token_hash,status,created_at,expires_at) VALUES(?,?,?,?,?,?)').bind(id,title,await digest(admin),'drawn',now,expires)];
     for(const assignment of assignments){
       const member=byName.get(assignment.giver),recipient=byName.get(assignment.recipient);
-      statements.push(env.DB.prepare('INSERT INTO secret_santa_participants(id,event_id,display_name,name_key,access_token_hash,recipient_id) VALUES(?,?,?,?,?,?)').bind(member.id,id,member.name,member.name.normalize('NFKC').toLocaleLowerCase('pt-BR'),await digest(member.accessToken),recipient.id));
+      statements.push(env.DB.prepare('INSERT INTO secret_santa_participants(id,event_id,display_name,name_key,access_token_hash) VALUES(?,?,?,?,?)').bind(member.id,id,member.name,member.name.normalize('NFKC').toLocaleLowerCase('pt-BR'),await digest(member.accessToken)));
     }
-    // D1 batch is transactional; forward references are safe if FK checks are deferred.
+    for(const assignment of assignments){
+      statements.push(env.DB.prepare('UPDATE secret_santa_participants SET recipient_id=? WHERE id=? AND event_id=?').bind(byName.get(assignment.recipient).id,byName.get(assignment.giver).id,id));
+    }
+    // Insert participants before assigning references, avoiding immediate FK violations.
     await env.DB.batch(statements);
     return reply({id,title,expiresAt:expires,participants:members.map(({name,accessToken})=>({name,accessToken}))},201);
   }
