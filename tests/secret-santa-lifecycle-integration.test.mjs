@@ -69,11 +69,19 @@ test('new Secret Santa lifecycle: two guests, owner isolation, private and super
   assert.equal((await call(root+'/claim-reveal',{claimToken:'0'.repeat(64)})).status,403);
   const auditPath='/api/secret-santa/account/events/'+id+'/assignments';
   assert.equal((await call(auditPath,{},stranger)).status,404);
+  assert.equal((await call(auditPath,{})).status,401);
   const audit=await call(auditPath,{},owner);
   if(privacy==='private')assert.equal(audit.status,403);
   else{
    assert.equal(audit.status,200,JSON.stringify(audit));
    assert.equal(audit.data.assignments.length,3);
+   const auditPairs=new Map(audit.data.assignments.map(a=>[a.giver,a.recipient]));
+   assert.equal(auditPairs.size,3);
+   assert.deepEqual(new Set(auditPairs.values()),new Set(['Ana','Bruno','Carla']));
+   for(let i=0;i<claims.length;i++){
+    const result=await call(root+'/claim-reveal',{claimToken:claims[i]});
+    assert.equal(auditPairs.get(result.data.giver),result.data.recipient);
+   }
   }
  }
 
