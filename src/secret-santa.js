@@ -15,10 +15,10 @@ export async function secretSantaApi(req,env,path,rateLimit,requester){
   try{body=JSON.parse(raw)}catch{return error('JSON inválido')}
   if(path==='/api/secret-santa/events'){
     const title=typeof body.title==='string'?body.title.trim():'';
-    if(title.length<3||title.length>80||/[<>\\x00-\\x1f]/.test(title))return error('Título inválido');
+    if(title.length<3||title.length>80||/[<>\x00-\x1f]/.test(title))return error('Título inválido');
     let names;
     try{names=normalizeParticipants(body.participants)}catch(e){return error(e.message)}
-    if(names.some(name=>/[<>\\x00-\\x1f]/.test(name)))return error('Nome inválido');
+    if(names.some(name=>/[<>\x00-\x1f]/.test(name)))return error('Nome inválido');
     const assignments=drawSecretSanta(names);
     const id=crypto.randomUUID(),admin=token(),now=Date.now(),expires=now+30*86400000;
     const members=names.map(name=>({id:crypto.randomUUID(),name,accessToken:token()}));
