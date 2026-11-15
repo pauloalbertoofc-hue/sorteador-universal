@@ -27,3 +27,15 @@ test('account event routes are session-bound and never list assignments',()=>{
   assert.ok(api.includes("Modo protegido ainda não disponível."));
   assert.ok(!api.includes("SELECT * FROM secret_santa_events"));
 });
+
+test('protected guest flow requires high-entropy code, atomic redemption and scoped session',()=>{
+ assert.ok(api.includes("body.mode||'links'"));
+ assert.ok(api.includes("mode==='protected'?token():null"));
+ assert.ok(api.includes("credential_hash,expires_at,created_at"));
+ assert.ok(api.includes("UPDATE secret_santa_guest_credentials SET redeemed_at=?"));
+ assert.ok(api.includes("AND redeemed_at IS NULL AND revoked_at IS NULL RETURNING id"));
+ assert.ok(api.includes("secret_santa_guest_sessions(token_hash,event_id,participant_id"));
+ assert.ok(api.includes("s.token_hash=? AND s.revoked_at IS NULL AND s.expires_at>?"));
+ assert.ok(api.includes("e.distribution_mode='protected'"));
+ assert.ok(api.includes("rateLimit('secret-santa-join',requester,12,3600000)"));
+});
