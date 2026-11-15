@@ -71,6 +71,22 @@ test('new Secret Santa lifecycle: two guests, owner isolation, private and super
   }
  }
 
+ const resumable=await call('/api/secret-santa/account/drafts',{title:'Evento recuperável',privacy:'private'},owner);
+ assert.equal(resumable.status,201);
+ const resumeId=resumable.data.id;
+ const resumePath='/api/secret-santa/account/events/'+resumeId;
+ assert.equal((await call(resumePath+'/manage',{},stranger)).status,404);
+ const recovered=await secretSantaApi(new Request('https://example.test'+resumePath+'/manage'),env,resumePath+'/manage',async()=>true,'203.0.113.2',owner);
+ assert.equal(recovered.status,200);
+ const recoveredData=await recovered.json();
+ assert.equal(recoveredData.privacy,'private');
+ assert.equal(Object.hasOwn(recoveredData,'inviteToken'),false);
+ const rotated=await call(resumePath+'/rotate-invite',{},owner);
+ assert.equal(rotated.status,200);
+ assert.notEqual(rotated.data.inviteToken,resumable.data.inviteToken);
+ assert.equal((await call('/api/secret-santa/events/'+resumeId+'/invite-info',{inviteToken:resumable.data.inviteToken})).status,404);
+ assert.equal((await call('/api/secret-santa/events/'+resumeId+'/invite-info',{inviteToken:rotated.data.inviteToken})).status,200);
+ assert.equal((await call(resumePath+'/rotate-invite',{},stranger)).status,409);
  const accountEvent=await call('/api/secret-santa/account/drafts',{title:'Grupo com conta',privacy:'private'},owner);
  assert.equal(accountEvent.status,201);
  const accountId=accountEvent.data.id,accountInvite=accountEvent.data.inviteToken;
