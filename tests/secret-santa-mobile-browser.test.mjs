@@ -131,7 +131,8 @@ test('group mode: mobile navigation, organizer recovery and guest private link',
    const body=chunks.length?JSON.parse(Buffer.concat(chunks).toString()):{};
    let data={},status=200;
    if(pathname.endsWith('/invite-info'))data={id:eventId,title:'Amigos da turma',privacy:'private',status:'draft',enrollmentClosed:false};
-   else if(pathname.endsWith('/enroll'))data=body.entry==='account'?{id:'member',name:body.name,entry:'account',status:'enrolled'}:{id:'member',name:body.name,entry:'guest',claimToken,status:'enrolled'};
+   else if(pathname==='/api/login'){if(body.email==='ana@example.test'&&body.password==='senha-valida-123'){data={ok:true};res.setHeader('set-cookie','su_session=test-session; Path=/api; HttpOnly; SameSite=Strict');}else{status=401;data={error:'Credenciais inválidas'};}}
+   else if(pathname.endsWith('/enroll')){if(body.entry==='account'&&!req.headers.cookie?.includes('su_session=test-session')){status=401;data={error:'Entre na sua conta para continuar.'};}else data=body.entry==='account'?{id:'member',name:body.name,entry:'account',status:'enrolled'}:{id:'member',name:body.name,entry:'guest',claimToken,status:'enrolled'};}
    else if(pathname.endsWith('/my-result'))data={title:'Amigos da turma',giver:'Ana',recipient:'Bruno'};
    else if(pathname.endsWith('/claim-reveal'))data={title:'Amigos da turma',giver:'Ana',recipient:'Bruno'};
    else if(pathname.endsWith('/account/events')&&req.method==='GET')data={events:[{id:eventId,title:'Amigos da turma',status:'draft'}]};
@@ -175,6 +176,14 @@ test('group mode: mobile navigation, organizer recovery and guest private link',
  await account.locator('#name').fill('Ana');
  await account.locator('#entry').selectOption('account');
  await account.locator('#privacyConsent').check();
+ await account.locator('#enrollButton').click();
+ await account.locator('#signIn').waitFor({state:'visible'});
+ assert.match(account.url(),/invite=/);
+ await account.locator('#signInEmail').fill('ana@example.test');
+ await account.locator('#signInPassword').fill('senha-valida-123');
+ await account.locator('#signInButton').click();
+ await account.getByText('Conta conectada.',{exact:false}).waitFor();
+ assert.match(account.url(),/invite=/);
  await account.locator('#enrollButton').click();
  await account.locator('#claim').waitFor({state:'visible'});
  assert.match(account.url(),/account=1/);
