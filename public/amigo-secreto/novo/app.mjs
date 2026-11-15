@@ -27,6 +27,7 @@ if(eventId||inviteToken||claimToken||accountResult){
   request('/events/'+eventId+'/invite-info',{inviteToken}).then(data=>{
    $('enrollButton').disabled=false;
    message('eventInfo',data.title+' — '+(data.privacy==='private'?'sorteio privado':'sorteio supervisionado'));
+   message('privacyNotice',data.privacy==='private'?'Modo privado: o organizador não poderá consultar a lista completa de quem tirou quem. Cada participante vê apenas o próprio resultado.':'Modo supervisionado: o organizador poderá consultar a lista completa de quem tirou quem após o sorteio. Ao se inscrever, você aceita essa possibilidade.');
    if(data.status!=='draft'||data.enrollmentClosed){$('enrollButton').disabled=true;message('joinStatus','As inscrições deste evento não estão abertas.');}
   }).catch(error=>{$('enrollButton').disabled=true;message('joinStatus',error.message);});
  }
