@@ -32,7 +32,8 @@ CREATE INDEX IF NOT EXISTS idx_secret_santa_guest_sessions_expiry ON secret_sant
 -- New Meet-style events: privacy is organizer-selected, sign-in is participant-selected.
 -- Legacy events have NULL privacy_mode and keep their existing behavior.
 ALTER TABLE secret_santa_events ADD COLUMN privacy_mode TEXT CHECK(privacy_mode IN ('private','supervised'));
-ALTER TABLE secret_santa_events ADD COLUMN invite_token_hash TEXT UNIQUE;
+ALTER TABLE secret_santa_events ADD COLUMN invite_token_hash TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_secret_santa_events_invite_token_hash ON secret_santa_events(invite_token_hash);
 ALTER TABLE secret_santa_events ADD COLUMN enrollment_closed_at INTEGER;
 
 -- Participant claims are independent from their eventual account or guest sign-in.
