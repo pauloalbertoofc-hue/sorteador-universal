@@ -103,3 +103,10 @@ test('existing-account sign-in stays on invitation page',()=>{
  assert.match(app,/hide\('signIn'\)/);
  assert.doesNotMatch(app,/location\.href\s*=\s*['"]\//);
 });
+
+test('group rate limits allow a shared Wi-Fi without removing abuse protection',()=>{
+ assert.match(api,/groupEvent\?\(groupEvent\[1\]==='enroll'\?120:240\)/);
+ assert.match(api,/groupOwner\?60:10/);
+ assert.match(api,/rateLimit\('secret-santa-enroll-event',requester\+':'\+enroll\[1\],120,3600000\)/);
+ assert.match(api,/groupEvent\?'secret-santa-group-'/);
+});
