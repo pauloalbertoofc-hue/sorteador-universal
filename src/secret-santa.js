@@ -83,6 +83,28 @@ export async function secretSantaApi(req,env,path,rateLimit,requester,authentica
     }
     return reply({id,name,entry:kind,claimToken:claim,status:'enrolled'},201);
   }
+  // Only the authenticated event owner may freeze enrollment. No drawing or
+  // participant secrets are exposed at this stage.
+  const close=path.match(/^\/api\/secret-santa\/account\/events\/([0-9a-f-]{36})\/close-enrollment$/);
+  if(close){
+    if(!authenticatedUser)return error('Entre na sua conta para encerrar as inscrições.',401);
+    const event=await env.DB.prepare(`SELECT id,status,privacy_mode,expires_at FROM secret_santa_events
+      WHERE id=? AND owner_user_id=? AND privacy_mode IS NOT NULL AND expires_at>?`)
+      .bind(close[1],authenticatedUser.id,Date.now()).first();
+    if(!event)return error('Evento não encontrado ou sem permissão.',404);
+    if(event.status!=='draft')return error('Inscrições já encerradas.',409);
+    const row=await env.DB.prepare('SELECT COUNT(*) AS total FROM secret_santa_enrollments WHERE event_id=?')
+      .bind(close[1]).first();
+    if(Number(row?.total)<2)return error('São necessários pelo menos dois participantes.',422);
+    const now=Date.now();
+    const updated=await env.DB.prepare(`UPDATE secret_santa_events
+      SET status='enrollment_closed',enrollment_closed_at=?
+      WHERE id=? AND owner_user_id=? AND status='draft' AND privacy_mode IS NOT NULL
+        AND expires_at>? AND (SELECT COUNT(*) FROM secret_santa_enrollments WHERE event_id=?)>=2`)
+      .bind(now,close[1],authenticatedUser.id,now,close[1]).run();
+    if(updated.meta?.changes!==1)return error('As inscrições já foram encerradas ou o evento expirou.',409);
+    return reply({id:close[1],status:'enrollment_closed',participants:Number(row.total),privacy:event.privacy_mode});
+  }
   const accountCreation=path==='/api/secret-santa/account/events';
   if(accountCreation&&!authenticatedUser)return error('Entre na sua conta para organizar o sorteio.',401);
   if(path==='/api/secret-santa/events'||accountCreation){
