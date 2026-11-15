@@ -7,7 +7,7 @@
 <meta name="referrer" content="no-referrer">
 <title>Amigo Secreto | Sorteador Universal</title>
 <style>
-:root{font-family:system-ui,-apple-system,sans-serif;color-scheme:dark;background:#101522;color:#f5f7ff}*{box-sizing:border-box}body{margin:0;padding:20px 14px 56px}main{max-width:640px;margin:auto}a{color:#b7d1ff}h1{font-size:clamp(1.8rem,6vw,2.5rem);margin:20px 0 8px}p{line-height:1.55;color:#c5cde0}.card{background:#1b2436;border:1px solid #36435c;border-radius:16px;padding:20px;margin:20px 0}label{display:block;font-weight:650;margin:14px 0 6px}input,textarea,button{font:inherit}fieldset{border:1px solid #46536a;border-radius:10px;padding:12px;margin:16px 0}fieldset label{font-weight:400;display:flex;align-items:flex-start;gap:8px}input[type=radio]{width:auto;margin-top:4px}input,textarea{width:100%;background:#0e1626;border:1px solid #65718a;border-radius:10px;color:white;padding:12px}textarea{min-height:160px;resize:vertical}button{border:0;border-radius:10px;padding:12px 16px;font-weight:700;cursor:pointer;background:#8db4ff;color:#08152d}button:disabled{opacity:.5;cursor:wait}.muted{font-size:.9rem}.hidden{display:none}.person{border-top:1px solid #46536a;padding:14px 0;display:grid;gap:8px}.person strong{overflow-wrap:anywhere}.actions{display:flex;flex-wrap:wrap;gap:8px}.secondary{background:#35435e;color:white}.status{min-height:1.5em}code{overflow-wrap:anywhere}.recipient{font-size:1.7rem;font-weight:750;color:#a9e8bb}footer{margin-top:32px}
+:root{font-family:system-ui,-apple-system,sans-serif;color-scheme:dark;background:#101522;color:#f5f7ff}*{box-sizing:border-box}body{margin:0;padding:20px 14px 56px}main{max-width:640px;margin:auto}a{color:#b7d1ff}h1{font-size:clamp(1.8rem,6vw,2.5rem);margin:20px 0 8px}p{line-height:1.55;color:#c5cde0}.card{background:#1b2436;border:1px solid #36435c;border-radius:16px;padding:20px;margin:20px 0}label{display:block;font-weight:650;margin:14px 0 6px}input,textarea,button{font:inherit}input,textarea{width:100%;background:#0e1626;border:1px solid #65718a;border-radius:10px;color:white;padding:12px}textarea{min-height:160px;resize:vertical}button{border:0;border-radius:10px;padding:12px 16px;font-weight:700;cursor:pointer;background:#8db4ff;color:#08152d}button:disabled{opacity:.5;cursor:wait}.muted{font-size:.9rem}.hidden{display:none}.person{border-top:1px solid #46536a;padding:14px 0;display:grid;gap:8px}.person strong{overflow-wrap:anywhere}.actions{display:flex;flex-wrap:wrap;gap:8px}.secondary{background:#35435e;color:white}.status{min-height:1.5em}code{overflow-wrap:anywhere}.recipient{font-size:1.7rem;font-weight:750;color:#a9e8bb}footer{margin-top:32px}
 </style>
 </head>
 <body><main>
@@ -17,12 +17,6 @@
 <section class="card" id="createSection">
 <h2>Organizar um sorteio</h2>
 <form id="createForm">
-<fieldset id="modePicker"><legend>Como os participantes vão entrar?</legend>
-<label><input type="radio" name="distributionMode" value="links" checked> Links individuais (sem conta; o organizador pode abrir os links)</label>
-<label><input type="radio" name="distributionMode" value="protected"> Acesso temporário por código individual (exige conta do organizador)</label>
-<p class="muted">No modo temporário, cada pessoa recebe um código secreto. Quem distribui os códigos ainda pode utilizá-los antes dos convidados; este modo não garante sigilo contra o organizador.</p>
-</fieldset>
-<p id="accountNotice" class="muted hidden" role="status">Para organizar com acesso temporário, <a href="/#conta">entre ou cadastre-se na sua conta</a> e volte a esta página.</p>
 <label for="title">Nome do evento</label><input id="title" required minlength="3" maxlength="80" value="Amigo secreto 2026" autocomplete="off">
 <label for="names">Participantes — um nome por linha</label>
 <textarea id="names" required placeholder="Ana&#10;Bruno&#10;Carla" aria-describedby="namesHelp"></textarea>
@@ -31,21 +25,11 @@
 </form><p id="createStatus" class="status" role="status" aria-live="polite"></p>
 </section>
 <section class="card hidden" id="linksSection">
-<h2 id="linksHeading">Links individuais</h2>
-<p id="linksHelp"><strong>Guarde esta página antes de sair.</strong> Os links não ficam salvos no navegador e não podem ser recuperados automaticamente. Envie cada link somente à pessoa indicada. Quem tiver acesso a um link poderá ver aquela revelação.</p>
+<h2>Links individuais</h2>
+<p><strong>Guarde esta página antes de sair.</strong> Os links não ficam salvos no navegador e não podem ser recuperados automaticamente. Envie cada link somente à pessoa indicada. Quem tiver acesso a um link poderá ver aquela revelação.</p>
 <div id="links"></div>
 <button class="secondary" id="copyAll" type="button">Copiar lista de links</button>
-<p class="muted" id="linksFootnote">O organizador recebe todos os links; não compartilhe esta lista completa com os participantes.</p>
-</section>
-<section class="card hidden" id="guestJoinSection">
-<h2>Entrar no Amigo Secreto</h2>
-<p>Use o código individual enviado pelo organizador. Você não precisa criar uma conta.</p>
-<form id="guestJoinForm">
-<label for="guestCode">Seu código privado (64 caracteres)</label>
-<input id="guestCode" required minlength="64" maxlength="64" autocomplete="off" autocapitalize="off" spellcheck="false">
-<button id="guestJoinButton" type="submit">Entrar e descobrir meu amigo</button>
-</form>
-<p id="guestJoinStatus" class="status" role="status" aria-live="polite"></p>
+<p class="muted">O organizador recebe todos os links; não compartilhe esta lista completa com os participantes.</p>
 </section>
 <section class="card hidden" id="revealSection">
 <h2>Sua revelação</h2>
