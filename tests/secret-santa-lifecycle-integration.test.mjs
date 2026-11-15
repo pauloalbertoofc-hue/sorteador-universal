@@ -46,6 +46,10 @@ test('new Secret Santa lifecycle: two guests, owner isolation, private and super
   assert.equal((await call('/api/secret-santa/account/events/'+id+'/draw',{},owner)).status,409);
   assert.equal((await call('/api/secret-santa/account/events/'+id+'/close-enrollment',{},owner)).status,200);
   assert.equal((await call(root+'/enroll',{inviteToken,name:'Daniel',entry:'guest'})).status,409);
+  const closedInvite=await call(root+'/invite-info',{inviteToken});
+  assert.equal(closedInvite.status,200);
+  assert.equal(closedInvite.data.enrollmentClosed,true);
+
   const drawn=await call('/api/secret-santa/account/events/'+id+'/draw',{},owner);
   assert.equal(drawn.status,200,JSON.stringify(drawn));
   assert.equal(drawn.data.participants,3);
