@@ -105,6 +105,59 @@ export async function secretSantaApi(req,env,path,rateLimit,requester,authentica
     if(updated.meta?.changes!==1)return error('As inscrições já foram encerradas ou o evento expirou.',409);
     return reply({id:close[1],status:'enrollment_closed',participants:Number(row.total),privacy:event.privacy_mode});
   }
+  // The organizer can initiate the draw, but receives no participant secrets
+  // or assignment list. Enrollment claim tokens remain participant-held.
+  const draw=path.match(/^\/api\/secret-santa\/account\/events\/([0-9a-f-]{36})\/draw$/);
+  if(draw){
+    if(!authenticatedUser)return error('Entre na sua conta para realizar o sorteio.',401);
+    const event=await env.DB.prepare(`SELECT id,status,privacy_mode,enrollment_closed_at,expires_at
+      FROM secret_santa_events WHERE id=? AND owner_user_id=? AND privacy_mode IS NOT NULL AND expires_at>?`)
+      .bind(draw[1],authenticatedUser.id,Date.now()).first();
+    if(!event)return error('Evento não encontrado ou sem permissão.',404);
+    if(event.status!=='draft'||event.enrollment_closed_at===null)return error('Encerre as inscrições antes do sorteio.',409);
+    const members=(await env.DB.prepare(`SELECT id,display_name FROM secret_santa_enrollments
+      WHERE event_id=? ORDER BY created_at,id LIMIT 101`).bind(draw[1]).all()).results;
+    if(members.length<2||members.length>100)return error('O sorteio exige de 2 a 100 participantes.',422);
+    const assignments=drawSecretSanta(members.map(m=>m.display_name));
+    const byName=new Map(members.map(m=>[m.display_name,m]));
+    const now=Date.now();
+    const statements=[env.DB.prepare(`UPDATE secret_santa_events SET status='drawn'
+      WHERE id=? AND owner_user_id=? AND status='draft' AND enrollment_closed_at IS NOT NULL
+        AND privacy_mode IS NOT NULL AND expires_at>?`).bind(draw[1],authenticatedUser.id,now)];
+    for(const member of members){
+      statements.push(env.DB.prepare(`INSERT INTO secret_santa_participants
+        (id,event_id,display_name,name_key,access_token_hash) VALUES(?,?,?,?,?)`)
+        .bind(member.id,draw[1],member.display_name,member.display_name.normalize('NFKC').toLocaleLowerCase('pt-BR'),await digest(token())));
+    }
+    for(const assignment of assignments){
+      statements.push(env.DB.prepare(`UPDATE secret_santa_participants SET recipient_id=?
+        WHERE id=? AND event_id=?`).bind(byName.get(assignment.recipient).id,byName.get(assignment.giver).id,draw[1]));
+    }
+    try{
+      // D1 batch is transactional; an already-drawn event fails on participant
+      // primary keys, rolling back the batch rather than changing the result.
+      await env.DB.batch(statements);
+    }catch(e){
+      if(/UNIQUE constraint failed|PRIMARY KEY constraint failed/i.test(String(e)))return error('Sorteio já realizado.',409);
+      throw e;
+    }
+    return reply({id:draw[1],status:'drawn',participants:members.length,privacy:event.privacy_mode});
+  }
+  const claimReveal=path.match(/^\/api\/secret-santa\/events\/([0-9a-f-]{36})\/claim-reveal$/);
+  if(claimReveal){
+    const claim=body?.claimToken;
+    if(typeof claim!=='string'||!/^[0-9a-f]{64}$/.test(claim))return error('Credencial inválida.',403);
+    const row=await env.DB.prepare(`SELECT e.title,e.expires_at,p.display_name AS giver,r.display_name AS recipient
+      FROM secret_santa_enrollments n
+      JOIN secret_santa_events e ON e.id=n.event_id
+      JOIN secret_santa_participants p ON p.id=n.id AND p.event_id=n.event_id
+      JOIN secret_santa_participants r ON r.id=p.recipient_id AND r.event_id=p.event_id
+      WHERE n.event_id=? AND n.claim_token_hash=? AND e.status='drawn'
+        AND e.privacy_mode IS NOT NULL AND e.expires_at>?`)
+      .bind(claimReveal[1],await digest(claim),Date.now()).first();
+    if(!row)return error('Resultado indisponível ou credencial inválida.',403);
+    return reply({title:row.title,giver:row.giver,recipient:row.recipient,expiresAt:row.expires_at});
+  }
   const accountCreation=path==='/api/secret-santa/account/events';
   if(accountCreation&&!authenticatedUser)return error('Entre na sua conta para organizar o sorteio.',401);
   if(path==='/api/secret-santa/events'||accountCreation){
