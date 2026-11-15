@@ -37,3 +37,14 @@ test('enrollment waits for validated invitation and retains private credentials'
  assert.match(app,/history.replaceState/);
  assert.match(app,/credentials:'same-origin'/);
 });
+
+test('supervised audit requires event owner and is forbidden for private draws',()=>{
+ assert.match(api,/audit=path.match/);
+ assert.match(api,/owner_user_id=\?/);
+ assert.match(api,/event.privacy_mode!=='supervised'/);
+ assert.match(api,/event.status!=='drawn'/);
+ assert.match(html,/id="audit" class="hidden"/);
+ assert.match(app,/activeEvent.privacy==='supervised'/);
+ assert.match(app,/document.createElement\('li'\)/);
+ assert.doesNotMatch(app,/innerHTML/);
+});
