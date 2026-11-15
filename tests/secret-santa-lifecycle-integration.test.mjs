@@ -106,7 +106,7 @@ test('new Secret Santa lifecycle: two guests, owner isolation, private and super
  const expiredRoot='/api/secret-santa/events/'+expired.data.id;
  const expiredGuest=await call(expiredRoot+'/enroll',{inviteToken:expired.data.inviteToken,name:'Convidado expirado',entry:'guest',privacyAccepted:true,acceptedPrivacyMode:'private'});
  assert.equal(expiredGuest.status,201);
- await db.prepare('UPDATE secret_santa_events SET expires_at=? WHERE id=?').bind(Date.now()-1000,expired.data.id).run();
+ await db.prepare('UPDATE secret_santa_events SET created_at=?,expires_at=? WHERE id=?').bind(Date.now()-86400000,Date.now()-1000,expired.data.id).run();
  assert.notEqual((await call(expiredRoot+'/invite-info',{inviteToken:expired.data.inviteToken})).status,200);
  assert.notEqual((await call(expiredRoot+'/enroll',{inviteToken:expired.data.inviteToken,name:'Novo convidado',entry:'guest',privacyAccepted:true,acceptedPrivacyMode:'private'})).status,201);
  assert.notEqual((await call('/api/secret-santa/account/events/'+expired.data.id+'/close-enrollment',{},owner)).status,200);
