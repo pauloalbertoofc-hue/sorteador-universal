@@ -69,7 +69,7 @@ async function me() {const r = await request('/api/me'); assert.equal(r.status, 
 
 before(async () => {
   mf = new Miniflare(convertV4MiniflareOptions({name: 'billing-tests',
-    modules: [{type: 'ESModule', path: 'tests/fixtures/clock-worker.js'}, {type: 'ESModule', path: 'src/worker.js'}, {type: 'ESModule', path: 'src/billing.js'}],
+    modules: [{type: 'ESModule', path: 'tests/fixtures/clock-worker.js'}, {type: 'ESModule', path: 'src/worker.js'}, {type: 'ESModule', path: 'src/billing.js'}, {type: 'ESModule', path: 'src/secret-santa.js'}, {type: 'ESModule', path: 'public/amigo-secreto/engine.mjs'}],
     compatibilityDate: '2026-10-24', d1Databases: ['DB'], outboundService: provider,
     bindings: {BILLING_ENABLED: 'true', BILLING_MODE: 'public', MP_ACCESS_TOKEN: 'synthetic-test-token', MP_PLAN_ID: PLAN, MP_WEBHOOK_SECRET: SECRET, PUBLIC_SITE_URL: ORIGIN}
   }));
