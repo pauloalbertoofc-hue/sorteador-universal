@@ -27,7 +27,7 @@ export async function secretSantaApi(req,env,path,rateLimit,requester,authentica
     if(!authenticatedUser)return error('Entre na sua conta para organizar o sorteio.',401);
     const title=typeof body?.title==='string'?body.title.trim():'';
     const privacy=body?.privacy;
-    if(title.length<3||title.length>80||/[<>\\x00-\\x1f]/.test(title))return error('Título inválido.',422);
+    if(title.length<3||title.length>80||/[<>\x00-\x1f]/.test(title))return error('Título inválido.',422);
     if(privacy!=='private'&&privacy!=='supervised')return error('Escolha a privacidade do sorteio.',422);
     const id=crypto.randomUUID(),invite=token(),admin=token(),now=Date.now(),expires=now+30*86400000;
     await env.DB.prepare(`INSERT INTO secret_santa_events
@@ -36,7 +36,7 @@ export async function secretSantaApi(req,env,path,rateLimit,requester,authentica
       .bind(id,title,await digest(admin),now,expires,authenticatedUser.id,privacy,await digest(invite)).run();
     return reply({id,title,privacy,status:'draft',expiresAt:expires,inviteToken:invite},201);
   }
-  const inviteInfo=path.match(/^\\/api\\/secret-santa\\/events\\/([0-9a-f-]{36})\\/invite-info$/);
+  const inviteInfo=path.match(/^\/api\/secret-santa\/events\/([0-9a-f-]{36})\/invite-info$/);
   if(inviteInfo){
     const invite=body?.inviteToken;
     if(typeof invite!=='string'||!/^[0-9a-f]{64}$/.test(invite))return error('Convite inválido.',403);
