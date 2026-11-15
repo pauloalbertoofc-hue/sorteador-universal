@@ -49,7 +49,7 @@ export async function secretSantaApi(req,env,path,rateLimit,requester,authentica
   }
   // Shared invitation: the participant chooses a persistent account or a temporary identity.
   // A guest claim is a bearer secret. Never treat the display name as authentication.
-  const enroll=path.match(/^\\/api\\/secret-santa\\/events\\/([0-9a-f-]{36})\\/enroll$/);
+  const enroll=path.match(/^\/api\/secret-santa\/events\/([0-9a-f-]{36})\/enroll$/);
   if(enroll){
     if(!await rateLimit('secret-santa-enroll',requester,8,3600000))return error('Muitas tentativas de inscrição.',429);
     const invite=body?.inviteToken,name=typeof body?.name==='string'?body.name.trim():'';
@@ -57,7 +57,7 @@ export async function secretSantaApi(req,env,path,rateLimit,requester,authentica
     if(typeof invite!=='string'||!/^[0-9a-f]{64}$/.test(invite))return error('Convite inválido.',403);
     if(!kind)return error('Escolha entrar com conta ou como convidado.',422);
     if(kind==='account'&&!authenticatedUser)return error('Entre na sua conta para continuar.',401);
-    if(name.length<1||name.length>80||/[<>\\x00-\\x1f]/.test(name))return error('Nome inválido.',422);
+    if(name.length<1||name.length>80||/[<>\x00-\x1f]/.test(name))return error('Nome inválido.',422);
     const event=await env.DB.prepare(`SELECT id,status,expires_at FROM secret_santa_events
       WHERE id=? AND invite_token_hash=? AND privacy_mode IS NOT NULL AND expires_at>?`)
       .bind(enroll[1],await digest(invite),Date.now()).first();
