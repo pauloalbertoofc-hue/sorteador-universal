@@ -120,7 +120,7 @@ test('group mode: mobile navigation, organizer recovery and guest private link',
  const js=await readFile('public/amigo-secreto/novo/app.mjs');
  const eventId='12345678-1234-4123-8123-123456789abc';
  const inviteToken='a'.repeat(64),claimToken='b'.repeat(64);
- let server,browser,drawnRecovery=false;
+ let server,browser,drawnRecovery=false,supervisedRecovery=false;
  t.after(async()=>{await browser?.close();if(server)await new Promise(resolve=>server.close(resolve));});
  server=createServer(async(req,res)=>{
   const pathname=new URL(req.url,'http://localhost').pathname;
@@ -137,7 +137,7 @@ test('group mode: mobile navigation, organizer recovery and guest private link',
    else if(pathname.endsWith('/my-result'))data={title:'Amigos da turma',giver:'Ana',recipient:'Bruno'};
    else if(pathname.endsWith('/claim-reveal'))data={title:'Amigos da turma',giver:'Ana',recipient:'Bruno'};
    else if(pathname.endsWith('/account/events')&&req.method==='GET')data={events:[{id:eventId,title:'Amigos da turma',status:'draft'}]};
-   else if(pathname.endsWith('/manage'))data={id:eventId,title:'Amigos da turma',status:drawnRecovery?'drawn':'draft',privacy:'private',enrollmentClosed:drawnRecovery,participants:2};
+   else if(pathname.endsWith('/manage'))data={id:eventId,title:'Amigos da turma',status:drawnRecovery?'drawn':'draft',privacy:supervisedRecovery?'supervised':'private',enrollmentClosed:drawnRecovery,participants:2};
    else if(pathname.endsWith('/rotate-invite'))data={id:eventId,inviteToken,previousInvitesRevoked:true};
    else {status=404;data={error:'Rota inesperada'};}
    res.writeHead(status,{'content-type':'application/json','cache-control':'no-store'});res.end(JSON.stringify(data));return;
@@ -166,6 +166,15 @@ test('group mode: mobile navigation, organizer recovery and guest private link',
  assert.equal(await organizer.locator('#close').isDisabled(),true);
  assert.equal(await organizer.locator('#rotateInvite').isDisabled(),true);
  assert.equal(await organizer.locator('#share').isDisabled(),true);
+ assert.equal(await organizer.locator('#audit').isVisible(),false);
+ // Only a completed supervised event may expose the organizer audit control.
+ supervisedRecovery=true;
+ await organizer.goto(origin+'/amigo-secreto/novo/');
+ await organizer.locator('#loadEvents').click();
+ await organizer.locator('#eventList button').click();
+ await organizer.getByText('Sorteio realizado.',{exact:true}).waitFor({timeout:5000});
+ assert.equal(await organizer.locator('#audit').isVisible(),true);
+ supervisedRecovery=false;
  drawnRecovery=false;
  await organizer.goto(origin+'/amigo-secreto/novo/');
  await organizer.locator('#loadEvents').click();
