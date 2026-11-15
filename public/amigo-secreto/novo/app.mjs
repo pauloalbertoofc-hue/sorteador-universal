@@ -14,7 +14,7 @@ async function request(path,body,method='POST'){
 }
 function privateUrl(id,key,value){const url=new URL(location.pathname,location.origin);url.hash=new URLSearchParams({event:id,[key]:value}).toString();return url.toString();}
 async function copy(value){if(!navigator.clipboard?.writeText)throw Error('Cópia indisponível neste navegador.');await navigator.clipboard.writeText(value);}
-if(eventId||inviteToken||claimToken){
+if(eventId||inviteToken||claimToken||accountResult){
  hide('organizer');hide('myEvents');
  if(!uuid.test(eventId||'')||(!secret.test(inviteToken||'')&&!secret.test(claimToken||'')&&!accountResult)){show('join');message('joinStatus','Convite ou acesso inválido.');}
  else if(accountResult){
