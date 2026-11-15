@@ -96,7 +96,7 @@ export async function secretSantaApi(req,env,path,rateLimit,requester,authentica
       if(/UNIQUE constraint failed/i.test(String(e)))return error('Este nome já está inscrito neste evento.',409);
       throw e;
     }
-    return reply({id,name,entry:kind,claimToken:claim,status:'enrolled'},201);
+    return reply(kind==='account'?{id,name,entry:kind,status:'enrolled'}:{id,name,entry:kind,claimToken:claim,status:'enrolled'},201);
   }
   // Only the authenticated event owner may freeze enrollment. No drawing or
   // participant secrets are exposed at this stage.
