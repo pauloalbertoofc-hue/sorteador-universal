@@ -149,6 +149,16 @@ test('new Secret Santa lifecycle: two guests, owner isolation, private and super
  assert.equal(mine.data.recipient,'Bruno');
  assert.equal((await call(accountPath,{},stranger)).status,404);
  assert.equal((await call(accountPath,{})).status,401);
+ // The account result cannot be claimed by guessing or reusing the event invite.
+ assert.equal((await call(accountRoot+'/claim-reveal',{claimToken:accountInvite})).status,403);
+ assert.equal((await call(accountRoot+'/claim-reveal',{claimToken:'0'.repeat(64)})).status,403);
+ // A different signed-in user cannot impersonate the enrolled account, even
+ // when they know the event identifier and the enrolled participant's name.
+ assert.equal((await call(accountPath,{name:'Ana'},stranger)).status,404);
+ const secondAccount=await call('/api/secret-santa/account/drafts',{title:'Conta em outro evento',privacy:'private'},stranger);
+ assert.equal(secondAccount.status,201);
+ assert.equal((await call('/api/secret-santa/account/events/'+secondAccount.data.id+'/my-result',{},owner)).status,404);
+ assert.equal((await call('/api/secret-santa/account/events/'+secondAccount.data.id+'/my-result',{},stranger)).status,409);
 
  // Simulate a whole classroom behind one IP with the actual API and a
  // rate limiter enforcing the supplied per-scope limits.
