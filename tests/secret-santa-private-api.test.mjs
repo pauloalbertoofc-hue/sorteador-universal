@@ -85,3 +85,8 @@ test('individual reveal requires participant-held claim hash, not a display name
  assert.ok(api.includes("r.id=p.recipient_id AND r.event_id=p.event_id"));
  assert.ok(api.includes("await digest(claim)"));
 });
+
+test('enrollment enforces the 100-person cap inside the insert condition',()=>{
+ assert.ok(api.includes("(SELECT COUNT(*) FROM secret_santa_enrollments WHERE event_id=?)<100"));
+ assert.ok(api.includes("Inscrições encerradas ou limite de 100 participantes atingido."));
+});
