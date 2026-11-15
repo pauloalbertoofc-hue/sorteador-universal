@@ -83,7 +83,8 @@ test('Amigo Secreto: two isolated mobile browsers, private links and unique reci
     // of the same document does not rerun this page's initialization script.
     await guest.goto(origin + '/amigo-secreto/');
     await guest.goto(url.toString());
-    await guest.locator('#revealResult').waitFor({state:'visible',timeout:5000});
+    await guest.waitForFunction(() => document.querySelector('#revealResult')?.classList.contains('hidden') === false || !['','Consultando resultado…','Consultando resultado...'].includes(document.querySelector('#revealStatus')?.textContent?.trim()),null,{timeout:5000}).catch(async error => { throw new Error('Revelação não concluída: '+JSON.stringify({status:await guest.locator('#revealStatus').innerText(),url:guest.url().split('#')[0],pageErrors:errors})+'; '+error.message); });
+    assert.equal(await guest.locator('#revealResult').isVisible(),true,'Revelação falhou: '+await guest.locator('#revealStatus').innerText());
     const giver=await guest.locator('#giver').innerText();
     const recipient=await guest.locator('#recipient').innerText();
     assert.ok(giver.includes(displayedNames[i]),JSON.stringify({giver,expected:displayedNames[i],linkIndex:i}));
