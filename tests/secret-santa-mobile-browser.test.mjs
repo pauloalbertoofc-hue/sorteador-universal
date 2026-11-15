@@ -153,13 +153,14 @@ test('group mode: mobile navigation, organizer recovery and guest private link',
  await organizer.locator('#manage').waitFor({state:'visible'});
  assert.equal(await organizer.locator('#share').isDisabled(),true);
  assert.equal(await organizer.locator('#rotateInvite').isEnabled(),true);
- await organizer.locator('#rotateInvite').click({noWaitAfter:true});
- // The confirmation dialog is deliberately accepted only in this test.
- await organizer.locator('#manageStatus').waitFor({state:'visible'});
+ organizer.on('dialog',dialog=>dialog.accept());
+ await organizer.locator('#rotateInvite').click();
+ await organizer.getByText('Novo convite gerado.',{exact:false}).waitFor({timeout:5000});
  const inviteUrl=origin+'/amigo-secreto/novo/#event='+eventId+'&invite='+inviteToken;
  await guest.goto(inviteUrl);
  await guest.locator('#enrollButton').waitFor({state:'visible'});
  await guest.locator('#name').fill('Ana');
+ await guest.locator('#privacyConsent').check();
  await guest.locator('#enrollButton').click();
  await guest.locator('#claim').waitFor({state:'visible'});
  assert.match(guest.url(),/claim=/);
