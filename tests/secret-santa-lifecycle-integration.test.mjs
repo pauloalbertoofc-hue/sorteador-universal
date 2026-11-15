@@ -100,6 +100,21 @@ test('new Secret Santa lifecycle: two guests, owner isolation, private and super
  assert.equal((await call('/api/secret-santa/events/'+isolatedB.data.id+'/claim-reveal',{claimToken:guestA.data.claimToken})).status,403);
  assert.equal((await call('/api/secret-santa/events/'+isolatedB.data.id+'/invite-info',{inviteToken:isolatedA.data.inviteToken})).status,404);
 
+ // Expired group events must not accept invitations, enrollments, draws or reveals.
+ const expired=await call('/api/secret-santa/account/drafts',{title:'Evento expirado',privacy:'private'},owner);
+ assert.equal(expired.status,201);
+ const expiredRoot='/api/secret-santa/events/'+expired.data.id;
+ const expiredGuest=await call(expiredRoot+'/enroll',{inviteToken:expired.data.inviteToken,name:'Convidado expirado',entry:'guest',privacyAccepted:true,acceptedPrivacyMode:'private'});
+ assert.equal(expiredGuest.status,201);
+ await db.prepare('UPDATE secret_santa_events SET expires_at=? WHERE id=?').bind(Date.now()-1000,expired.data.id).run();
+ assert.notEqual((await call(expiredRoot+'/invite-info',{inviteToken:expired.data.inviteToken})).status,200);
+ assert.notEqual((await call(expiredRoot+'/enroll',{inviteToken:expired.data.inviteToken,name:'Novo convidado',entry:'guest',privacyAccepted:true,acceptedPrivacyMode:'private'})).status,201);
+ assert.notEqual((await call('/api/secret-santa/account/events/'+expired.data.id+'/close-enrollment',{},owner)).status,200);
+ assert.notEqual((await call('/api/secret-santa/account/events/'+expired.data.id+'/draw',{},owner)).status,200);
+ assert.notEqual((await call(expiredRoot+'/claim-reveal',{claimToken:expiredGuest.data.claimToken})).status,200);
+ const expiredManage=await secretSantaApi(new Request('https://example.test/api/secret-santa/account/events/'+expired.data.id+'/manage'),env,'/api/secret-santa/account/events/'+expired.data.id+'/manage',async()=>true,'203.0.113.2',owner);
+ assert.equal(expiredManage.status,404);
+
  const resumable=await call('/api/secret-santa/account/drafts',{title:'Evento recuperável',privacy:'private'},owner);
  assert.equal(resumable.status,201);
  const resumeId=resumable.data.id;
