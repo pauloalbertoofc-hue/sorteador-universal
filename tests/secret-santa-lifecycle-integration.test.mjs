@@ -70,4 +70,21 @@ test('new Secret Santa lifecycle: two guests, owner isolation, private and super
    assert.equal(audit.data.assignments.length,3);
   }
  }
+
+ const accountEvent=await call('/api/secret-santa/account/drafts',{title:'Grupo com conta',privacy:'private'},owner);
+ assert.equal(accountEvent.status,201);
+ const accountId=accountEvent.data.id,accountInvite=accountEvent.data.inviteToken;
+ const accountRoot='/api/secret-santa/events/'+accountId;
+ assert.equal((await call(accountRoot+'/enroll',{inviteToken:accountInvite,name:'Ana',entry:'account'},owner)).status,201);
+ assert.equal((await call(accountRoot+'/enroll',{inviteToken:accountInvite,name:'Ana outra',entry:'account'},owner)).status,409);
+ assert.equal((await call(accountRoot+'/enroll',{inviteToken:accountInvite,name:'Bruno',entry:'guest'})).status,201);
+ assert.equal((await call('/api/secret-santa/account/events/'+accountId+'/close-enrollment',{},owner)).status,200);
+ assert.equal((await call('/api/secret-santa/account/events/'+accountId+'/draw',{},owner)).status,200);
+ const accountPath='/api/secret-santa/account/events/'+accountId+'/my-result';
+ const mine=await call(accountPath,{},owner);
+ assert.equal(mine.status,200,JSON.stringify(mine));
+ assert.equal(mine.data.giver,'Ana');
+ assert.equal(mine.data.recipient,'Bruno');
+ assert.equal((await call(accountPath,{},stranger)).status,404);
+ assert.equal((await call(accountPath,{})).status,401);
 });
