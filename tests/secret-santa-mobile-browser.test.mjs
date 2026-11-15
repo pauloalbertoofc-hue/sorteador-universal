@@ -53,7 +53,7 @@ test('Amigo Secreto: two isolated mobile browsers, private links and unique reci
   const errors=[];for(const page of [organizer,guest])page.on('pageerror',e=>errors.push(e.message));
   await organizer.goto(origin+'/amigo-secreto/');
   await organizer.locator('#title').fill('Amigos da faculdade');
-  await organizer.locator('#names').fill('Ana\\nBruno\\nCarla');
+  await organizer.locator('#names').fill(['Ana','Bruno','Carla'].join(String.fromCharCode(10)));
   await organizer.locator('#createButton').click();
   await organizer.locator('#linksSection').waitFor({state:'visible'});
   assert.equal(await organizer.locator('.person').count(),3);
