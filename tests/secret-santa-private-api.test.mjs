@@ -8,7 +8,9 @@ const api=readFileSync(new URL('../src/secret-santa.js',import.meta.url),'utf8')
 test('private API uses existing origin protection and rate limits',()=>{
   assert.ok(worker.includes("if(method!=='GET'&&!originOk(req)"));
   assert.ok(worker.includes("secretSantaApi(req,env,path,roomRateLimit,requester,accountUser)"));
-  assert.ok(api.includes("rateLimit('secret-santa',requester,10,3600000)"));
+  assert.match(api,/groupOwner\?60:10/);
+  assert.match(api,/groupEvent\?'secret-santa-group-'/);
+  assert.match(api,/rateLimit\(scope,requester,limit,3600000\)/);
 });
 
 test('participant secrets are stored as hashes and only reveal one matching assignment',()=>{
