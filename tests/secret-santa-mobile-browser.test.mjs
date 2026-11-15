@@ -80,7 +80,7 @@ test('Amigo Secreto: two isolated mobile browsers, private links and unique reci
     assert.equal(url.search,'');
     assert.match(url.hash,/#event=/);
     await guest.goto(url.toString());
-    await guest.locator('#revealResult').waitFor({state:'visible'});
+    await guest.waitForFunction(expected => document.querySelector('#giver')?.textContent === 'Olá, ' + expected + '!' && document.querySelector('#revealResult')?.classList.contains('hidden') === false, displayedNames[i]);
     const giver=await guest.locator('#giver').innerText();
     const recipient=await guest.locator('#recipient').innerText();
     assert.ok(giver.includes(displayedNames[i]),JSON.stringify({giver,expected:displayedNames[i],linkIndex:i}));
