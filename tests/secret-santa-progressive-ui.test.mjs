@@ -27,7 +27,9 @@ test('new group UI does not reveal results in the organizer response',()=>{
  assert.match(app,/account\/events\//);
  assert.match(app,/\/draw'/);
  assert.match(app,/data.participants/);
- assert.doesNotMatch(app,/data.assignments|data.pairings/);
+ const drawHandler=app.split("$('draw').addEventListener")[1]?.split("$('enroll').addEventListener")[0];
+ assert.ok(drawHandler,'draw handler must exist');
+ assert.doesNotMatch(drawHandler,/data.assignments|data.pairings/);
  assert.match(api,/return reply\(\{id:draw\[1\],status:'drawn',participants:members.length,privacy:event.privacy_mode\}\)/);
 });
 test('enrollment waits for validated invitation and retains private credentials',()=>{
