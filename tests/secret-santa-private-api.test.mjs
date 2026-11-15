@@ -49,3 +49,11 @@ test('new draft lifecycle separates privacy from participant entry and discloses
  assert.ok(api.includes("organizerCanViewResults:event.privacy_mode==='supervised'"));
  assert.ok(api.includes("if(!authenticatedUser)return error('Entre na sua conta para organizar o sorteio.',401)"));
 });
+
+test('shared invitation enrollment refuses duplicate accounts and closed registration races',()=>{
+ assert.ok(api.includes("path.match(/^\\/api\\/secret-santa\\/events"));
+ assert.ok(api.includes("if(kind==='account'&&!authenticatedUser)"));
+ assert.ok(api.includes("WHERE event_id=? AND user_id=? LIMIT 1"));
+ assert.ok(api.includes("inserted.meta?.changes!==1"));
+ assert.ok(api.includes("claim_token_hash"));
+});
