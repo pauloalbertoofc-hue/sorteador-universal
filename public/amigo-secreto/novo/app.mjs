@@ -15,7 +15,7 @@ async function request(path,body,method='POST'){
 function privateUrl(id,key,value){const url=new URL(location.pathname,location.origin);url.hash=new URLSearchParams({event:id,[key]:value}).toString();return url.toString();}
 async function copy(value){if(!navigator.clipboard?.writeText)throw Error('Cópia indisponível neste navegador.');await navigator.clipboard.writeText(value);}
 if(eventId||inviteToken||claimToken){
- hide('organizer');
+ hide('organizer');hide('myEvents');
  if(!uuid.test(eventId||'')||(!secret.test(inviteToken||'')&&!secret.test(claimToken||'')&&!accountResult)){show('join');message('joinStatus','Convite ou acesso inválido.');}
  else if(accountResult){
   activeClaim={id:eventId,entry:'account'};show('claim');hide('copyClaim');message('claimStatus','Resultado vinculado à sua conta. Entre na conta utilizada na inscrição para consultar.');
@@ -35,12 +35,12 @@ $('create').addEventListener('submit',async event=>{
  event.preventDefault();$('createButton').disabled=true;message('createStatus','Criando evento…');
  try{
   const data=await request('/account/drafts',{title:$('title').value.trim(),privacy:$('privacy').value});
-  activeEvent=data;hide('organizer');show('manage');message('manageStatus','Evento criado. Convide os participantes.');
+  activeEvent=data;hide('organizer');hide('myEvents');show('manage');message('manageStatus','Evento criado. Convide os participantes.');
  }catch(error){message('createStatus',error.message+' Use o acesso à conta no cabeçalho do site para entrar.');}
  finally{$('createButton').disabled=false;}
 });
-$('copy').addEventListener('click',async()=>{try{await copy(privateUrl(activeEvent.id,'invite',activeEvent.inviteToken));message('manageStatus','Convite copiado.');}catch(e){message('manageStatus',e.message);}});
-$('share').addEventListener('click',async()=>{try{const text='Entre no nosso amigo secreto: '+privateUrl(activeEvent.id,'invite',activeEvent.inviteToken);if(navigator.share)await navigator.share({text});else await copy(text);}catch(e){if(e.name!=='AbortError')message('manageStatus',e.message);}});
+$('copy').addEventListener('click',async()=>{try{if(!activeEvent.inviteToken)throw Error('Convite anterior indisponível. Gere um novo convite.');await copy(privateUrl(activeEvent.id,'invite',activeEvent.inviteToken));message('manageStatus','Convite copiado.');}catch(e){message('manageStatus',e.message);}});
+$('share').addEventListener('click',async()=>{try{if(!activeEvent.inviteToken)throw Error('Convite anterior indisponível. Gere um novo convite.');const text='Entre no nosso amigo secreto: '+privateUrl(activeEvent.id,'invite',activeEvent.inviteToken);if(navigator.share)await navigator.share({text});else await copy(text);}catch(e){if(e.name!=='AbortError')message('manageStatus',e.message);}});
 $('close').addEventListener('click',async()=>{
  if(!confirm('Encerrar inscrições? Não será possível adicionar mais participantes.'))return;
  $('close').disabled=true;
@@ -86,4 +86,47 @@ $('audit').addEventListener('click',async()=>{
   target.append(list);show('auditResults');
  }catch(e){message('manageStatus',e.message);}
  finally{$('audit').disabled=false;}
+});
+
+function manageEvent(data){
+ activeEvent=data;hide('organizer');hide('myEvents');show('manage');
+ const closed=data.enrollmentClosed||data.status!=='draft';
+ $('close').disabled=closed;
+ $('draw').disabled=data.status!=='draft'||!data.enrollmentClosed;
+ $('rotateInvite').disabled=closed;
+ const available=Boolean(data.inviteToken);
+ $('share').disabled=!available;$('copy').disabled=!available;
+ if(data.status==='drawn'&&data.privacy==='supervised')show('audit');
+ else hide('audit');
+ message('manageStatus',data.status==='drawn'?'Sorteio realizado.':data.enrollmentClosed?'Inscrições encerradas. Você pode realizar o sorteio.':available?'Convite disponível para compartilhar.':'Evento recuperado. Gere um novo convite para continuar convidando pessoas; os convites anteriores serão invalidados.');
+}
+$('loadEvents').addEventListener('click',async()=>{
+ $('loadEvents').disabled=true;
+ try{
+  const data=await request('/account/events',null,'GET');
+  const target=$('eventList');target.replaceChildren();
+  if(!data.events.length){message('eventListStatus','Nenhum evento encontrado.');return;}
+  message('eventListStatus','Escolha um evento para gerenciar.');
+  for(const item of data.events){
+   const button=document.createElement('button');button.type='button';
+   button.textContent=item.title+' — '+(item.status==='drawn'?'sorteado':'em andamento');
+   button.addEventListener('click',async()=>{
+    try{const info=await request('/account/events/'+item.id+'/manage',null,'GET');manageEvent(info);}
+    catch(error){message('eventListStatus',error.message);}
+   });
+   target.append(button,document.createTextNode(' '));
+  }
+ }catch(e){message('eventListStatus',e.message);}
+ finally{$('loadEvents').disabled=false;}
+});
+$('rotateInvite').addEventListener('click',async()=>{
+ if(!activeEvent||!confirm('Gerar um novo convite? Os links de convite anteriores deixarão de funcionar.'))return;
+ $('rotateInvite').disabled=true;
+ try{
+  const data=await request('/account/events/'+activeEvent.id+'/rotate-invite',{});
+  activeEvent.inviteToken=data.inviteToken;
+  $('share').disabled=false;$('copy').disabled=false;
+  message('manageStatus','Novo convite gerado. Compartilhe-o com o grupo. Os convites antigos foram invalidados.');
+ }catch(e){message('manageStatus',e.message);}
+ finally{if(activeEvent.status==='draft'&&!activeEvent.enrollmentClosed)$('rotateInvite').disabled=false;}
 });
