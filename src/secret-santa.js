@@ -22,6 +22,31 @@ export async function secretSantaApi(req,env,path,rateLimit,requester,authentica
   if(raw.length>12000)return error('Dados muito extensos',413);
   let body;
   try{body=JSON.parse(raw)}catch{return error('JSON inválido')}
+  // New lifecycle is opt-in and separate from legacy immediate-draw events.
+  if(path==='/api/secret-santa/account/drafts'){
+    if(!authenticatedUser)return error('Entre na sua conta para organizar o sorteio.',401);
+    const title=typeof body?.title==='string'?body.title.trim():'';
+    const privacy=body?.privacy;
+    if(title.length<3||title.length>80||/[<>\\x00-\\x1f]/.test(title))return error('Título inválido.',422);
+    if(privacy!=='private'&&privacy!=='supervised')return error('Escolha a privacidade do sorteio.',422);
+    const id=crypto.randomUUID(),invite=token(),admin=token(),now=Date.now(),expires=now+30*86400000;
+    await env.DB.prepare(`INSERT INTO secret_santa_events
+      (id,title,admin_token_hash,status,created_at,expires_at,owner_user_id,distribution_mode,privacy_mode,invite_token_hash)
+      VALUES(?,?,?,'draft',?,?,?,'links',?,?)`)
+      .bind(id,title,await digest(admin),now,expires,authenticatedUser.id,privacy,await digest(invite)).run();
+    return reply({id,title,privacy,status:'draft',expiresAt:expires,inviteToken:invite},201);
+  }
+  const inviteInfo=path.match(/^\\/api\\/secret-santa\\/events\\/([0-9a-f-]{36})\\/invite-info$/);
+  if(inviteInfo){
+    const invite=body?.inviteToken;
+    if(typeof invite!=='string'||!/^[0-9a-f]{64}$/.test(invite))return error('Convite inválido.',403);
+    const event=await env.DB.prepare(`SELECT id,title,status,privacy_mode,expires_at
+      FROM secret_santa_events WHERE id=? AND invite_token_hash=? AND privacy_mode IS NOT NULL AND expires_at>?`)
+      .bind(inviteInfo[1],await digest(invite),Date.now()).first();
+    if(!event)return error('Convite inválido ou expirado.',404);
+    return reply({id:event.id,title:event.title,status:event.status,privacy:event.privacy_mode,expiresAt:event.expires_at,
+      organizerCanViewResults:event.privacy_mode==='supervised'});
+  }
   const accountCreation=path==='/api/secret-santa/account/events';
   if(accountCreation&&!authenticatedUser)return error('Entre na sua conta para organizar o sorteio.',401);
   if(path==='/api/secret-santa/events'||accountCreation){
