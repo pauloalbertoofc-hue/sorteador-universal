@@ -38,14 +38,14 @@ test('new Secret Santa lifecycle: two guests, owner isolation, private and super
   assert.equal(info.data.organizerCanViewResults,privacy==='supervised');
   const claims=[];
   for(const name of ['Ana','Bruno','Carla']){
-   const result=await call(root+'/enroll',{inviteToken,name,entry:'guest'});
+   const result=await call(root+'/enroll',{inviteToken,name,entry:'guest',privacyAccepted:true});
    assert.equal(result.status,201,JSON.stringify(result));
    claims.push(result.data.claimToken);
   }
   assert.equal((await call('/api/secret-santa/account/events/'+id+'/close-enrollment',{},stranger)).status,404);
   assert.equal((await call('/api/secret-santa/account/events/'+id+'/draw',{},owner)).status,409);
   assert.equal((await call('/api/secret-santa/account/events/'+id+'/close-enrollment',{},owner)).status,200);
-  assert.equal((await call(root+'/enroll',{inviteToken,name:'Daniel',entry:'guest'})).status,409);
+  assert.equal((await call(root+'/enroll',{inviteToken,name:'Daniel',entry:'guest',privacyAccepted:true})).status,409);
   const closedInvite=await call(root+'/invite-info',{inviteToken});
   assert.equal(closedInvite.status,200);
   assert.equal(closedInvite.data.enrollmentClosed,true);
@@ -91,15 +91,17 @@ test('new Secret Santa lifecycle: two guests, owner isolation, private and super
  assert.equal((await call('/api/secret-santa/events/'+resumeId+'/invite-info',{inviteToken:resumable.data.inviteToken})).status,404);
  assert.equal((await call('/api/secret-santa/events/'+resumeId+'/invite-info',{inviteToken:rotated.data.inviteToken})).status,200);
  assert.equal((await call(resumePath+'/rotate-invite',{},stranger)).status,409);
+ const missingConsent=await call('/api/secret-santa/events/'+resumeId+'/enroll',{inviteToken:rotated.data.inviteToken,name:'Sem consentimento',entry:'guest'});
+ assert.equal(missingConsent.status,422);
  const accountEvent=await call('/api/secret-santa/account/drafts',{title:'Grupo com conta',privacy:'private'},owner);
  assert.equal(accountEvent.status,201);
  const accountId=accountEvent.data.id,accountInvite=accountEvent.data.inviteToken;
  const accountRoot='/api/secret-santa/events/'+accountId;
- const accountEnrollment=await call(accountRoot+'/enroll',{inviteToken:accountInvite,name:'Ana',entry:'account'},owner);
+ const accountEnrollment=await call(accountRoot+'/enroll',{inviteToken:accountInvite,name:'Ana',entry:'account',privacyAccepted:true},owner);
  assert.equal(accountEnrollment.status,201);
  assert.equal(Object.hasOwn(accountEnrollment.data,'claimToken'),false);
- assert.equal((await call(accountRoot+'/enroll',{inviteToken:accountInvite,name:'Ana outra',entry:'account'},owner)).status,409);
- assert.equal((await call(accountRoot+'/enroll',{inviteToken:accountInvite,name:'Bruno',entry:'guest'})).status,201);
+ assert.equal((await call(accountRoot+'/enroll',{inviteToken:accountInvite,name:'Ana outra',entry:'account',privacyAccepted:true},owner)).status,409);
+ assert.equal((await call(accountRoot+'/enroll',{inviteToken:accountInvite,name:'Bruno',entry:'guest',privacyAccepted:true})).status,201);
  assert.equal((await call('/api/secret-santa/account/events/'+accountId+'/close-enrollment',{},owner)).status,200);
  assert.equal((await call('/api/secret-santa/account/events/'+accountId+'/draw',{},owner)).status,200);
  const accountPath='/api/secret-santa/account/events/'+accountId+'/my-result';
