@@ -158,6 +158,7 @@ test('group mode: mobile navigation, organizer recovery and guest private link',
  assert.equal(await organizer.locator('#rotateInvite').isEnabled(),true);
  // Reopening a completed event must not offer another draw or invitation.
  drawnRecovery=true;
+ await organizer.goto(origin+'/amigo-secreto/novo/');
  await organizer.locator('#loadEvents').click();
  await organizer.locator('#eventList button').click();
  assert.equal(await organizer.locator('#draw').isDisabled(),true);
@@ -165,6 +166,7 @@ test('group mode: mobile navigation, organizer recovery and guest private link',
  assert.equal(await organizer.locator('#rotateInvite').isDisabled(),true);
  assert.equal(await organizer.locator('#share').isDisabled(),true);
  drawnRecovery=false;
+ await organizer.goto(origin+'/amigo-secreto/novo/');
  await organizer.locator('#loadEvents').click();
  await organizer.locator('#eventList button').click();
  assert.equal(await organizer.locator('#rotateInvite').isEnabled(),true);
