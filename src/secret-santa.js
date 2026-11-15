@@ -74,9 +74,9 @@ export async function secretSantaApi(req,env,path,rateLimit,requester,authentica
       const inserted=await env.DB.prepare(`INSERT INTO secret_santa_enrollments
         (id,event_id,display_name,name_key,auth_kind,user_id,claim_token_hash,created_at)
         SELECT ?,?,?,?,?,?,?,? WHERE
-          (SELECT status FROM secret_santa_events WHERE id=?)='draft' AND (SELECT enrollment_closed_at FROM secret_santa_events WHERE id=?) IS NULL`)
-        .bind(id,enroll[1],name,nameKey,kind,kind==='account'?authenticatedUser.id:null,await digest(claim),Date.now(),enroll[1],enroll[1]).run();
-      if(inserted.meta?.changes!==1)return error('As inscrições deste evento estão encerradas.',409);
+          (SELECT status FROM secret_santa_events WHERE id=?)='draft' AND (SELECT enrollment_closed_at FROM secret_santa_events WHERE id=?) IS NULL AND (SELECT COUNT(*) FROM secret_santa_enrollments WHERE event_id=?)<100`)
+        .bind(id,enroll[1],name,nameKey,kind,kind==='account'?authenticatedUser.id:null,await digest(claim),Date.now(),enroll[1],enroll[1],enroll[1]).run();
+      if(inserted.meta?.changes!==1)return error('Inscrições encerradas ou limite de 100 participantes atingido.',409);
     }catch(e){
       if(/UNIQUE constraint failed/i.test(String(e)))return error('Este nome já está inscrito neste evento.',409);
       throw e;
