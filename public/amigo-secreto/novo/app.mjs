@@ -27,7 +27,7 @@ if(eventId||inviteToken||claimToken){
   request('/events/'+eventId+'/invite-info',{inviteToken}).then(data=>{
    $('enrollButton').disabled=false;
    message('eventInfo',data.title+' — '+(data.privacy==='private'?'sorteio privado':'sorteio supervisionado'));
-   if(data.status!=='draft'){$('enrollButton').disabled=true;message('joinStatus','As inscrições deste evento não estão abertas.');}
+   if(data.status!=='draft'||data.enrollmentClosed){$('enrollButton').disabled=true;message('joinStatus','As inscrições deste evento não estão abertas.');}
   }).catch(error=>{$('enrollButton').disabled=true;message('joinStatus',error.message);});
  }
 }
@@ -35,7 +35,7 @@ $('create').addEventListener('submit',async event=>{
  event.preventDefault();$('createButton').disabled=true;message('createStatus','Criando evento…');
  try{
   const data=await request('/account/drafts',{title:$('title').value.trim(),privacy:$('privacy').value});
-  activeEvent=data;hide('organizer');hide('myEvents');show('manage');message('manageStatus','Evento criado. Convide os participantes.');
+  manageEvent(data);message('manageStatus','Evento criado. Convide os participantes.');
  }catch(error){message('createStatus',error.message+' Use o acesso à conta no cabeçalho do site para entrar.');}
  finally{$('createButton').disabled=false;}
 });
@@ -44,7 +44,7 @@ $('share').addEventListener('click',async()=>{try{if(!activeEvent.inviteToken)th
 $('close').addEventListener('click',async()=>{
  if(!confirm('Encerrar inscrições? Não será possível adicionar mais participantes.'))return;
  $('close').disabled=true;
- try{const data=await request('/account/events/'+activeEvent.id+'/close-enrollment',{});activeEvent.enrollmentClosed=true;message('manageStatus','Inscrições encerradas com '+data.participants+' participantes.');$('rotateInvite').disabled=true;$('draw').disabled=false;}
+ try{const data=await request('/account/events/'+activeEvent.id+'/close-enrollment',{});activeEvent.enrollmentClosed=true;$('share').disabled=true;$('copy').disabled=true;message('manageStatus','Inscrições encerradas com '+data.participants+' participantes.');$('rotateInvite').disabled=true;$('draw').disabled=false;}
  catch(e){$('close').disabled=false;message('manageStatus',e.message);}
 });
 $('draw').addEventListener('click',async()=>{
@@ -95,7 +95,8 @@ function manageEvent(data){
  $('draw').disabled=data.status!=='draft'||!data.enrollmentClosed;
  $('rotateInvite').disabled=closed;
  const available=Boolean(data.inviteToken);
- $('share').disabled=!available;$('copy').disabled=!available;
+ $('share').disabled=!available||closed;$('copy').disabled=!available||closed;
+ hide('auditResults');$('auditResults').replaceChildren();
  if(data.status==='drawn'&&data.privacy==='supervised')show('audit');
  else hide('audit');
  message('manageStatus',data.status==='drawn'?'Sorteio realizado.':data.enrollmentClosed?'Inscrições encerradas. Você pode realizar o sorteio.':available?'Convite disponível para compartilhar.':'Evento recuperado. Gere um novo convite para continuar convidando pessoas; os convites anteriores serão invalidados.');
