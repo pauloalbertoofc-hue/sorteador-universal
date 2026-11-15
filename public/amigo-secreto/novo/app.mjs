@@ -48,7 +48,7 @@ $('close').addEventListener('click',async()=>{
 $('draw').addEventListener('click',async()=>{
  if(!confirm('Realizar sorteio agora?'))return;
  $('draw').disabled=true;
- try{const data=await request('/account/events/'+activeEvent.id+'/draw',{});message('manageStatus','Sorteio realizado para '+data.participants+' participantes. Cada um pode consultar seu próprio acesso.');}
+ try{const data=await request('/account/events/'+activeEvent.id+'/draw',{});message('manageStatus','Sorteio realizado para '+data.participants+' participantes. Cada um pode consultar seu próprio acesso.');if(activeEvent.privacy==='supervised')show('audit');}
  catch(e){$('draw').disabled=false;message('manageStatus',e.message);}
 });
 $('enroll').addEventListener('submit',async event=>{
@@ -65,4 +65,20 @@ $('copyClaim').addEventListener('click',async()=>{try{await copy(privateUrl(acti
 $('checkResult').addEventListener('click',async()=>{
  try{const data=await request('/events/'+activeClaim.id+'/claim-reveal',{claimToken:activeClaim.token});message('result','Olá, '+data.giver+'! Você tirou: '+data.recipient+'.');}
  catch(e){message('result',e.message);}
+});
+
+$('audit').addEventListener('click',async()=>{
+ if(!activeEvent||activeEvent.privacy!=='supervised')return;
+ $('audit').disabled=true;
+ try{
+  const data=await request('/account/events/'+activeEvent.id+'/assignments',{});
+  const target=$('auditResults');target.replaceChildren();
+  const heading=document.createElement('h3');heading.textContent='Resultados supervisionados';target.append(heading);
+  const list=document.createElement('ul');
+  for(const pair of data.assignments){
+   const item=document.createElement('li');item.textContent=pair.giver+' → '+pair.recipient;list.append(item);
+  }
+  target.append(list);show('auditResults');
+ }catch(e){message('manageStatus',e.message);}
+ finally{$('audit').disabled=false;}
 });
