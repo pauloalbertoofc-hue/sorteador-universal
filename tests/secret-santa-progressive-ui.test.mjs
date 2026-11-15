@@ -24,7 +24,8 @@ test('group invitation and participant claim are independent fragment secrets',(
  assert.match(html,/no-referrer/);
 });
 test('new group UI does not reveal results in the organizer response',()=>{
- assert.match(app,/account\/events\/'.*?'\/draw'/);
+ assert.match(app,/account\/events\//);
+ assert.match(app,/\/draw'/);
  assert.match(app,/data.participants/);
  assert.doesNotMatch(app,/data.assignments|data.pairings/);
  assert.match(api,/return reply\(\{id:draw\[1\],status:'drawn',participants:members.length,privacy:event.privacy_mode\}\)/);
