@@ -28,7 +28,7 @@ export async function secretSantaApi(req,env,path,rateLimit,requester,authentica
     // Protected guest entry requires a separate credential-issuance flow.
     // Until that flow is implemented, only the established links mode is accepted.
     const mode=accountCreation?(body.mode||'links'):'links';
-    if(!['links','protected'].includes(mode))return error('Modo inválido.',422);
+    if(mode!=='links')return error('Modo de ingresso antigo desativado; aguarde o novo fluxo de privacidade.',422);
     const title=typeof body.title==='string'?body.title.trim():'';
     if(title.length<3||title.length>80||/[<>\x00-\x1f]/.test(title))return error('Título inválido');
     let names;
