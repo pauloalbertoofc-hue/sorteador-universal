@@ -120,7 +120,7 @@ test('group mode: mobile navigation, organizer recovery and guest private link',
  const js=await readFile('public/amigo-secreto/novo/app.mjs');
  const eventId='12345678-1234-4123-8123-123456789abc';
  const inviteToken='a'.repeat(64),claimToken='b'.repeat(64);
- let server,browser;
+ let server,browser,drawnRecovery=false;
  t.after(async()=>{await browser?.close();if(server)await new Promise(resolve=>server.close(resolve));});
  server=createServer(async(req,res)=>{
   const pathname=new URL(req.url,'http://localhost').pathname;
@@ -137,7 +137,7 @@ test('group mode: mobile navigation, organizer recovery and guest private link',
    else if(pathname.endsWith('/my-result'))data={title:'Amigos da turma',giver:'Ana',recipient:'Bruno'};
    else if(pathname.endsWith('/claim-reveal'))data={title:'Amigos da turma',giver:'Ana',recipient:'Bruno'};
    else if(pathname.endsWith('/account/events')&&req.method==='GET')data={events:[{id:eventId,title:'Amigos da turma',status:'draft'}]};
-   else if(pathname.endsWith('/manage'))data={id:eventId,title:'Amigos da turma',status:'draft',privacy:'private',enrollmentClosed:false,participants:2};
+   else if(pathname.endsWith('/manage'))data={id:eventId,title:'Amigos da turma',status:drawnRecovery?'drawn':'draft',privacy:'private',enrollmentClosed:drawnRecovery,participants:2};
    else if(pathname.endsWith('/rotate-invite'))data={id:eventId,inviteToken,previousInvitesRevoked:true};
    else {status=404;data={error:'Rota inesperada'};}
    res.writeHead(status,{'content-type':'application/json','cache-control':'no-store'});res.end(JSON.stringify(data));return;
@@ -155,6 +155,18 @@ test('group mode: mobile navigation, organizer recovery and guest private link',
  await organizer.locator('#eventList button').click();
  await organizer.locator('#manage').waitFor({state:'visible'});
  assert.equal(await organizer.locator('#share').isDisabled(),true);
+ assert.equal(await organizer.locator('#rotateInvite').isEnabled(),true);
+ // Reopening a completed event must not offer another draw or invitation.
+ drawnRecovery=true;
+ await organizer.locator('#loadEvents').click();
+ await organizer.locator('#eventList button').click();
+ assert.equal(await organizer.locator('#draw').isDisabled(),true);
+ assert.equal(await organizer.locator('#close').isDisabled(),true);
+ assert.equal(await organizer.locator('#rotateInvite').isDisabled(),true);
+ assert.equal(await organizer.locator('#share').isDisabled(),true);
+ drawnRecovery=false;
+ await organizer.locator('#loadEvents').click();
+ await organizer.locator('#eventList button').click();
  assert.equal(await organizer.locator('#rotateInvite').isEnabled(),true);
  organizer.on('dialog',dialog=>dialog.accept());
  await organizer.locator('#rotateInvite').click();
