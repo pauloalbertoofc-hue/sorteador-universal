@@ -2,7 +2,7 @@ const $=id=>document.getElementById(id);
 const api='/api/secret-santa',hash=new URLSearchParams(location.hash.slice(1));
 const eventId=hash.get('event'),inviteToken=hash.get('invite'),claimToken=hash.get('claim'),accountResult=hash.get('account')==='1';
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,secret=/^[0-9a-f]{64}$/;
-let activeEvent=null,activeClaim=null;
+let activeEvent=null,activeClaim=null,acceptedEventPrivacy=null;
 const show=id=>$(id).classList.remove('hidden');
 const hide=id=>$(id).classList.add('hidden');
 const message=(id,value)=>$(id).textContent=value;
@@ -25,6 +25,7 @@ if(eventId||inviteToken||claimToken||accountResult){
   show('join');
   $('enrollButton').disabled=true;
   request('/events/'+eventId+'/invite-info',{inviteToken}).then(data=>{
+   acceptedEventPrivacy=data.privacy;
    $('enrollButton').disabled=false;
    message('eventInfo',data.title+' — '+(data.privacy==='private'?'sorteio privado':'sorteio supervisionado'));
    message('privacyNotice',data.privacy==='private'?'Modo privado: o organizador não poderá consultar a lista completa de quem tirou quem. Cada participante vê apenas o próprio resultado.':'Modo supervisionado: o organizador poderá consultar a lista completa de quem tirou quem após o sorteio. Ao se inscrever, você aceita essa possibilidade.');
@@ -57,7 +58,7 @@ $('draw').addEventListener('click',async()=>{
 $('enroll').addEventListener('submit',async event=>{
  event.preventDefault();$('enrollButton').disabled=true;
  try{
-  const data=await request('/events/'+eventId+'/enroll',{inviteToken,name:$('name').value.trim(),entry:$('entry').value,privacyAccepted:$('privacyConsent').checked});
+  const data=await request('/events/'+eventId+'/enroll',{inviteToken,name:$('name').value.trim(),entry:$('entry').value,privacyAccepted:$('privacyConsent').checked,acceptedPrivacyMode:acceptedEventPrivacy});
   const account=data.entry==='account';
   if(!account&&!secret.test(data.claimToken||''))throw Error('Resposta de inscrição sem credencial válida.');
   activeClaim={id:eventId,token:account?null:data.claimToken,entry:data.entry};
