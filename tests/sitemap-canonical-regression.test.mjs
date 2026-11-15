@@ -21,7 +21,8 @@ test('each sitemap page has a matching canonical URL and indexable metadata', ()
   for (const path of paths) {
     const html = readFileSync(new URL(path === '/' ? 'index.html' : path.slice(1) + 'index.html', root), 'utf8');
     assert.ok(html.includes(`href="${origin + path}"`), `canonical missing: ${path}`);
-    assert.match(html, /<meta name="robots" content="index,follow"/, `robots meta missing: ${path}`);
+    assert.doesNotMatch(html, /<meta[^>]+name="robots"[^>]+content="[^"]*noindex/i, `noindex directive: ${path}`);
+    if (path !== '/') assert.match(html, /<meta name="robots" content="index,follow"/, `robots meta missing: ${path}`);
   }
 });
 
