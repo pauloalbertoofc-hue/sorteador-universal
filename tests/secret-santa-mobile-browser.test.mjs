@@ -83,8 +83,21 @@ test('Amigo Secreto: two isolated mobile browsers, private links and unique reci
     // of the same document does not rerun this page's initialization script.
     await guest.goto(origin + '/amigo-secreto/');
     await guest.goto(url.toString());
-    await guest.waitForFunction(() => document.querySelector('#revealResult')?.classList.contains('hidden') === false || !['','Consultando resultado…','Consultando resultado...'].includes(document.querySelector('#revealStatus')?.textContent?.trim()),null,{timeout:5000}).catch(async error => { throw new Error('Revelação não concluída: '+JSON.stringify({status:await guest.locator('#revealStatus').innerText(),url:guest.url().split('#')[0],pageErrors:errors})+'; '+error.message); });
-    assert.equal(await guest.locator('#revealResult').isVisible(),true,'Revelação falhou: '+await guest.locator('#revealStatus').innerText());
+    // Wait for an actual terminal state, not the intermediate loading message.
+    await guest.waitForFunction(() => {
+      const result = document.querySelector('#revealResult');
+      const message = document.querySelector('#revealStatus')?.textContent?.trim() || '';
+      return result?.classList.contains('hidden') === false ||
+        (message !== '' && message !== 'Carregando seu resultado…' &&
+         message !== 'Resultado encontrado.');
+    }, null, {timeout:5000}).catch(async error => {
+      throw new Error('Revelação não concluída: '+JSON.stringify({
+        status:await guest.locator('#revealStatus').innerText(),
+        pageErrors:errors
+      })+'; '+error.message);
+    });
+    assert.equal(await guest.locator('#revealResult').isVisible(),true,
+      'Revelação falhou: '+await guest.locator('#revealStatus').innerText());
     const giver=await guest.locator('#giver').innerText();
     const recipient=await guest.locator('#recipient').innerText();
     assert.ok(giver.includes(displayedNames[i]),JSON.stringify({giver,expected:displayedNames[i],linkIndex:i}));
