@@ -110,6 +110,17 @@ test('new Secret Santa lifecycle: two guests, owner isolation, private and super
  const recoveredData=await recovered.json();
  assert.equal(recoveredData.privacy,'private');
  assert.equal(Object.hasOwn(recoveredData,'inviteToken'),false);
+ assert.equal(recoveredData.id,resumeId);
+ assert.equal(recoveredData.status,'draft');
+ assert.equal(recoveredData.enrollmentClosed,false);
+ assert.equal(Object.hasOwn(recoveredData,'invite_token_hash'),false);
+ assert.equal(Object.hasOwn(recoveredData,'invite_token'),false);
+ const listed=await secretSantaApi(new Request('https://example.test/api/secret-santa/account/events'),env,'/api/secret-santa/account/events',async()=>true,'203.0.113.2',owner);
+ assert.equal(listed.status,200);
+ const listedData=await listed.json();
+ assert.ok(listedData.events.some(event=>event.id===resumeId));
+ assert.equal(JSON.stringify(listedData).includes(resumable.data.inviteToken),false);
+
  const enrolledBeforeRotation=await call('/api/secret-santa/events/'+resumeId+'/enroll',{inviteToken:resumable.data.inviteToken,name:'Convidada antes da troca',entry:'guest',privacyAccepted:true,acceptedPrivacyMode:'private'});
  assert.equal(enrolledBeforeRotation.status,201);
  const retainedClaim=enrolledBeforeRotation.data.claimToken;
