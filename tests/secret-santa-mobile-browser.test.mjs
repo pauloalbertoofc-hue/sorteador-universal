@@ -161,6 +161,7 @@ test('group mode: mobile navigation, organizer recovery and guest private link',
  await organizer.goto(origin+'/amigo-secreto/novo/');
  await organizer.locator('#loadEvents').click();
  await organizer.locator('#eventList button').click();
+ await organizer.getByText('Sorteio realizado.',{exact:true}).waitFor({timeout:5000});
  assert.equal(await organizer.locator('#draw').isDisabled(),true);
  assert.equal(await organizer.locator('#close').isDisabled(),true);
  assert.equal(await organizer.locator('#rotateInvite').isDisabled(),true);
