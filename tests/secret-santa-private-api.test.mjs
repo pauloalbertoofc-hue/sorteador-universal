@@ -96,3 +96,13 @@ test('enrollment enforces the 100-person cap inside the insert condition',()=>{
 test('enrollment atomically checks expiry as well as draft status and capacity',()=>{
  assert.ok(api.includes("(SELECT expires_at FROM secret_santa_events WHERE id=?)>? AND (SELECT COUNT(*) FROM secret_santa_enrollments WHERE event_id=?)<100"));
 });
+
+
+test('preview D1 identity migration matches the production migration exactly',()=>{
+ const production=readFileSync(new URL('../migrations/0008_secret_santa_identity.sql',import.meta.url),'utf8');
+ const preview=readFileSync(new URL('../migrations/preview/0008_secret_santa_identity.sql',import.meta.url),'utf8');
+ assert.equal(preview,production,'preview and production identity migrations must not drift');
+ const config=JSON.parse(readFileSync(new URL('../wrangler.preview-db.jsonc',import.meta.url),'utf8'));
+ assert.equal(config.d1_databases[0].migrations_dir,'migrations/preview');
+ assert.notEqual(config.d1_databases[0].database_id,'24fe67dc-7003-4557-9de0-cf6658e713c2','preview must not target production D1');
+});
