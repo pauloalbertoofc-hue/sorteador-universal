@@ -289,7 +289,8 @@ test('new group: real D1 API across independent mobile organizer and guest sessi
  for(let i=0;i<guests.length;i++){
   const page=guests[i];
   await page.goto(invite);
-  await page.locator('#enrollButton').waitFor({state:'enabled'});
+  await page.locator('#enrollButton').waitFor({state:'visible'});
+  await page.waitForFunction(()=>!document.querySelector('#enrollButton')?.disabled);
   await page.locator('#name').fill(['Ana','Bruno'][i]);
   await page.locator('#privacyConsent').check();
   await page.locator('#enrollButton').click();
