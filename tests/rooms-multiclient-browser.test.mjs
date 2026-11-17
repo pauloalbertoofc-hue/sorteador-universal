@@ -42,7 +42,7 @@ test('two mobile clients: classic remains private, live wheel shares winner and 
  const owner=await ownerContext.newPage(),guest=await guestContext.newPage();
  const errors=[];
  for(const page of [owner,guest])page.on('pageerror',e=>errors.push(e.message));
- await owner.goto(origin);
+ await owner.goto(origin,{waitUntil:'domcontentloaded'});
  await owner.locator('#roomTitle').fill('Sorteio ao vivo');
  await owner.locator('#roomLimit').fill('3');
  await owner.locator('#roomDrawMode').selectOption('live');
@@ -50,7 +50,7 @@ test('two mobile clients: classic remains private, live wheel shares winner and 
  await owner.locator('#roomActive').waitFor({state:'visible'});
  assert.match(await owner.locator('#roomMeta').innerText(),/Roleta compartilhada/);
  const invite=await owner.locator('#roomLink').inputValue();
- await guest.goto(invite);
+ await guest.goto(invite,{waitUntil:'domcontentloaded'});
  await guest.locator('#roomActive').waitFor({state:'visible'});
  assert.equal(await guest.locator('#roomDraw').isVisible(),false);
  assert.equal(await owner.locator('#roomDraw').isVisible(),true);
@@ -95,13 +95,13 @@ test('two mobile clients: classic remains private, live wheel shares winner and 
  assert.notEqual(winners[0].split(': ')[1]?.split(' · ')[0],winners[1].split(': ')[1]?.split(' · ')[0]);
  assert.equal(await guest.locator('#roomDraw').isVisible(),false);
  // Classic mode: participants only register; the live wheel is never shown.
- await owner.goto(origin);
+ await owner.goto(origin,{waitUntil:'domcontentloaded'});
  await owner.locator('#roomTitle').fill('Sorteio tradicional');
  await owner.locator('#roomDrawMode').selectOption('classic');
  await owner.locator('#roomCreate').click();
  await owner.locator('#roomActive').waitFor({state:'visible'});
  const classicInvite=await owner.locator('#roomLink').inputValue();
- await guest.goto(classicInvite);
+ await guest.goto(classicInvite,{waitUntil:'domcontentloaded'});
  await guest.locator('#roomActive').waitFor({state:'visible'});
  assert.equal(await guest.locator('#roomLive').isVisible(),false);
  assert.equal(await owner.locator('#roomLive').isVisible(),false);
