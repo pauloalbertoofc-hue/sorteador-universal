@@ -298,7 +298,7 @@ test('new group: real D1 API across independent mobile organizer and guest sessi
   assert.match(page.url(),/claim=/);
   claims.push(page.url());
   await page.locator('#checkResult').click();
-  await page.getByText('Sorteio ainda não realizado.',{exact:false}).waitFor({timeout:5000});
+  await page.getByText('Resultado indisponível ou credencial inválida.',{exact:false}).waitFor({timeout:5000});
  }
  organizer.on('dialog',dialog=>dialog.accept());
  await organizer.locator('#close').click();
