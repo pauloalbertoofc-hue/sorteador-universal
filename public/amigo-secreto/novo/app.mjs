@@ -84,8 +84,11 @@ $('enroll').addEventListener('submit',async event=>{
 });
 $('copyClaim').addEventListener('click',async()=>{try{await copy(privateUrl(activeClaim.id,'claim',activeClaim.token));message('claimStatus','Acesso individual copiado.');}catch(e){message('claimStatus',e.message);}});
 $('checkResult').addEventListener('click',async()=>{
+ $('checkResult').disabled=true;
+ message('result','Consultando seu resultado…');
  try{const data=activeClaim.entry==='account'?await request('/account/events/'+activeClaim.id+'/my-result',{}):await request('/events/'+activeClaim.id+'/claim-reveal',{claimToken:activeClaim.token});message('result','Olá, '+data.giver+'! Você tirou: '+data.recipient+'.');}
  catch(e){message('result',e.message);}
+ finally{$('checkResult').disabled=false;}
 });
 
 $('audit').addEventListener('click',async()=>{
