@@ -86,6 +86,15 @@ test('new Secret Santa lifecycle: two guests, owner isolation, private and super
   assert.equal((await call(root+'/claim-reveal',{claimToken:'0'.repeat(64)})).status,403);
   // Guest credentials are scoped to their event and must not act as invites.
   assert.equal((await call(root+'/claim-reveal',{claimToken:inviteToken})).status,403);
+  // A guest claim from a different event must not unlock this event.
+  const foreignEvent=await call('/api/secret-santa/account/drafts',{title:'Outro grupo isolado',privacy},owner);
+  assert.equal(foreignEvent.status,201);
+  const foreignEnrollment=await call('/api/secret-santa/events/'+foreignEvent.data.id+'/enroll',{
+   inviteToken:foreignEvent.data.inviteToken,name:'Visitante externo',entry:'guest',privacyAccepted:true,acceptedPrivacyMode:privacy
+  });
+  assert.equal(foreignEnrollment.status,201);
+  assert.equal((await call(root+'/claim-reveal',{claimToken:foreignEnrollment.data.claimToken})).status,403);
+
   assert.equal((await call(root+'/invite-info',{inviteToken:claims[0]})).status,404);
   assert.equal((await call(root+'/claim-reveal',{claimToken:claims[0].slice(0,-1)+(claims[0].endsWith('0')?'1':'0')})).status,403);
   assert.equal((await call(root+'/claim-reveal',{claimToken:claims[0]})).status,200);
