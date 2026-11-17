@@ -22,6 +22,17 @@ test('new Secret Santa lifecycle: two guests, owner isolation, private and super
   for(const statement of sql.split(';').filter(x=>x.trim()))await db.prepare(statement).run();
  }
  await db.prepare("INSERT INTO users(id) VALUES ('owner'),('stranger')").run();
+ // Existing link-based events must survive the schema expansion unchanged.
+ const legacyId='11111111-2222-4333-8444-555555555555';
+ const legacyMemberId='aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+ const legacyCreated=Date.now()-60000,legacyExpires=Date.now()+86400000;
+ await db.prepare(`INSERT INTO secret_santa_events
+  (id,title,admin_token_hash,status,created_at,expires_at)
+  VALUES (?,?,?,?,?,?)`).bind(legacyId,'Evento legado preservado','legacy-admin-hash','drawn',legacyCreated,legacyExpires).run();
+ await db.prepare(`INSERT INTO secret_santa_participants
+  (id,event_id,display_name,name_key,access_token_hash)
+  VALUES (?,?,?,?,?)`).bind(legacyMemberId,legacyId,'Pessoa legada','pessoa legada','legacy-access-hash').run();
+
  const env={DB:db},owner={id:'owner'},stranger={id:'stranger'};
  const call=async(path,body,user=null)=>{
   const req=new Request('https://example.test'+path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
@@ -286,5 +297,17 @@ test('new Secret Santa lifecycle: two guests, owner isolation, private and super
  const saved=(await db.prepare('SELECT id,recipient_id FROM secret_santa_participants WHERE event_id=?').bind(drawRace.data.id).all()).results;
  assert.equal(saved.length,3);
  assert.equal(new Set(saved.map(x=>x.recipient_id)).size,3);
+ const legacyAfter=await db.prepare('SELECT title,admin_token_hash,status,distribution_mode,owner_user_id,privacy_mode,invite_token_hash,enrollment_closed_at FROM secret_santa_events WHERE id=?').bind(legacyId).first();
+ assert.equal(legacyAfter.title,'Evento legado preservado');
+ assert.equal(legacyAfter.admin_token_hash,'legacy-admin-hash');
+ assert.equal(legacyAfter.status,'drawn');
+ assert.equal(legacyAfter.distribution_mode,'links');
+ assert.equal(legacyAfter.owner_user_id,null);
+ assert.equal(legacyAfter.privacy_mode,null);
+ assert.equal(legacyAfter.invite_token_hash,null);
+ assert.equal(legacyAfter.enrollment_closed_at,null);
+ const legacyParticipantAfter=await db.prepare('SELECT display_name,access_token_hash FROM secret_santa_participants WHERE id=? AND event_id=?').bind(legacyMemberId,legacyId).first();
+ assert.deepEqual(legacyParticipantAfter,{display_name:'Pessoa legada',access_token_hash:'legacy-access-hash'});
+
  for(const claimToken of drawClaims)assert.equal((await call(drawRaceRoot+'/claim-reveal',{claimToken})).status,200);
 });
