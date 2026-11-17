@@ -318,6 +318,7 @@ test('new group: real D1 API across independent mobile organizer and guest sessi
  assert.equal(recipients.size,2);
  const outsider=await browser.newPage({viewport:{width:390,height:844}});
  await outsider.goto(invite);
- await outsider.locator('#enrollButton').waitFor({state:'disabled'});
+ await outsider.waitForFunction(()=>document.querySelector('#joinStatus')?.textContent?.includes('As inscrições deste evento não estão abertas.'));
+  assert.equal(await outsider.locator('#enrollButton').isDisabled(),true);
  assert.deepEqual(errors,[]);
 });
