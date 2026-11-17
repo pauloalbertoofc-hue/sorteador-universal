@@ -97,6 +97,12 @@ test('new Secret Santa lifecycle: two guests, owner isolation, private and super
 
   assert.equal((await call(root+'/invite-info',{inviteToken:claims[0]})).status,404);
   assert.equal((await call(root+'/claim-reveal',{claimToken:claims[0].slice(0,-1)+(claims[0].endsWith('0')?'1':'0')})).status,403);
+  // Knowing the event invitation or another participant's name does not
+  // authorize disclosure: the caller must possess that participant's claim.
+  const forgedIdentity=await call(root+'/claim-reveal',{claimToken:claims[0],name:'Bruno',participantId:'forged'});
+  assert.equal(forgedIdentity.status,200);
+  assert.equal(forgedIdentity.data.giver,'Ana');
+  assert.equal((await call(root+'/claim-reveal',{name:'Bruno',participantId:'forged'})).status,403);
   assert.equal((await call(root+'/claim-reveal',{claimToken:claims[0]})).status,200);
   const auditPath='/api/secret-santa/account/events/'+id+'/assignments';
   assert.equal((await call(auditPath,{},stranger)).status,404);
