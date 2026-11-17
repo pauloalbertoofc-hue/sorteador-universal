@@ -219,3 +219,104 @@ test('group mode: mobile navigation, organizer recovery and guest private link',
  await account.close();
  assert.deepEqual(errors,[]);
 });
+
+
+test('new group: real D1 API across independent mobile organizer and guest sessions', {timeout:45000},async t=>{
+ const {secretSantaApi}=await import('../src/secret-santa.js');
+ const mf=new Miniflare(convertV4MiniflareOptions({
+  name:'santa-group-browser',modules:[
+   {type:'ESModule',path:'src/worker.js'},
+   {type:'ESModule',path:'src/billing.js'},
+   {type:'ESModule',path:'src/secret-santa.js'},
+   {type:'ESModule',path:'public/amigo-secreto/engine.mjs'}
+  ],compatibilityDate:'2026-10-24',d1Databases:['DB']
+ }));
+ let server,browser;
+ t.after(async()=>{await browser?.close();if(server)await new Promise(resolve=>server.close(resolve));await mf.dispose()});
+ await mf.ready;
+ const db=await mf.getD1Database('DB');
+ await db.prepare('CREATE TABLE users (id TEXT PRIMARY KEY NOT NULL)').run();
+ for(const file of ['migrations/0007_secret_santa_private_storage.sql','migrations/0008_secret_santa_identity.sql']){
+  const sql=(await readFile(file,'utf8')).replace(/^--.*$/gm,'');
+  for(const statement of sql.split(';').filter(x=>x.trim()))await db.prepare(statement).run();
+ }
+ await db.prepare("INSERT INTO users(id) VALUES ('browser-owner')").run();
+ const html=await readFile('public/amigo-secreto/novo/index.html');
+ const js=await readFile('public/amigo-secreto/novo/app.mjs');
+ server=createServer(async(req,res)=>{
+  try{
+   const pathname=new URL(req.url,'http://localhost').pathname;
+   if(pathname==='/amigo-secreto/novo/app.mjs'){res.writeHead(200,{'content-type':'text/javascript'});res.end(js);return;}
+   if(pathname==='/amigo-secreto/novo/'||pathname==='/amigo-secreto/novo/index.html'){res.writeHead(200,{'content-type':'text/html'});res.end(html);return;}
+   if(pathname.startsWith('/api/secret-santa/')){
+    const chunks=[];for await(const chunk of req)chunks.push(chunk);
+    const request=new Request('http://localhost'+req.url,{
+     method:req.method,headers:{'content-type':'application/json'},
+     ...(chunks.length?{body:Buffer.concat(chunks)}:{})
+    });
+    const owner=req.headers.cookie?.includes('test_owner=1')?{id:'browser-owner'}:null;
+    const response=await secretSantaApi(request,{DB:db},pathname,async()=>true,'203.0.113.88',owner);
+    res.writeHead(response.status,{'content-type':'application/json','cache-control':'no-store'});
+    res.end(Buffer.from(await response.arrayBuffer()));return;
+   }
+   res.writeHead(404);res.end();
+  }catch(error){res.writeHead(500);res.end(String(error))}
+ });
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ const origin='http://127.0.0.1:'+server.address().port;
+ browser=await chromium.launch({headless:true});
+ const organizerContext=await browser.newContext({viewport:{width:390,height:844}});
+ await organizerContext.addCookies([{name:'test_owner',value:'1',url:origin}]);
+ const organizer=await organizerContext.newPage();
+ const guests=await Promise.all([browser.newPage({viewport:{width:390,height:844}}),browser.newPage({viewport:{width:390,height:844}})]);
+ const errors=[];for(const page of [organizer,...guests])page.on('pageerror',e=>errors.push(e.message));
+ await organizer.goto(origin+'/amigo-secreto/novo/');
+ await organizer.locator('#title').fill('Turma integrada');
+ await organizer.locator('#createButton').click();
+ await organizer.locator('#manage').waitFor({state:'visible'});
+ const event=(await db.prepare("SELECT id FROM secret_santa_events WHERE title='Turma integrada'").first()).id;
+ const inviteHash=await db.prepare('SELECT invite_token_hash FROM secret_santa_events WHERE id=?').bind(event).first();
+ assert.match(inviteHash.invite_token_hash,/^[a-f0-9]{64}$/);
+ const invite=await organizer.evaluate(async()=>{
+  const copied=[];
+  Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>copied.push(text)}});
+  document.querySelector('#copy').click();
+  for(let i=0;i<50&&!copied.length;i++)await new Promise(resolve=>setTimeout(resolve,20));
+  return copied[0];
+ });
+ assert.ok(invite);
+ const claims=[];
+ for(let i=0;i<guests.length;i++){
+  const page=guests[i];
+  await page.goto(invite);
+  await page.locator('#enrollButton').waitFor({state:'enabled'});
+  await page.locator('#name').fill(['Ana','Bruno'][i]);
+  await page.locator('#privacyConsent').check();
+  await page.locator('#enrollButton').click();
+  await page.locator('#claim').waitFor({state:'visible'});
+  assert.match(page.url(),/claim=/);
+  claims.push(page.url());
+  await page.locator('#checkResult').click();
+  await page.getByText('Sorteio ainda não realizado.',{exact:false}).waitFor({timeout:5000});
+ }
+ organizer.on('dialog',dialog=>dialog.accept());
+ await organizer.locator('#close').click();
+ await organizer.getByText('Inscrições encerradas',{exact:false}).waitFor();
+ await organizer.locator('#draw').click();
+ await organizer.getByText('Sorteio realizado',{exact:false}).waitFor();
+ const recipients=new Set();
+ for(let i=0;i<guests.length;i++){
+  const page=guests[i];
+  await page.locator('#checkResult').click();
+  await page.getByText('Você tirou:',{exact:false}).waitFor();
+  const result=await page.locator('#result').innerText();
+  assert.match(result,new RegExp('Olá, '+['Ana','Bruno'][i]+'!'));
+  assert.doesNotMatch(result,new RegExp('Você tirou: '+['Ana','Bruno'][i]+'\\.'));
+  recipients.add(result);
+ }
+ assert.equal(recipients.size,2);
+ const outsider=await browser.newPage({viewport:{width:390,height:844}});
+ await outsider.goto(invite);
+ await outsider.locator('#enrollButton').waitFor({state:'disabled'});
+ assert.deepEqual(errors,[]);
+});
