@@ -248,6 +248,26 @@ test('new Secret Santa lifecycle: two guests, owner isolation, private and super
  const finalCount=await db.prepare('SELECT COUNT(*) AS total FROM secret_santa_enrollments WHERE event_id=?').bind(race.data.id).first();
  assert.equal(finalCount.total,100);
 
+ // Closing enrollment and accepting one last guest must serialize safely.
+ const closingRace=await call('/api/secret-santa/account/drafts',{title:'Encerramento concorrente',privacy:'private'},owner);
+ assert.equal(closingRace.status,201);
+ const closingRoot='/api/secret-santa/events/'+closingRace.data.id;
+ for(const name of ['Primeiro','Segundo']){
+  assert.equal((await call(closingRoot+'/enroll',{inviteToken:closingRace.data.inviteToken,name,entry:'guest',privacyAccepted:true,acceptedPrivacyMode:'private'})).status,201);
+ }
+ const [closeRaceResult,enrollRaceResult]=await Promise.all([
+  call('/api/secret-santa/account/events/'+closingRace.data.id+'/close-enrollment',{},owner),
+  call(closingRoot+'/enroll',{inviteToken:closingRace.data.inviteToken,name:'Terceiro',entry:'guest',privacyAccepted:true,acceptedPrivacyMode:'private'})
+ ]);
+ assert.equal(closeRaceResult.status,200,JSON.stringify(closeRaceResult));
+ assert.ok([201,409].includes(enrollRaceResult.status),JSON.stringify(enrollRaceResult));
+ const countAfterClose=await db.prepare('SELECT COUNT(*) AS total FROM secret_santa_enrollments WHERE event_id=?').bind(closingRace.data.id).first();
+ assert.equal(countAfterClose.total,2+(enrollRaceResult.status===201?1:0));
+ assert.equal((await call(closingRoot+'/enroll',{inviteToken:closingRace.data.inviteToken,name:'Quarto',entry:'guest',privacyAccepted:true,acceptedPrivacyMode:'private'})).status,409);
+ const closedDraw=await call('/api/secret-santa/account/events/'+closingRace.data.id+'/draw',{},owner);
+ assert.equal(closedDraw.status,200,JSON.stringify(closedDraw));
+ assert.equal(closedDraw.data.participants,countAfterClose.total);
+
  // Concurrent draw attempts must never replace or duplicate the assignments.
  const drawRace=await call('/api/secret-santa/account/drafts',{title:'Sorteio concorrente',privacy:'private'},owner);
  assert.equal(drawRace.status,201);
