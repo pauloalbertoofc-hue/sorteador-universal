@@ -120,3 +120,13 @@ test('account access is session-bound while guest access warns about bearer link
  assert.match(app,/hide\('copyClaim'\)/);
  assert.match(app,/\$\('signInPassword'\)\.value='';\$\('signInButton'\)\.disabled=false/);
 });
+
+test('result lookup prevents duplicate requests and clears stale feedback',()=>{
+ const handler=app.split("$('checkResult').addEventListener('click',async()=>{")[1]?.split("\n});")[0];
+ assert.ok(handler,'result lookup handler must exist');
+ assert.match(handler,/\$\('checkResult'\)\.disabled=true/);
+ assert.match(handler,/message\('result','Consultando seu resultado…'\)/);
+ assert.match(handler,/finally\{\$\('checkResult'\)\.disabled=false;\}/);
+ assert.match(handler,/my-result/);
+ assert.match(handler,/claim-reveal/);
+});
