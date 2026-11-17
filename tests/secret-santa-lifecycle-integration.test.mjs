@@ -17,11 +17,10 @@ test('new Secret Santa lifecycle: two guests, owner isolation, private and super
  await mf.ready;
  const db=await mf.getD1Database('DB');
  await db.prepare('CREATE TABLE users (id TEXT PRIMARY KEY NOT NULL)').run();
- for(const file of ['migrations/0007_secret_santa_private_storage.sql','migrations/0008_secret_santa_identity.sql']){
-  const sql=(await readFile(file,'utf8')).replace(/^--.*$/gm,'');
-  for(const statement of sql.split(';').filter(x=>x.trim()))await db.prepare(statement).run();
- }
- await db.prepare("INSERT INTO users(id) VALUES ('owner'),('stranger')").run();
+ // Simulate an existing production database: seed the legacy record BEFORE
+ // applying the additive identity migration, not after it.
+ const legacySql=(await readFile('migrations/0007_secret_santa_private_storage.sql','utf8')).replace(/^--.*$/gm,'');
+ for(const statement of legacySql.split(';').filter(x=>x.trim()))await db.prepare(statement).run();
  // Existing link-based events must survive the schema expansion unchanged.
  const legacyId='11111111-2222-4333-8444-555555555555';
  const legacyMemberId='aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
@@ -32,6 +31,10 @@ test('new Secret Santa lifecycle: two guests, owner isolation, private and super
  await db.prepare(`INSERT INTO secret_santa_participants
   (id,event_id,display_name,name_key,access_token_hash)
   VALUES (?,?,?,?,?)`).bind(legacyMemberId,legacyId,'Pessoa legada','pessoa legada','legacy-access-hash').run();
+
+ const identitySql=(await readFile('migrations/0008_secret_santa_identity.sql','utf8')).replace(/^--.*$/gm,'');
+ for(const statement of identitySql.split(';').filter(x=>x.trim()))await db.prepare(statement).run();
+ await db.prepare("INSERT INTO users(id) VALUES ('owner'),('stranger')").run();
 
  const env={DB:db},owner={id:'owner'},stranger={id:'stranger'};
  const call=async(path,body,user=null)=>{
