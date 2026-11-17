@@ -92,3 +92,7 @@ test('enrollment enforces the 100-person cap inside the insert condition',()=>{
  assert.ok(api.includes("(SELECT COUNT(*) FROM secret_santa_enrollments WHERE event_id=?)<100"));
  assert.ok(api.includes("Inscrições encerradas ou limite de 100 participantes atingido."));
 });
+
+test('enrollment atomically checks expiry as well as draft status and capacity',()=>{
+ assert.ok(api.includes("(SELECT expires_at FROM secret_santa_events WHERE id=?)>? AND (SELECT COUNT(*) FROM secret_santa_enrollments WHERE event_id=?)<100"));
+});
