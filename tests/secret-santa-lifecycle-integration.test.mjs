@@ -58,6 +58,9 @@ test('new Secret Santa lifecycle: two guests, owner isolation, private and super
    assert.equal(result.status,201,JSON.stringify(result));
    claims.push(result.data.claimToken);
   }
+  // Possessing a valid guest claim must not reveal a pairing before the draw.
+  assert.equal((await call(root+'/claim-reveal',{claimToken:claims[0]})).status,403);
+  assert.equal((await call('/api/secret-santa/account/events/'+id+'/assignments',{},owner)).status,privacy==='private'?403:409);
   assert.equal((await call('/api/secret-santa/account/events/'+id+'/close-enrollment',{},stranger)).status,404);
   assert.equal((await call('/api/secret-santa/account/events/'+id+'/draw',{},owner)).status,409);
   assert.equal((await call('/api/secret-santa/account/events/'+id+'/close-enrollment',{},owner)).status,200);
@@ -183,6 +186,7 @@ test('new Secret Santa lifecycle: two guests, owner isolation, private and super
  const accountEnrollment=await call(accountRoot+'/enroll',{inviteToken:accountInvite,name:'Ana',entry:'account',privacyAccepted:true,acceptedPrivacyMode:'private'},owner);
  assert.equal(accountEnrollment.status,201);
  assert.equal(Object.hasOwn(accountEnrollment.data,'claimToken'),false);
+ assert.equal((await call('/api/secret-santa/account/events/'+accountId+'/my-result',{},owner)).status,404);
  assert.equal((await call(accountRoot+'/enroll',{inviteToken:accountInvite,name:'Ana outra',entry:'account',privacyAccepted:true,acceptedPrivacyMode:'private'},owner)).status,409);
  assert.equal((await call(accountRoot+'/enroll',{inviteToken:accountInvite,name:'Bruno',entry:'guest',privacyAccepted:true,acceptedPrivacyMode:'private'})).status,201);
  assert.equal((await call('/api/secret-santa/account/events/'+accountId+'/close-enrollment',{},owner)).status,200);
