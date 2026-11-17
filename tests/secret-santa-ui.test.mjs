@@ -28,3 +28,4 @@ test('private names and recipients are rendered as text, never inserted as HTML'
 test('no ad scripts or placements were added to private invitation page', () => {
   assert.doesNotMatch(html + js, /adsterra|adsbygoogle|atOptions|invoke\.js/i);
 });
+

@@ -27,7 +27,10 @@ async function api(req,env,url){const path=url.pathname,method=req.method;
   return record.hits<=limit;
  }
  const requester=req.headers.get('cf-connecting-ip')||'unknown';
- if(path.startsWith('/api/secret-santa/'))return secretSantaApi(req,env,path,roomRateLimit,requester);
+ if(path.startsWith('/api/secret-santa/')){
+  const accountUser=(path.startsWith('/api/secret-santa/account/')||/^\/api\/secret-santa\/events\/[0-9a-f-]{36}\/enroll$/.test(path))?await auth(req,env):null;
+  return secretSantaApi(req,env,path,roomRateLimit,requester,accountUser);
+ }
  if(path==='/api/rooms'&&method==='POST'){
   if(!await roomRateLimit('create',requester,5,3600000))return fail('Muitas salas criadas. Tente mais tarde.',429);
   const body=await readBody(req);const title=typeof body.title==='string'?body.title.trim():'';
