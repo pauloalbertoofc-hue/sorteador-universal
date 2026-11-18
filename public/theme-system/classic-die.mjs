@@ -54,7 +54,7 @@ export function mountClassicDie(host){
  const program=gl.createProgram();gl.attachShader(program,shader(gl.VERTEX_SHADER,vertex));gl.attachShader(program,shader(gl.FRAGMENT_SHADER,fragment));gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))return;
  gl.useProgram(program);const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);const attr=gl.getAttribLocation(program,'p');gl.enableVertexAttribArray(attr);gl.vertexAttribPointer(attr,2,gl.FLOAT,false,0,0);
  const res=gl.getUniformLocation(program,'resolution'),tilt=gl.getUniformLocation(program,'tilt'),clock=gl.getUniformLocation(program,'time');
- let x=0,y=0,tx=0,ty=0,visible=false,raf=0,lost=false;
+ let x=0,y=0,tx=0,ty=0,visible=false,raf=0,lost=false,validated=false;
  const reduced=matchMedia('(prefers-reduced-motion: reduce)');
  canvas.className='su-die-webgl';canvas.style.cssText='width:100%;height:100%;display:block;position:absolute;inset:0;pointer-events:none';
  host.style.position='relative';host.append(canvas);
@@ -66,6 +66,13 @@ export function mountClassicDie(host){
  if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}
  x+=(tx-x)*.075;y+=(ty-y)*.075;
  gl.viewport(0,0,w,h);gl.uniform2f(res,w,h);gl.uniform2f(tilt,reduced.matches?0:x,reduced.matches?0:y);gl.uniform1f(clock,reduced.matches?0:now*.001);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+ if(!validated){
+ const pixels=new Uint8Array(w*h*4);gl.readPixels(0,0,w,h,gl.RGBA,gl.UNSIGNED_BYTE,pixels);
+ let solid=0,blue=0,light=0;
+ for(let i=0;i<pixels.length;i+=4){if(pixels[i+3]<240)continue;solid++;if(pixels[i+2]>pixels[i]+35&&pixels[i]<110)blue++;if(pixels[i]>125&&pixels[i+1]>125)light++;}
+ if(!solid||blue/solid<.012||light/solid<.25){lost=true;canvas.remove();host.dataset.suDieRender='fallback';return;}
+ validated=true;host.dataset.suDieRender='validated';
+ }
  if(fallback)fallback.style.opacity='0';if(!reduced.matches)raf=requestAnimationFrame(draw);
  }
  const start=()=>{if(!raf&&!lost)raf=requestAnimationFrame(draw);};
