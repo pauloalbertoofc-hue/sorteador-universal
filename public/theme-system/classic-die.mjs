@@ -47,14 +47,21 @@ export function mountClassicDie(host){
  else d=face(q.xy,q.z>0.?3.:4.);
  float ink=1.-smoothstep(-.012,.012,d);
  vec3 color=mix(vec3(.96,.98,1.),vec3(.035,.19,.48),ink);
- gl_FragColor=vec4(color*(.48+.48*diff)+vec3(.12)*spec*(1.-ink),1.);
+ float sky=.5+.5*n.y;
+ float rim=pow(1.-max(0.,dot(n,-rd)),3.);
+ float fill=max(0.,dot(n,normalize(vec3(.8,.15,.5))));
+ vec3 ambient=mix(vec3(.32,.39,.53),vec3(.62,.67,.75),sky);
+ vec3 lit=color*(ambient+.30*diff+.12*fill);
+ lit+=vec3(.12,.16,.22)*rim*(1.-ink);
+ lit+=vec3(.19)*spec*(1.-ink);
+ gl_FragColor=vec4(clamp(lit,0.,1.),1.);
  }`;
  const shader=(type,source)=>{const sh=gl.createShader(type);gl.shaderSource(sh,source);gl.compileShader(sh);if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS)){gl.deleteShader(sh);throw Error('hero shader');}return sh;};
  try{
  const program=gl.createProgram();gl.attachShader(program,shader(gl.VERTEX_SHADER,vertex));gl.attachShader(program,shader(gl.FRAGMENT_SHADER,fragment));gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))return;
  gl.useProgram(program);const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);const attr=gl.getAttribLocation(program,'p');gl.enableVertexAttribArray(attr);gl.vertexAttribPointer(attr,2,gl.FLOAT,false,0,0);
  const res=gl.getUniformLocation(program,'resolution'),tilt=gl.getUniformLocation(program,'tilt'),clock=gl.getUniformLocation(program,'time');
- let x=0,y=0,tx=0,ty=0,visible=false,raf=0,lost=false,validated=false;
+ let x=0,y=0,vx=0,vy=0,last=0,tx=0,ty=0,visible=false,raf=0,lost=false,validated=false;
  const reduced=matchMedia('(prefers-reduced-motion: reduce)');
  canvas.className='su-die-webgl';canvas.style.cssText='width:100%;height:100%;display:block;position:absolute;inset:0;pointer-events:none';
  host.style.position='relative';host.append(canvas);
@@ -64,7 +71,9 @@ export function mountClassicDie(host){
  const r=host.getBoundingClientRect();if(!r.width||!r.height)return;
  const scale=Math.min(devicePixelRatio||1,1.25,640/r.width);const w=Math.max(1,Math.round(r.width*scale)),h=Math.max(1,Math.round(r.height*scale));
  if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}
- x+=(tx-x)*.075;y+=(ty-y)*.075;
+ const dt=Math.min(.033,Math.max(.001,last?(now-last)/1000:1/60));last=now;
+ vx+=(tx-x)*65*dt;vy+=(ty-y)*65*dt;
+ const damping=Math.exp(-12*dt);vx*=damping;vy*=damping;x+=vx*dt;y+=vy*dt;
  gl.viewport(0,0,w,h);gl.uniform2f(res,w,h);gl.uniform2f(tilt,reduced.matches?0:x,reduced.matches?0:y);gl.uniform1f(clock,reduced.matches?0:now*.001);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
  if(!validated){
  const pixels=new Uint8Array(w*h*4);gl.readPixels(0,0,w,h,gl.RGBA,gl.UNSIGNED_BYTE,pixels);
