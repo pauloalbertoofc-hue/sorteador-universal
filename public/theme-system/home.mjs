@@ -40,7 +40,7 @@ function mount(){
  hero.innerHTML='<span class="su-classic-eyebrow">Sorteios, roletas e muito mais</span><h2>O que você quer sortear hoje?</h2><p>Ferramentas simples, rápidas e confiáveis para organizar sorteios e atividades em grupo.</p><div class="su-classic-actions"><a href="#su-catalog">Explorar ferramentas →</a><a href="#ajuda">Como funciona</a></div>';
  const heroLayout=document.createElement('div');heroLayout.className='su-classic-hero';heroLayout.append(hero,art);header.append(heroLayout);
  section.id='su-catalog';
- const menu=document.createElement('nav');menu.className='su-classic-menu';menu.setAttribute('aria-label','Navegação principal');menu.innerHTML='<a href="#su-catalog">Ferramentas</a><a href="#roomStudio" data-su-open=".su-room-toggle">Salas</a><a href="#ajuda">Ajuda</a><a href="#conta">Minha conta</a>';top.insertBefore(menu,picker);
+ const menu=document.createElement('nav');menu.className='su-classic-menu';menu.setAttribute('aria-label','Navegação principal');menu.innerHTML='<a href="#su-catalog">Ferramentas</a><a href="#roomStudio" data-su-open=".su-room-toggle">Salas</a><a href="#su-plans">Planos</a><a href="#ajuda">Ajuda</a><a href="#conta">Minha conta</a>';top.insertBefore(menu,picker);
  menu.addEventListener('click',event=>{const a=event.target.closest('a[data-su-open]');if(a){const b=main.querySelector(a.dataset.suOpen);if(b?.getAttribute('aria-expanded')==='false')b.click();}});
  const svgIcon=paths=>'<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+paths+'</svg>';
  const people='<circle cx="12" cy="7" r="3"/><path d="M6 21v-3a6 6 0 0 1 12 0v3zM5 5a3 3 0 0 0 0 6M19 5a3 3 0 0 1 0 6M4 14a5 5 0 0 0-3 5M20 14a5 5 0 0 1 3 5"/>';
@@ -113,7 +113,8 @@ function mount(){
   });
  }
  // Classic navigation separates the exploration page from the quick draw and legal/help content.
- const views={'#su-home-quick-draw':'draw','#ajuda':'help','#privacidade':'privacy','#roomStudio':'rooms','#conta':'account','#su-home-history':'history'};
+ const plans=document.createElement('section');plans.id='su-plans';plans.className='su-classic-plans';plans.innerHTML='<h2>Escolha seu plano</h2><p>Faça sorteios gratuitamente ou conheça o Estúdio Pro.</p><div class="su-plan-grid"><article><h3>Gratuito</h3><strong>R$ 0</strong><ul><li>Sorteios sem cadastro</li><li>Histórico local</li><li>Publicidade</li></ul><a href="#su-catalog">Explorar ferramentas</a></article><article><h3>Pro</h3><strong>R$ 4,90/mês</strong><ul><li>Sem anúncios com assinatura ativa</li><li>Estúdio Pro e listas salvas</li><li>Cobrança recorrente pelo Mercado Pago, quando disponível</li></ul><a href="#conta">Consultar assinatura</a></article></div>';main.querySelector('.foot').before(plans);
+ const views={'#su-home-quick-draw':'draw','#ajuda':'help','#privacidade':'privacy','#roomStudio':'rooms','#conta':'account','#su-plans':'plans','#su-home-history':'history'};
  const back=document.createElement('a');back.className='su-classic-back';back.href='#su-catalog';back.textContent='← Voltar ao início';top.after(back);
  const syncView=()=>{
   const view=views[location.hash]||'home';
