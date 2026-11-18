@@ -186,6 +186,15 @@ try{
    const current=await embedded.locator('input:not([type="hidden"]),textarea').first().inputValue();
    if(current!==inputState.marker)throw new Error('Theme sequence cleared entered draw data: '+theme+' at '+width+'px');
   }
+  // Exercise an actual guest draw and verify its result after switching appearance.
+  await embedded.locator('#items').fill('Ana');
+  await embedded.locator('#winners').fill('1');
+  await embedded.locator('#draw').click();
+  await expect(embedded.locator('#result')).toContainText('Ana');
+  await page.locator('.su-nav select').selectOption('amethyst');
+  await expect(embedded.locator('body')).toHaveAttribute('data-su-theme','amethyst');
+  await expect(embedded.locator('#result')).toContainText('Ana');
+  await expect(embedded.locator('#items')).toHaveValue('Ana');
   await page.close();
  }
 }finally{await browser.close()}
