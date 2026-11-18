@@ -72,6 +72,11 @@ function mount(){
   };
   toggle.addEventListener('click',()=>{expanded=!expanded;render()});
   room.before(toggle);render();
+  const banner=document.createElement('section');banner.className='su-classic-room-banner';
+  banner.innerHTML='<div><h2>Sorteiem juntos, de onde estiverem</h2><p>Crie uma sala compartilhada, convide participantes e acompanhe o sorteio com seu grupo.</p><a href="#roomStudio">Criar ou acessar sala →</a></div><svg aria-hidden="true" viewBox="0 0 240 120" fill="none"><circle cx="120" cy="60" r="53" fill="#ffffff" opacity=".12"/><path d="M33 91Q33 62 62 62T91 91M149 91Q149 62 178 62T207 91" fill="#a9d2ff"/><circle cx="62" cy="45" r="17" fill="#d9eaff"/><circle cx="178" cy="45" r="17" fill="#d9eaff"/><path d="M83 104Q83 64 120 64T157 104" fill="white"/><circle cx="120" cy="42" r="23" fill="white"/><path d="M62 18L120 9L178 18" stroke="white" opacity=".5" stroke-dasharray="4 6"/></svg>';
+  banner.querySelector('a').addEventListener('click',()=>{if(!expanded){expanded=true;render();}});
+  toggle.before(banner);
+
   if(roomActive){
    const observer=new MutationObserver(()=>{
     if(hasActiveRoom()&&!expanded){expanded=true;render()}
