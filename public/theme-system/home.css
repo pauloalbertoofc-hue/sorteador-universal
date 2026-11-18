@@ -50,3 +50,12 @@ body.su-home-themed:not([data-su-theme="original"]) button:focus-visible{outline
 
 /* Legacy dark palette is used only for the newly added homepage controls. */
 body.su-home-themed[data-su-theme="original"]{--su-surface:#151d28;--su-text:#eef2f8;--su-muted:#a9b5c5;--su-border:#344255;--su-accent:#dceafa;--su-on-accent:#111924;--su-focus:#8bbaff}
+
+/* Catalog-first entry point, without removing the existing quick draw or SEO text. */
+body.su-home-themed .su-home-directory-intro{margin:0 0 18px;color:var(--su-muted);line-height:1.55;max-width:650px}
+body.su-home-themed .su-home-quick-link{display:inline-flex;align-items:center;min-height:44px;margin-top:16px;padding:10px 16px;border:1px solid var(--su-border);border-radius:12px;color:var(--su-text);background:var(--su-surface);font-weight:650;text-decoration:none}
+body.su-home-themed .su-home-quick-link:hover{border-color:var(--su-accent)}
+body.su-home-themed .su-home-quick-link:focus-visible{outline:3px solid var(--su-focus);outline-offset:3px}
+body.su-home-themed #su-home-quick-draw{scroll-margin-top:24px}
+@media(max-width:600px){body.su-home-themed .su-home-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}body.su-home-themed .su-home-grid a{padding:14px;min-height:112px}body.su-home-themed .su-home-quick-link{width:100%;justify-content:center;text-align:center}}
+@media(max-width:350px){body.su-home-themed .su-home-grid{grid-template-columns:1fr}}
