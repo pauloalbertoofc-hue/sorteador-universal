@@ -121,6 +121,23 @@ try{
    await expect(button).toHaveAttribute('aria-expanded',previous);
   }
 
+  await page.goto(base+'/?suTheme=classic',{waitUntil:'domcontentloaded'});
+  const roomSpace=page.locator('.su-room-toggle');
+  await roomSpace.focus();
+  const beforeSpace=await roomSpace.getAttribute('aria-expanded');
+  await page.keyboard.press('Space');
+  await expect(roomSpace).toHaveAttribute('aria-expanded',beforeSpace==='true'?'false':'true');
+  const firstTool=page.locator('.su-home-grid a').first();
+  await firstTool.focus();
+  await expect(firstTool).toBeFocused();
+  const toolFocus=await firstTool.evaluate(el=>{
+   const style=getComputedStyle(el);
+   return style.outlineStyle!=='none'&&parseFloat(style.outlineWidth)>=2;
+  });
+  if(!toolFocus)throw new Error('Tool catalog keyboard focus indicator missing at '+width+'px');
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/\\/sortear-nomes\\//);
+  await expect(page.locator('#sorteador-embed')).toBeVisible();
   await page.goto(base+'/?room=visual-contract&suTheme=ruby',{waitUntil:'domcontentloaded'});
   await expect(page.locator('.su-home-directory')).toHaveCount(0);
   await expect(page.locator('.su-room-toggle')).toHaveCount(0);
