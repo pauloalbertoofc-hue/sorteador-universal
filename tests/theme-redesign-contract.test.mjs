@@ -79,3 +79,13 @@ test('homepage hides redundant directory without removing its SEO links',()=>{
  assert.match(html,/class="tool-directory"/);
  assert.match(html,/aria-label="Ferramentas para pesquisa"/);
 });
+
+test('shared-room workspace is collapsible and auto-opens for active rooms',()=>{
+ const js=read('../public/theme-system/home.mjs');
+ const css=read('../public/theme-system/home.css');
+ assert.match(js,/aria-controls','roomStudio'/);
+ assert.match(js,/hasActiveRoom\(\)&&!expanded/);
+ assert.match(js,/observer\.observe\(roomActive/);
+ assert.match(css,/#roomStudio\[hidden\]\{display:none!important\}/);
+ assert.match(read('../public/index.html'),/id="roomStudio"/);
+});
