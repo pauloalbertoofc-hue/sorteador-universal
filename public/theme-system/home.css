@@ -305,3 +305,7 @@ body.su-home-themed[data-su-theme="classic"] .su-home-grid a span:not(.su-classi
 body.su-home-themed[data-su-theme="classic"] main[data-su-view]:not([data-su-view="history"]) > #su-home-history,
 body.su-home-themed[data-su-theme="classic"] main[data-su-view]:not([data-su-view="account"]) > #conta,
 body.su-home-themed[data-su-theme="classic"] main[data-su-view]:not([data-su-view="rooms"]) > #roomStudio{display:none!important}
+
+/* Keep navigation focus visible for keyboard and programmatic focus. */
+body.su-home-themed[data-su-theme="classic"] :is(.su-home-grid a,.su-classic-profile,.su-classic-menu-button,.su-classic-menu a,.su-classic-menu-close,.su-classic-account-nav a,.su-classic-back):focus{outline:3px solid #1762ce!important;outline-offset:3px}
+body.su-home-themed[data-su-theme="classic"] .su-classic-menu.su-menu-open :is(a,button,select):focus{outline:3px solid #9acaff!important;outline-offset:2px}
