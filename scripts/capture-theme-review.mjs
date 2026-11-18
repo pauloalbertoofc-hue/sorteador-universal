@@ -48,6 +48,19 @@ try{
   await expect(accountToggle).toHaveAttribute('aria-expanded','true');
   await page.goto(base+'/?suTheme=classic#conta',{waitUntil:'domcontentloaded'});
   await expect(page.locator('#conta')).toBeVisible();
+  // Deep links must bypass homepage decoration in private rooms and keep tools directly usable.
+  await page.goto(base+'/?room=visual-contract&suTheme=ruby',{waitUntil:'domcontentloaded'});
+  await expect(page.locator('.su-home-directory')).toHaveCount(0);
+  await expect(page.locator('.su-room-toggle')).toHaveCount(0);
+  await page.goto(base+'/?incorporado=1&suTheme=amethyst',{waitUntil:'domcontentloaded'});
+  await expect(page.locator('.su-home-directory')).toHaveCount(0);
+  await expect(page.locator('body')).toHaveAttribute('data-su-theme','amethyst');
+  await page.goto(base+'/?suTheme=classic#su-home-quick-draw',{waitUntil:'domcontentloaded'});
+  await expect(page.locator('#su-home-quick-draw')).toBeVisible();
+  await expect(page.locator('.tabs .tab').first()).toBeVisible();
+  await page.goto(base+'/sortear-numeros/?suTheme=crystal',{waitUntil:'domcontentloaded'});
+  await expect(page.locator('body')).toHaveAttribute('data-su-theme','crystal');
+  await expect(page.frameLocator('#sorteador-embed').locator('#draw')).toBeVisible();
   await page.goto(base+'/sortear-nomes/?suTheme=classic',{waitUntil:'domcontentloaded'});
   const embedded=page.frameLocator('#sorteador-embed');
   await expect(embedded.locator('body')).toHaveAttribute('data-su-theme','classic');
