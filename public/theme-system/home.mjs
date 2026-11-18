@@ -32,7 +32,20 @@ function mount(){
  if(duplicateDirectory){duplicateDirectory.hidden=true;duplicateDirectory.setAttribute('aria-hidden','true');}
  const shortcut=document.createElement('a');shortcut.className='su-home-quick-link';shortcut.href='#su-home-quick-draw';shortcut.textContent='Usar sorteador rápido nesta página';section.append(shortcut);
  const quickTabs=main.querySelector('.tabs');if(quickTabs)quickTabs.id='su-home-quick-draw';
- header.after(section);
+ header.after(section); 
+ // Classic reference pilot: real navigation and a compact illustrated hero.
+ const art=document.createElement('div');art.className='su-classic-art';art.setAttribute('aria-hidden','true');
+ art.innerHTML='<svg viewBox="0 0 300 210" xmlns="http://www.w3.org/2000/svg"><ellipse cx="155" cy="180" rx="108" ry="17" fill="#91b9ee" opacity=".25"/><circle cx="155" cy="105" r="97" fill="#e3efff"/><g stroke="#2165bc" stroke-width="3" stroke-linejoin="round"><path d="M75 64 166 29 235 72 144 110Z" fill="#fff"/><path d="M75 64 144 110 144 185 75 137Z" fill="#e0edff"/><path d="M144 110 235 72 235 145 144 185Z" fill="#bdd7fa"/></g><g fill="#173d70"><ellipse cx="155" cy="70" rx="9" ry="6"/><ellipse cx="100" cy="96" rx="6" ry="9"/><ellipse cx="124" cy="147" rx="6" ry="9"/><ellipse cx="166" cy="126" rx="7" ry="9"/><ellipse cx="211" cy="100" rx="7" ry="9"/><ellipse cx="188" cy="135" rx="7" ry="9"/><ellipse cx="166" cy="160" rx="7" ry="9"/><ellipse cx="211" cy="145" rx="7" ry="9"/></g></svg>';
+ const hero=document.createElement('div');hero.className='su-classic-copy';
+ hero.innerHTML='<span class="su-classic-eyebrow">Sorteios, roletas e muito mais</span><h2>O que você quer sortear hoje?</h2><p>Ferramentas simples, rápidas e confiáveis para organizar sorteios e atividades em grupo.</p><div class="su-classic-actions"><a href="#su-catalog">Explorar ferramentas →</a><a href="#ajuda">Como funciona</a></div>';
+ const heroLayout=document.createElement('div');heroLayout.className='su-classic-hero';heroLayout.append(hero,art);header.append(heroLayout);
+ section.id='su-catalog';
+ const menu=document.createElement('nav');menu.className='su-classic-menu';menu.setAttribute('aria-label','Navegação principal');menu.innerHTML='<a href="#su-catalog">Ferramentas</a><a href="#roomStudio" data-su-open=".su-room-toggle">Salas</a><a href="#ajuda">Ajuda</a><a href="#conta">Minha conta</a>';top.insertBefore(menu,picker);
+ menu.addEventListener('click',event=>{const a=event.target.closest('a[data-su-open]');if(a){const b=main.querySelector(a.dataset.suOpen);if(b?.getAttribute('aria-expanded')==='false')b.click();}});
+ const glyphs=['♧','123','◉','♧','▱','◐','◇','▦'];
+ [...nav.children].forEach((a,i)=>{const glyph=document.createElement('span');glyph.className='su-classic-glyph';glyph.setAttribute('aria-hidden','true');glyph.textContent=glyphs[i];a.prepend(glyph);});
+ const logo=top.querySelector('.logo');if(logo){const mark=document.createElement('span');mark.className='su-classic-mark';mark.setAttribute('aria-hidden','true');mark.textContent='⚄';logo.after(mark);}
+
  const room=main.querySelector('#roomStudio');
  if(room){
   const toggle=document.createElement('button');
