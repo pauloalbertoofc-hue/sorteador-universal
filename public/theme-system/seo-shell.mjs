@@ -14,5 +14,17 @@ export function mountSuSeoShell({root=document.body,main=document.querySelector(
  select.value=themeFromUrl(location.href);
  select.addEventListener('change',()=>setSuTheme(root,select.value));
  label.appendChild(select);nav.append(home,label);main.prepend(nav);
+ const iframe=main.querySelector('iframe#sorteador-embed');
+ const updateEmbed=()=>{
+  if(!iframe)return;
+  const url=new URL(iframe.getAttribute('src'),location.href);
+  const theme=root.getAttribute('data-su-theme');
+  if(theme===SU_DEFAULT_THEME)url.searchParams.delete('suTheme');
+  else url.searchParams.set('suTheme',theme);
+  const next=url.pathname+url.search+url.hash;
+  if(iframe.getAttribute('src')!==next)iframe.setAttribute('src',next);
+ };
+ updateEmbed();
+ select.addEventListener('change',updateEmbed);
  enableThemeNavigation(document,()=>root.getAttribute('data-su-theme'));
 }
