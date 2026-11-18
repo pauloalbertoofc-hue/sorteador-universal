@@ -168,9 +168,17 @@ try{
   const embedded=page.frameLocator('#sorteador-embed');
   await expect(embedded.locator('body')).toHaveAttribute('data-su-theme','classic');
   await embedded.locator('body').evaluate(body=>{body.dataset.suVisualPersistence='kept';});
+  const inputState=await embedded.locator('input:not([type="hidden"]),textarea').first().evaluate(el=>{
+   const marker='su-theme-persistence-check';
+   el.value=marker;
+   el.dispatchEvent(new Event('input',{bubbles:true}));
+   return {id:el.id,marker};
+  });
   await page.locator('.su-nav select').selectOption('ruby');
   await expect(embedded.locator('body')).toHaveAttribute('data-su-theme','ruby');
   await expect(embedded.locator('body')).toHaveAttribute('data-su-visual-persistence','kept');
+  const retained=await embedded.locator('input:not([type="hidden"]),textarea').first().inputValue();
+  if(retained!==inputState.marker)throw new Error('Theme change cleared entered draw data at '+width+'px');
   await page.close();
  }
 }finally{await browser.close()}
