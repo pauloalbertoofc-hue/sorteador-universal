@@ -107,6 +107,18 @@ try{
   const wheelFrame=page.frameLocator('#sorteador-embed');
   await wheelFrame.locator('#items').fill('Ana\nBruno\nCarlos');
   await expect(wheelFrame.locator('#wheelZone')).toBeVisible();
+  const geometry=await wheelFrame.locator('.panel').evaluate(panel=>{
+   const rect=s=>{const e=panel.querySelector(s);if(!e)return null;const r=e.getBoundingClientRect();return {x:r.x,y:r.y,right:r.right,width:r.width};};
+   return {viewport:innerWidth,items:rect('#items'),wheel:rect('#wheelZone'),options:rect('#winners'),overflow:document.documentElement.scrollWidth>innerWidth+2};
+  });
+  if(geometry.overflow)throw new Error('Classic wheel horizontal overflow at '+width);
+  if(geometry.viewport>=1000){
+   if(!geometry.items||!geometry.wheel||!geometry.options||geometry.items.right>geometry.wheel.x+2||geometry.wheel.right>geometry.options.x+2)throw new Error('Classic wheel columns overlap or are out of order: '+JSON.stringify(geometry));
+  }
+  await wheelFrame.locator('#spin').click();
+  await expect(wheelFrame.locator('#wheelWinner')).toBeVisible({timeout:15000});
+  await expect(wheelFrame.locator('#wheelWinnerName')).toHaveText(/^(Ana|Bruno|Carlos)$/);
+
   await page.screenshot({path:'artifacts/theme-review/classic-wheel-'+width+'.png',fullPage:true});
   await page.goto(base+'/?suTheme=classic',{waitUntil:'domcontentloaded'});
   const roomToggle=page.locator('.su-room-toggle');
