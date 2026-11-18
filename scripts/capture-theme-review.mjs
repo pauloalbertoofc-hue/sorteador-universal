@@ -81,20 +81,21 @@ try{
   await page.goto(base+'/?suTheme=classic',{waitUntil:'domcontentloaded'});
   const historyToggle=page.locator('.su-history-toggle');
   const historyPanel=page.locator('#su-home-history');
-  const initiallyExpanded=await historyToggle.getAttribute('aria-expanded')==='true';
-  if(initiallyExpanded){
-   await expect(historyPanel).toBeVisible();
-   await historyToggle.click();
-   await expect(historyPanel).toBeHidden();
-  }else{
-   await expect(historyPanel).toBeHidden();
-  }
+  await expect(historyToggle).toHaveAttribute('aria-expanded','false');
+  await expect(historyPanel).toBeHidden();
   await historyToggle.click();
   await expect(historyPanel).toBeVisible();
   await historyToggle.click();
   await expect(historyPanel).toBeHidden();
   await page.locator('#history').evaluate(el=>{
    const item=document.createElement('li');item.textContent='Resultado de teste';el.append(item);
+  });
+  await expect(historyPanel).toBeHidden();
+  await page.locator('#history').evaluate(el=>{
+   const item=document.createElement('li');
+   const actions=document.createElement('div');
+   actions.className='history-item-actions';
+   item.append(actions);el.append(item);
   });
   await expect(historyPanel).toBeVisible();
   await expect(historyToggle).toHaveAttribute('aria-expanded','true');
