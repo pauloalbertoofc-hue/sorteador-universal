@@ -2,7 +2,11 @@ import{SU_THEMES,SU_DEFAULT_THEME,setSuTheme,themeFromUrl,enableThemeNavigation}
 /** Additive homepage pilot; do not mount in embedded tools or private rooms. */
 function mount(){
  const url=new URL(location.href);
- if(url.searchParams.get('incorporado')==='1'||url.searchParams.has('room')||url.searchParams.has('evento')||url.searchParams.has('event'))return;
+ if(url.searchParams.get('incorporado')==='1'){
+  if(url.searchParams.has('suTheme')){document.body.classList.add('su-home-themed');setSuTheme(document.body,themeFromUrl(location.href));}
+  return;
+ }
+ if(url.searchParams.has('room')||url.searchParams.has('evento')||url.searchParams.has('event'))return;
  const main=document.querySelector('main.wrap'),top=main?.querySelector('.top'),header=main?.querySelector('header');
  if(!main||!top||!header||main.querySelector('.su-home-directory'))return;
  document.body.classList.add('su-home-themed');setSuTheme(document.body,themeFromUrl(location.href));
