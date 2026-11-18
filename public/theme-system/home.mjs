@@ -33,6 +33,27 @@ function mount(){
  const shortcut=document.createElement('a');shortcut.className='su-home-quick-link';shortcut.href='#su-home-quick-draw';shortcut.textContent='Usar sorteador rápido nesta página';section.append(shortcut);
  const quickTabs=main.querySelector('.tabs');if(quickTabs)quickTabs.id='su-home-quick-draw';
  header.after(section);
+ const room=main.querySelector('#roomStudio');
+ if(room){
+  const toggle=document.createElement('button');
+  toggle.type='button';toggle.className='su-room-toggle';toggle.setAttribute('aria-controls','roomStudio');
+  const roomActive=room.querySelector('#roomActive');
+  const hasActiveRoom=()=>Boolean(roomActive&&!roomActive.hidden);
+  let expanded=hasActiveRoom();
+  const render=()=>{
+   room.hidden=!expanded;
+   toggle.setAttribute('aria-expanded',String(expanded));
+   toggle.textContent=expanded?'Ocultar salas compartilhadas':'Criar ou acessar sala compartilhada';
+  };
+  toggle.addEventListener('click',()=>{expanded=!expanded;render()});
+  room.before(toggle);render();
+  if(roomActive){
+   const observer=new MutationObserver(()=>{
+    if(hasActiveRoom()&&!expanded){expanded=true;render()}
+   });
+   observer.observe(roomActive,{attributes:true,attributeFilter:['hidden']});
+  }
+ }
  enableThemeNavigation(document,()=>document.body.getAttribute('data-su-theme'));
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
