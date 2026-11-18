@@ -11,6 +11,36 @@ try{
    for(const [name,path] of [['home','/'],['seo','/sortear-nomes/']]){
     await page.goto(base+path+'?suTheme='+theme,{waitUntil:'domcontentloaded'});
     await page.locator('body[data-su-theme="'+theme+'"]').waitFor();
+    if(name==='home'&&theme!=='original'){
+     const contrast=await page.locator('header h1').evaluate(el=>{
+      const parse=value=>{
+       const parts=value.match(/[\\d.]+/g)?.map(Number)||[];
+       return parts.slice(0,3);
+      };
+      const luminance=rgb=>{
+       const values=rgb.map(value=>{
+        const s=value/255;
+        return s<=0.04045?s/12.92:((s+0.055)/1.055)**2.4;
+       });
+       return values[0]*0.2126+values[1]*0.7152+values[2]*0.0722;
+      };
+      const color=getComputedStyle(el).color;
+      let background=el;
+      let bg='rgb(255, 255, 255)';
+      while(background){
+       const style=getComputedStyle(background);
+       const match=style.backgroundColor.match(/rgba?\\(([^)]+)\\)/);
+       if(match){
+        const values=match[1].split(',').map(Number);
+        if(values.length===3||values[3]>=0.99){bg=style.backgroundColor;break}
+       }
+       background=background.parentElement;
+      }
+      const l1=luminance(parse(color)),l2=luminance(parse(bg));
+      return (Math.max(l1,l2)+0.05)/(Math.min(l1,l2)+0.05);
+     });
+     if(contrast<4.5)throw new Error('Insufficient homepage title contrast: '+theme+' at '+width+'px ('+contrast.toFixed(2)+':1)');
+    }
     if(name==='seo'){
      const embedded=page.frameLocator('#sorteador-embed');
      await expect(embedded.locator('body')).toHaveAttribute('data-su-theme',theme,{timeout:15000});
