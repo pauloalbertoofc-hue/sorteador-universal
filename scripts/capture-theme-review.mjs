@@ -1,4 +1,4 @@
-import { chromium } from '@playwright/test';
+import { chromium, expect } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 const base=process.env.SU_VISUAL_BASE||'http://127.0.0.1:8765';
 const themes=['classic','modern','amethyst','ruby','crystal','abyssal','original'];
@@ -11,9 +11,22 @@ try{
    for(const [name,path] of [['home','/'],['seo','/sortear-nomes/']]){
     await page.goto(base+path+'?suTheme='+theme,{waitUntil:'domcontentloaded'});
     await page.locator('body[data-su-theme="'+theme+'"]').waitFor();
+    if(name==='seo'){
+     const embedded=page.frameLocator('#sorteador-embed');
+     await expect(embedded.locator('body')).toHaveAttribute('data-su-theme',theme,{timeout:15000});
+     await expect(embedded.locator('body')).toHaveClass(/su-home-themed/);
+    }
     await page.screenshot({path:'artifacts/theme-review/'+name+'-'+theme+'-'+width+'.png',fullPage:true,animations:'disabled'});
    }
   }
+  await page.goto(base+'/sortear-nomes/?suTheme=classic',{waitUntil:'domcontentloaded'});
+  const embedded=page.frameLocator('#sorteador-embed');
+  await expect(embedded.locator('body')).toHaveAttribute('data-su-theme','classic');
+  const frameBefore=await page.locator('#sorteador-embed').evaluate(el=>el.contentWindow);
+  await page.locator('.su-nav select').selectOption('ruby');
+  await expect(embedded.locator('body')).toHaveAttribute('data-su-theme','ruby');
+  const frameAfter=await page.locator('#sorteador-embed').evaluate(el=>el.contentWindow);
+  if(frameBefore!==frameAfter)throw new Error('Embedded tool window changed during theme switch');
   await page.close();
  }
 }finally{await browser.close()}
