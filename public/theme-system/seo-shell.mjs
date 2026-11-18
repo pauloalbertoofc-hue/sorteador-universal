@@ -19,8 +19,7 @@ export function mountSuSeoShell({root=document.body,main=document.querySelector(
   if(!iframe)return;
   const url=new URL(iframe.getAttribute('src'),location.href);
   const theme=root.getAttribute('data-su-theme');
-  if(theme===SU_DEFAULT_THEME)url.searchParams.delete('suTheme');
-  else url.searchParams.set('suTheme',theme);
+  url.searchParams.set('suTheme',theme);
   const next=url.pathname+url.search+url.hash;
   if(iframe.getAttribute('src')!==next)iframe.setAttribute('src',next);
  };
