@@ -177,3 +177,18 @@ body.su-home-themed[data-su-theme="classic"] :is(#conta,#roomStudio,#su-home-his
 body.su-home-themed[data-su-theme="classic"] :is(#conta,#roomStudio,#su-home-history) .small{color:#405875}
 body.su-home-themed[data-su-theme="classic"] main[data-su-view="rooms"] .room-create{gap:12px}
 body.su-home-themed[data-su-theme="classic"] main[data-su-view="rooms"] #roomCreate{background:#1264d9;color:white;min-height:44px}
+
+.su-classic-plans{display:none}
+body.su-home-themed[data-su-theme="classic"] main[data-su-view="plans"] > :not(.top,.su-classic-back,#su-plans,.foot,script){display:none!important}
+body.su-home-themed[data-su-theme="classic"] main[data-su-view="plans"] #su-plans{display:block;color:#112747;margin:16px 0}
+body.su-home-themed[data-su-theme="classic"] .su-plan-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+body.su-home-themed[data-su-theme="classic"] .su-plan-grid article{background:white;border:1px solid #d1deef;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:12px}
+body.su-home-themed[data-su-theme="classic"] .su-plan-grid article:last-child{border:2px solid #1264d9}
+body.su-home-themed[data-su-theme="classic"] .su-plan-grid strong{font-size:26px;color:#112747}
+body.su-home-themed[data-su-theme="classic"] .su-plan-grid ul{padding-left:20px;line-height:1.8;flex:1;color:#405875}
+body.su-home-themed[data-su-theme="classic"] .su-plan-grid a{background:#1264d9;color:white;border-radius:9px;padding:12px;text-align:center;text-decoration:none;font-weight:700}
+body.su-home-themed[data-su-theme="classic"] #conta .account-top{background:#edf4ff;color:#112747;border-radius:12px;padding:16px}
+body.su-home-themed[data-su-theme="classic"] #conta :is(.account-note,.account-top p,.account-form label,#proStudio p){color:#405875}
+body.su-home-themed[data-su-theme="classic"] #conta :is(#accountGuest,#accountMember,#proStudio):not([hidden]){background:white;border:1px solid #d1deef;border-radius:12px;padding:16px;margin-top:16px}
+body.su-home-themed[data-su-theme="classic"] #conta :is(#accountLogin,#accountCheckout){background:#1264d9;color:white}
+@media(max-width:650px){body.su-home-themed[data-su-theme="classic"] .su-plan-grid{grid-template-columns:1fr}body.su-home-themed[data-su-theme="classic"] .su-plan-grid article{padding:18px}}
