@@ -20,6 +20,20 @@ try{
     await page.screenshot({path:'artifacts/theme-review/'+name+'-'+theme+'-'+width+'-viewport.png',fullPage:false,animations:'disabled'});
    }
   }
+  await page.goto(base+'/?suTheme=classic',{waitUntil:'domcontentloaded'});
+  const roomToggle=page.locator('.su-room-toggle');
+  const roomPanel=page.locator('#roomStudio');
+  await expect(roomToggle).toHaveAttribute('aria-expanded','false');
+  await expect(roomPanel).toBeHidden();
+  await roomToggle.click();
+  await expect(roomToggle).toHaveAttribute('aria-expanded','true');
+  await expect(roomPanel).toBeVisible();
+  await roomToggle.click();
+  await expect(roomPanel).toBeHidden();
+  await page.locator('#roomActive').evaluate(el=>{el.hidden=false});
+  await expect(roomPanel).toBeVisible();
+  await expect(roomToggle).toHaveAttribute('aria-expanded','true');
+  await page.locator('#roomActive').evaluate(el=>{el.hidden=true});
   await page.goto(base+'/sortear-nomes/?suTheme=classic',{waitUntil:'domcontentloaded'});
   const embedded=page.frameLocator('#sorteador-embed');
   await expect(embedded.locator('body')).toHaveAttribute('data-su-theme','classic');
