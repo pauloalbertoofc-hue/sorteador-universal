@@ -17,6 +17,7 @@ try{
      await expect(embedded.locator('body')).toHaveClass(/su-home-themed/);
     }
     await page.screenshot({path:'artifacts/theme-review/'+name+'-'+theme+'-'+width+'.png',fullPage:true,animations:'disabled'});
+    await page.screenshot({path:'artifacts/theme-review/'+name+'-'+theme+'-'+width+'-viewport.png',fullPage:false,animations:'disabled'});
    }
   }
   await page.goto(base+'/sortear-nomes/?suTheme=classic',{waitUntil:'domcontentloaded'});
