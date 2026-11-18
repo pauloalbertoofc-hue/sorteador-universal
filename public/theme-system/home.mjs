@@ -54,6 +54,26 @@ function mount(){
    observer.observe(roomActive,{attributes:true,attributeFilter:['hidden']});
   }
  }
+ const account=main.querySelector('#conta');
+ if(account){
+  const toggle=document.createElement('button');
+  toggle.type='button';toggle.className='su-account-toggle';toggle.setAttribute('aria-controls','conta');
+  const member=account.querySelector('#accountMember');
+  let expanded=Boolean(member&&!member.hidden)||url.hash==='#conta';
+  const render=()=>{
+   account.hidden=!expanded;
+   toggle.setAttribute('aria-expanded',String(expanded));
+   toggle.textContent=expanded?'Ocultar minha conta':'Minha conta e assinatura';
+  };
+  toggle.addEventListener('click',()=>{expanded=!expanded;render()});
+  account.before(toggle);render();
+  if(member)new MutationObserver(()=>{
+   if(!member.hidden&&!expanded){expanded=true;render()}
+  }).observe(member,{attributes:true,attributeFilter:['hidden']});
+  window.addEventListener('hashchange',()=>{
+   if(location.hash==='#conta'&&!expanded){expanded=true;render()}
+  });
+ }
  enableThemeNavigation(document,()=>document.body.getAttribute('data-su-theme'));
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
