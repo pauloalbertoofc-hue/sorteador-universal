@@ -91,6 +91,24 @@ try{
    await expect(page.locator('.su-home-directory')).toBeVisible();
   }
   await page.goto(base+'/?suTheme=classic',{waitUntil:'domcontentloaded'});
+  const banner=page.locator('.su-classic-room-banner');
+  await expect(banner).toBeVisible();
+  await banner.locator('a').click();
+  await expect(page.locator('#roomStudio')).toBeVisible();
+  await page.screenshot({path:'artifacts/theme-review/classic-rooms-'+width+'.png',fullPage:true});
+  await page.goto(base+'/?suTheme=classic#conta',{waitUntil:'domcontentloaded'});
+  const sidebar=page.locator('.su-classic-account-nav');
+  await expect(sidebar).toBeVisible();
+  await expect(sidebar.locator('a[href="#conta"]')).toHaveAttribute('aria-current','page');
+  await page.screenshot({path:'artifacts/theme-review/classic-account-'+width+'.png',fullPage:true});
+  await sidebar.locator('a[href="#su-home-history"]').click();
+  await expect(page.locator('#su-home-history')).toBeVisible();
+  await page.goto(base+'/roleta-online/?suTheme=classic',{waitUntil:'domcontentloaded'});
+  const wheelFrame=page.frameLocator('#sorteador-embed');
+  await wheelFrame.locator('#items').fill('Ana\nBruno\nCarlos');
+  await expect(wheelFrame.locator('#wheelZone')).toBeVisible();
+  await page.screenshot({path:'artifacts/theme-review/classic-wheel-'+width+'.png',fullPage:true});
+  await page.goto(base+'/?suTheme=classic',{waitUntil:'domcontentloaded'});
   const roomToggle=page.locator('.su-room-toggle');
   const roomPanel=page.locator('#roomStudio');
   await expect(roomToggle).toHaveAttribute('aria-expanded','false');
