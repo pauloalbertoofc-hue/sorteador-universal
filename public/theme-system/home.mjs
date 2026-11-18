@@ -113,11 +113,15 @@ function mount(){
   });
  }
  // Classic navigation separates the exploration page from the quick draw and legal/help content.
- const views={'#su-home-quick-draw':'draw','#ajuda':'help','#privacidade':'privacy'};
+ const views={'#su-home-quick-draw':'draw','#ajuda':'help','#privacidade':'privacy','#roomStudio':'rooms','#conta':'account','#su-home-history':'history'};
  const back=document.createElement('a');back.className='su-classic-back';back.href='#su-catalog';back.textContent='← Voltar ao início';top.after(back);
  const syncView=()=>{
   const view=views[location.hash]||'home';
   main.dataset.suView=view;
+  const control=({rooms:'.su-room-toggle',account:'.su-account-toggle',history:'.su-history-toggle'})[view];
+  const toggle=control&&main.querySelector(control);
+  if(toggle?.getAttribute('aria-expanded')==='false')toggle.click();
+  menu.classList.remove('su-menu-open');menuButton.setAttribute('aria-expanded','false');
   if(document.body.getAttribute('data-su-theme')==='classic'&&view!=='home'){
    const target=main.querySelector(location.hash);
    requestAnimationFrame(()=>target?.scrollIntoView({block:'start'}));
