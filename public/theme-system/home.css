@@ -1,0 +1,19 @@
+/* Home integration: additive styling only. Existing tool, billing and room code is unchanged. */
+body.su-home-themed{background:var(--su-bg);color:var(--su-text)}
+body.su-home-themed .wrap{max-width:1100px}
+body.su-home-themed .su-home-themes{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto}
+body.su-home-themed .su-home-themes label{font-size:13px;color:var(--su-muted)}
+body.su-home-themed .su-home-themes select{background:var(--su-surface);color:var(--su-text);border:1px solid var(--su-border);border-radius:10px;padding:10px;max-width:180px}
+body.su-home-themed .su-home-directory{margin:0 0 30px}
+body.su-home-themed .su-home-directory h2{margin:0 0 12px;color:var(--su-text)}
+body.su-home-themed .su-home-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:12px}
+body.su-home-themed .su-home-grid a{display:flex;flex-direction:column;gap:8px;min-height:124px;text-decoration:none;color:var(--su-text);padding:18px;background:var(--su-surface);border:1px solid var(--su-border);border-radius:16px}
+body.su-home-themed .su-home-grid a:hover{border-color:var(--su-accent)}
+body.su-home-themed .su-home-grid a span{font-size:13px;color:var(--su-muted)}
+body.su-home-themed .panel{background:var(--su-surface);border-color:var(--su-border);color:var(--su-text)}
+body.su-home-themed .tab{background:var(--su-surface);border-color:var(--su-border);color:var(--su-text)}
+body.su-home-themed .tab.active{background:var(--su-accent);border-color:var(--su-accent);color:var(--su-on-accent)}
+body.su-home-themed header p,body.su-home-themed .muted{color:var(--su-muted)}
+body.su-home-themed .su-home-themes select:focus-visible,body.su-home-themed .su-home-grid a:focus-visible{outline:3px solid var(--su-focus);outline-offset:3px}
+body.su-home-themed[data-su-theme="original"]{--su-bg:#0d1118;--su-surface:#151d28;--su-text:#eef2f8;--su-muted:#a9b5c5;--su-border:#344255;--su-accent:#dceafa;--su-on-accent:#111924;--su-focus:#8bbaff}
+@media(max-width:700px){body.su-home-themed .top{flex-wrap:wrap}body.su-home-themed .su-home-themes{margin-left:0}}
