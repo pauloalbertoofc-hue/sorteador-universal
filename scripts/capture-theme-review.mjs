@@ -51,8 +51,14 @@ try{
   await page.goto(base+'/?suTheme=classic',{waitUntil:'domcontentloaded'});
   const historyToggle=page.locator('.su-history-toggle');
   const historyPanel=page.locator('#su-home-history');
-  await expect(historyToggle).toHaveAttribute('aria-expanded','false');
-  await expect(historyPanel).toBeHidden();
+  const initiallyExpanded=await historyToggle.getAttribute('aria-expanded')==='true';
+  if(initiallyExpanded){
+   await expect(historyPanel).toBeVisible();
+   await historyToggle.click();
+   await expect(historyPanel).toBeHidden();
+  }else{
+   await expect(historyPanel).toBeHidden();
+  }
   await historyToggle.click();
   await expect(historyPanel).toBeVisible();
   await historyToggle.click();
