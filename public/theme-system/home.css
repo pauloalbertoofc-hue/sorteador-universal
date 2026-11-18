@@ -71,3 +71,9 @@ body.su-home-themed #conta[hidden]{display:none!important}
 body.su-home-themed .su-account-toggle{display:flex;align-items:center;justify-content:center;width:100%;min-height:48px;margin:14px 0 18px;padding:12px 18px;border:1px solid var(--su-border);border-radius:14px;background:var(--su-surface);color:var(--su-text);font-weight:700}
 body.su-home-themed .su-account-toggle:hover{border-color:var(--su-accent)}
 body.su-home-themed .su-account-toggle:focus-visible{outline:3px solid var(--su-focus);outline-offset:3px}
+
+/* Keep empty history out of the initial layout; reveal automatically when populated. */
+body.su-home-themed #su-home-history[hidden]{display:none!important}
+body.su-home-themed .su-history-toggle{display:flex;align-items:center;justify-content:center;width:100%;min-height:48px;margin:14px 0 18px;padding:12px 18px;border:1px solid var(--su-border);border-radius:14px;background:var(--su-surface);color:var(--su-text);font-weight:700}
+body.su-home-themed .su-history-toggle:hover{border-color:var(--su-accent)}
+body.su-home-themed .su-history-toggle:focus-visible{outline:3px solid var(--su-focus);outline-offset:3px}
