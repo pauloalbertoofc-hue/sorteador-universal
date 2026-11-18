@@ -112,6 +112,20 @@ function mount(){
    if(location.hash==='#su-home-history'&&!expanded){expanded=true;render()}
   });
  }
+ // Classic navigation separates the exploration page from the quick draw and legal/help content.
+ const views={'#su-home-quick-draw':'draw','#ajuda':'help','#privacidade':'privacy'};
+ const back=document.createElement('a');back.className='su-classic-back';back.href='#su-catalog';back.textContent='← Voltar ao início';top.after(back);
+ const syncView=()=>{
+  const view=views[location.hash]||'home';
+  main.dataset.suView=view;
+  if(document.body.getAttribute('data-su-theme')==='classic'&&view!=='home'){
+   const target=main.querySelector(location.hash);
+   requestAnimationFrame(()=>target?.scrollIntoView({block:'start'}));
+  }
+ };
+ window.addEventListener('hashchange',syncView);
+ select.addEventListener('change',syncView);
+ syncView();
  enableThemeNavigation(document,()=>document.body.getAttribute('data-su-theme'));
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
