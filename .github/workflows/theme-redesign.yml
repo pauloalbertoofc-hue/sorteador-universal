@@ -37,6 +37,7 @@ jobs:
           node --check public/theme-system/themes.mjs
           node --check public/theme-system/seo-shell.mjs
           node --check public/theme-system/home.mjs
+          node --check scripts/capture-theme-review.mjs
       - name: Verify redesign contracts
         run: node --test tests/theme-redesign-contract.test.mjs
       - name: Install browser dependencies
