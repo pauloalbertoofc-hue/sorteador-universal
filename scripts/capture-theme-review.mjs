@@ -48,6 +48,20 @@ try{
   await expect(accountToggle).toHaveAttribute('aria-expanded','true');
   await page.goto(base+'/?suTheme=classic#conta',{waitUntil:'domcontentloaded'});
   await expect(page.locator('#conta')).toBeVisible();
+  await page.goto(base+'/?suTheme=classic',{waitUntil:'domcontentloaded'});
+  const historyToggle=page.locator('.su-history-toggle');
+  const historyPanel=page.locator('#su-home-history');
+  await expect(historyToggle).toHaveAttribute('aria-expanded','false');
+  await expect(historyPanel).toBeHidden();
+  await historyToggle.click();
+  await expect(historyPanel).toBeVisible();
+  await historyToggle.click();
+  await expect(historyPanel).toBeHidden();
+  await page.locator('#history').evaluate(el=>{
+   const item=document.createElement('li');item.textContent='Resultado de teste';el.append(item);
+  });
+  await expect(historyPanel).toBeVisible();
+  await expect(historyToggle).toHaveAttribute('aria-expanded','true');
   // Deep links must bypass homepage decoration in private rooms and keep tools directly usable.
   await page.goto(base+'/?room=visual-contract&suTheme=ruby',{waitUntil:'domcontentloaded'});
   await expect(page.locator('.su-home-directory')).toHaveCount(0);
