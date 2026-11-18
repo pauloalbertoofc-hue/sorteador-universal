@@ -223,3 +223,15 @@ body.su-home-themed[data-su-theme="classic"] .panel:has(#items):has(#wheelZone:n
 body.su-home-themed[data-su-theme="classic"] .panel:has(#items):has(#wheelZone:not([hidden]))>.buttons{grid-column:1/-1}
 body.su-home-themed[data-su-theme="classic"] .panel:has(#items):has(#wheelZone:not([hidden])) .wheel-stage{max-width:100%;margin-inline:auto}
 }
+
+.su-classic-account-nav{display:none}
+body.su-home-themed[data-su-theme="classic"] main:is([data-su-view="account"],[data-su-view="history"],[data-su-view="plans"])>.su-classic-account-nav{display:flex!important;flex-direction:column;gap:8px;padding:18px;border:1px solid #dce6f4;border-radius:14px;background:#fff;align-self:start}
+.su-classic-account-nav a{padding:10px 12px;border-radius:8px;color:#244667;text-decoration:none}
+.su-classic-account-nav a[aria-current="page"]{background:#e8f1ff;color:#155aca;font-weight:700}
+@media(min-width:900px){
+body.su-home-themed[data-su-theme="classic"] main:is([data-su-view="account"],[data-su-view="history"],[data-su-view="plans"]){display:grid;grid-template-columns:220px minmax(0,1fr);column-gap:20px;align-items:start}
+body.su-home-themed[data-su-theme="classic"] main:is([data-su-view="account"],[data-su-view="history"],[data-su-view="plans"])>:is(.top,.su-classic-back,.foot){grid-column:1/-1}
+body.su-home-themed[data-su-theme="classic"] main:is([data-su-view="account"],[data-su-view="history"],[data-su-view="plans"])>.su-classic-account-nav{grid-column:1;grid-row:3/span 3}
+body.su-home-themed[data-su-theme="classic"] main:is([data-su-view="account"],[data-su-view="history"],[data-su-view="plans"])>:is(#conta,#su-home-history,#su-plans,.su-account-toggle,.su-history-toggle){grid-column:2;min-width:0}
+}
+@media(max-width:899px){body.su-home-themed[data-su-theme="classic"] main:is([data-su-view="account"],[data-su-view="history"],[data-su-view="plans"])>.su-classic-account-nav{flex-direction:row;flex-wrap:wrap;align-items:center;gap:4px}}
