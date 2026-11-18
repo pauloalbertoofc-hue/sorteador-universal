@@ -89,3 +89,8 @@ test('shared-room workspace is collapsible and auto-opens for active rooms',()=>
  assert.match(css,/#roomStudio\[hidden\]\{display:none!important\}/);
  assert.match(read('../public/index.html'),/id="roomStudio"/);
 });
+
+test('light homepage themes give the main heading readable theme text',()=>{
+ const css=read('../public/theme-system/home.css');
+ assert.match(css,/header h1\{color:var\(--su-text\)\}/);
+});
