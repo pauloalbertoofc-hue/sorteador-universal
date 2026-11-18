@@ -13,3 +13,15 @@
 .su-action{background:var(--su-accent);color:var(--su-on-accent);border:0;border-radius:12px;padding:.8rem 1.2rem;cursor:pointer;font:inherit}
 .su-shell :focus-visible{outline:3px solid var(--su-focus);outline-offset:3px}
 @media(prefers-reduced-motion:reduce){.su-shell *, .su-shell *::before,.su-shell *::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* Decorative identity only: opaque surfaces retain the established text contrast. */
+body:is(.su-home-themed,.su-integrated)[data-su-theme="modern"]{background-image:radial-gradient(ellipse at 95% 0%,#e9d7fa 0%,transparent 55%),radial-gradient(ellipse at 0% 20%,#fbe2ef 0%,transparent 45%)}
+body:is(.su-home-themed,.su-integrated)[data-su-theme="amethyst"]{background-image:radial-gradient(ellipse at 80% 0%,#39305c 0%,transparent 55%)}
+body:is(.su-home-themed,.su-integrated)[data-su-theme="ruby"]{background-image:radial-gradient(ellipse at 85% 0%,#542638 0%,transparent 50%)}
+body:is(.su-home-themed,.su-integrated)[data-su-theme="crystal"]{background-image:linear-gradient(145deg,transparent 45%,#ffffff90 45%,transparent 65%),radial-gradient(ellipse at 90% 0%,#c8e7f8,transparent 65%)}
+body:is(.su-home-themed,.su-integrated)[data-su-theme="abyssal"]{background-image:radial-gradient(ellipse at 50% 0%,#175263 0%,transparent 55%),linear-gradient(150deg,transparent 62%,#123c5055 62%,transparent 85%)}
+body.su-home-themed[data-su-theme="modern"] .su-home-grid a{border-radius:24px;box-shadow:0 6px 18px #69457c0d}
+body.su-home-themed[data-su-theme="amethyst"] .su-home-grid a{border-top:2px solid #9b83de;box-shadow:0 8px 22px #080a2060}
+body.su-home-themed[data-su-theme="ruby"] .su-home-grid a{border-left:3px solid #e06b86;border-radius:10px}
+body.su-home-themed[data-su-theme="crystal"] .su-home-grid a{border-radius:8px 24px 8px 24px;box-shadow:inset 0 0 0 2px #edf7ff,0 8px 24px #356c9420}
+body.su-home-themed[data-su-theme="abyssal"] .su-home-grid a{border-radius:24px 8px 24px 8px;border-top-color:#6de2df;box-shadow:inset 0 0 18px #6de2df0c,0 8px 24px #00151d60}
