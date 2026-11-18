@@ -74,6 +74,28 @@ function mount(){
    if(location.hash==='#conta'&&!expanded){expanded=true;render()}
   });
  }
+ const history=main.querySelector('.history');
+ if(history){
+  const toggle=document.createElement('button');
+  toggle.type='button';toggle.className='su-history-toggle';toggle.setAttribute('aria-controls','su-home-history');
+  history.id='su-home-history';
+  const entries=history.querySelector('#history');
+  const hasEntries=()=>Boolean(entries&&entries.children.length);
+  let expanded=hasEntries()||url.hash==='#su-home-history';
+  const render=()=>{
+   history.hidden=!expanded;
+   toggle.setAttribute('aria-expanded',String(expanded));
+   toggle.textContent=expanded?'Ocultar histórico':'Ver histórico recente';
+  };
+  toggle.addEventListener('click',()=>{expanded=!expanded;render()});
+  history.before(toggle);render();
+  if(entries)new MutationObserver(()=>{
+   if(hasEntries()&&!expanded){expanded=true;render()}
+  }).observe(entries,{childList:true});
+  window.addEventListener('hashchange',()=>{
+   if(location.hash==='#su-home-history'&&!expanded){expanded=true;render()}
+  });
+ }
  enableThemeNavigation(document,()=>document.body.getAttribute('data-su-theme'));
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
