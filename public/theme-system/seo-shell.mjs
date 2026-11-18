@@ -23,6 +23,22 @@ export function mountSuSeoShell({root=document.body,main=document.querySelector(
   const next=url.pathname+url.search+url.hash;
   if(iframe.getAttribute('src')!==next)iframe.setAttribute('src',next);
  };
+ // Measure intrinsic app content, never the iframe viewport (body has min-height:100vh).
+ let contentObserver;
+ const fitEmbed=()=>{
+  contentObserver?.disconnect();
+  try{
+   const doc=iframe?.contentDocument,content=doc?.querySelector('main.wrap');
+   if(!content)return;
+   const resize=()=>{
+    const height=Math.ceil(content.getBoundingClientRect().bottom+iframe.contentWindow.scrollY+12);
+    if(height>0)iframe.style.setProperty('--su-embed-height',Math.min(12000,Math.max(640,height))+'px');
+   };
+   contentObserver=new ResizeObserver(resize);contentObserver.observe(content);resize();
+  }catch{/* Preserve the original iframe fallback. */}
+ };
+ iframe?.addEventListener('load',fitEmbed);
+ fitEmbed();
  updateEmbed();
  select.addEventListener('change',()=>{
   if(!iframe)return;
