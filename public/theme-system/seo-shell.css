@@ -17,3 +17,6 @@ body.su-integrated footer{border-color:var(--su-border)}
 
 /* Original leaves existing landing-page typography, colors and layout untouched. */
 body.su-integrated[data-su-theme="original"]{--su-surface:#151d28;--su-text:#edf2f9;--su-muted:#b2c0d0;--su-border:#344153;--su-accent:#bedcff;--su-on-accent:#111924;--su-focus:#8bbaff}
+
+/* Prevent legacy viewport-based resize observers from inflating the frame. */
+body.su-integrated #sorteador-embed{height:var(--su-embed-height,640px)!important;box-sizing:border-box}
