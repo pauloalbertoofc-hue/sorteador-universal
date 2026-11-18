@@ -56,3 +56,9 @@ test('original theme does not receive redesigned legacy panel palette',()=>{
  assert.match(home,/su-home-themed:not\(\[data-su-theme="original"\]\) \.field input/);
  assert.match(seo,/su-integrated:not\(\[data-su-theme="original"\]\) h1/);
 });
+
+test('original SEO navigation uses dark legacy palette',()=>{
+ const css=read('../public/theme-system/seo-shell.css');
+ assert.match(css,/body\.su-integrated\[data-su-theme="original"\]\{[^}]*--su-surface:#151d28/);
+ assert.match(css,/body\.su-integrated\[data-su-theme="original"\]\{[^}]*--su-text:#edf2f9/);
+});
