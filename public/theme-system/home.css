@@ -1,6 +1,6 @@
 /* Home integration: additive styling only. Existing tool, billing and room code is unchanged. */
-body.su-home-themed{background:var(--su-bg);color:var(--su-text)}
-body.su-home-themed .wrap{max-width:1100px}
+body.su-home-themed:not([data-su-theme="original"]){background:var(--su-bg);color:var(--su-text)}
+body.su-home-themed:not([data-su-theme="original"]) .wrap{max-width:1100px}
 body.su-home-themed .su-home-themes{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto}
 body.su-home-themed .su-home-themes label{font-size:13px;color:var(--su-muted)}
 body.su-home-themed .su-home-themes select{background:var(--su-surface);color:var(--su-text);border:1px solid var(--su-border);border-radius:10px;padding:10px;max-width:180px}
@@ -10,10 +10,40 @@ body.su-home-themed .su-home-grid{display:grid;grid-template-columns:repeat(auto
 body.su-home-themed .su-home-grid a{display:flex;flex-direction:column;gap:8px;min-height:124px;text-decoration:none;color:var(--su-text);padding:18px;background:var(--su-surface);border:1px solid var(--su-border);border-radius:16px}
 body.su-home-themed .su-home-grid a:hover{border-color:var(--su-accent)}
 body.su-home-themed .su-home-grid a span{font-size:13px;color:var(--su-muted)}
-body.su-home-themed .panel{background:var(--su-surface);border-color:var(--su-border);color:var(--su-text)}
-body.su-home-themed .tab{background:var(--su-surface);border-color:var(--su-border);color:var(--su-text)}
-body.su-home-themed .tab.active{background:var(--su-accent);border-color:var(--su-accent);color:var(--su-on-accent)}
-body.su-home-themed header p,body.su-home-themed .muted{color:var(--su-muted)}
+body.su-home-themed:not([data-su-theme="original"]) .panel{background:var(--su-surface);border-color:var(--su-border);color:var(--su-text)}
+body.su-home-themed:not([data-su-theme="original"]) .tab{background:var(--su-surface);border-color:var(--su-border);color:var(--su-text)}
+body.su-home-themed:not([data-su-theme="original"]) .tab.active{background:var(--su-accent);border-color:var(--su-accent);color:var(--su-on-accent)}
+body.su-home-themed:not([data-su-theme="original"]) header p,body.su-home-themed:not([data-su-theme="original"]) .muted{color:var(--su-muted)}
 body.su-home-themed .su-home-themes select:focus-visible,body.su-home-themed .su-home-grid a:focus-visible{outline:3px solid var(--su-focus);outline-offset:3px}
-body.su-home-themed[data-su-theme="original"]{--su-bg:#0d1118;--su-surface:#151d28;--su-text:#eef2f8;--su-muted:#a9b5c5;--su-border:#344255;--su-accent:#dceafa;--su-on-accent:#111924;--su-focus:#8bbaff}
+
 @media(max-width:700px){body.su-home-themed .top{flex-wrap:wrap}body.su-home-themed .su-home-themes{margin-left:0}}
+
+/* Theme legacy form surfaces without changing original app appearance. */
+body.su-home-themed:not([data-su-theme="original"]) .field label,
+body.su-home-themed:not([data-su-theme="original"]) .check,
+body.su-home-themed:not([data-su-theme="original"]) .info-section p,
+body.su-home-themed:not([data-su-theme="original"]) .info-section li{color:var(--su-muted)}
+body.su-home-themed:not([data-su-theme="original"]) .field input,
+body.su-home-themed:not([data-su-theme="original"]) .field select,
+body.su-home-themed:not([data-su-theme="original"]) .field textarea,
+body.su-home-themed:not([data-su-theme="original"]) .result,
+body.su-home-themed:not([data-su-theme="original"]) .wheel-zone,
+body.su-home-themed:not([data-su-theme="original"]) .info-section,
+body.su-home-themed:not([data-su-theme="original"]) .tool-directory,
+body.su-home-themed:not([data-su-theme="original"]) .shareable-models,
+body.su-home-themed:not([data-su-theme="original"]) .history li,
+body.su-home-themed:not([data-su-theme="original"]) .team,
+body.su-home-themed:not([data-su-theme="original"]) .chip{background:var(--su-surface);border-color:var(--su-border);color:var(--su-text)}
+body.su-home-themed:not([data-su-theme="original"]) .action{background:var(--su-accent);color:var(--su-on-accent)}
+body.su-home-themed:not([data-su-theme="original"]) .secondary{background:var(--su-surface);color:var(--su-text);border-color:var(--su-border)}
+body.su-home-themed:not([data-su-theme="original"]) .info-section a,
+body.su-home-themed:not([data-su-theme="original"]) .foot a,
+body.su-home-themed:not([data-su-theme="original"]) .tool-directory summary,
+body.su-home-themed:not([data-su-theme="original"]) .shareable-models summary{color:var(--su-accent)}
+body.su-home-themed:not([data-su-theme="original"]) .history li,
+body.su-home-themed:not([data-su-theme="original"]) .result .small,
+body.su-home-themed:not([data-su-theme="original"]) .team span{color:var(--su-muted)}
+body.su-home-themed:not([data-su-theme="original"]) .field input:focus-visible,
+body.su-home-themed:not([data-su-theme="original"]) .field select:focus-visible,
+body.su-home-themed:not([data-su-theme="original"]) .field textarea:focus-visible,
+body.su-home-themed:not([data-su-theme="original"]) button:focus-visible{outline:3px solid var(--su-focus);outline-offset:3px}
