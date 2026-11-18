@@ -53,6 +53,21 @@ try{
   await page.goto(base+'/?suTheme=classic',{waitUntil:'domcontentloaded'});
   // Validate the new classic views before testing legacy disclosures.
   await expect(page.locator('.su-classic-hero')).toBeVisible();
+  // Verify real WebGL output where supported, and fallback otherwise.
+  const art=page.locator('.su-classic-art');
+  await expect(art).toBeVisible();
+  const supportsGL=await page.evaluate(()=>!!document.createElement('canvas').getContext('webgl'));
+  if(supportsGL){
+   const canvas=art.locator('canvas.su-die-webgl');
+   await expect(canvas).toBeVisible();
+   await expect.poll(()=>canvas.evaluate(c=>c.width>0&&c.height>0&&getComputedStyle(c.parentElement.querySelector('svg')).opacity==='0')).toBe(true);
+   await page.emulateMedia({reducedMotion:'reduce'});
+   await expect(canvas).toBeVisible();
+   await page.emulateMedia({reducedMotion:'no-preference'});
+  }else{
+   await expect(art.locator('svg')).toBeVisible();
+  }
+
   await expect(page.locator('#form')).toBeHidden();
   await expect(page.locator('#privacidade')).toBeHidden();
   if(width===390){
