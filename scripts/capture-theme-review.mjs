@@ -158,17 +158,8 @@ try{
    await page.goto(base+'/'+slug+'/?suTheme=abyssal',{waitUntil:'domcontentloaded'});
    await expect(page).toHaveURL(url=>url.pathname==='/'+slug+'/');
    await expect(page.locator('body')).toHaveAttribute('data-su-theme','abyssal');
-   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href',new RegExp('/'+slug+'/?
-  const embedded=page.frameLocator('#sorteador-embed');
-  await expect(embedded.locator('body')).toHaveAttribute('data-su-theme','classic');
-  await embedded.locator('body').evaluate(body=>{body.dataset.suVisualPersistence='kept';});
-  await page.locator('.su-nav select').selectOption('ruby');
-  await expect(embedded.locator('body')).toHaveAttribute('data-su-theme','ruby');
-  await expect(embedded.locator('body')).toHaveAttribute('data-su-visual-persistence','kept');
-  await page.close();
- }
-}finally{await browser.close()}
-));
+   const canonical=await page.locator('link[rel="canonical"]').getAttribute('href');
+   if(!canonical||new URL(canonical,base).pathname!=='/'+slug+'/')throw new Error('Incorrect canonical for '+slug+': '+canonical);
    const tool=page.frameLocator('#sorteador-embed');
    await expect(tool.locator('body')).toHaveAttribute('data-su-theme','abyssal',{timeout:15000});
    await expect(tool.locator('#draw')).toBeVisible();
