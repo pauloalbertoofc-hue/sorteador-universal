@@ -130,9 +130,14 @@ function mount(){
  const plans=document.createElement('section');plans.id='su-plans';plans.className='su-classic-plans';plans.innerHTML='<h2>Escolha seu plano</h2><p>Faça sorteios gratuitamente ou conheça o Estúdio Pro.</p><div class="su-plan-grid"><article><h3>Gratuito</h3><strong>R$ 0</strong><ul><li>Sorteios sem cadastro</li><li>Histórico local</li><li>Publicidade</li></ul><a href="#su-catalog">Explorar ferramentas</a></article><article><h3>Pro</h3><strong>R$ 4,90/mês</strong><ul><li>Sem anúncios com assinatura ativa</li><li>Estúdio Pro e listas salvas</li><li>Cobrança recorrente pelo Mercado Pago, quando disponível</li></ul><a href="#conta">Consultar assinatura</a></article></div>';main.querySelector('.foot').before(plans);
  const views={'#su-home-quick-draw':'draw','#ajuda':'help','#privacidade':'privacy','#roomStudio':'rooms','#conta':'account','#su-plans':'plans','#su-home-history':'history'};
  const back=document.createElement('a');back.className='su-classic-back';back.href='#su-catalog';back.textContent='← Voltar ao início';top.after(back);
+ const side=document.createElement('nav');side.className='su-classic-account-nav';side.setAttribute('aria-label','Menu da conta');
+ side.innerHTML='<strong>Minha área</strong><a href="#conta">Minha conta</a><a href="#su-home-history">Histórico</a><a href="#su-plans">Plano e assinatura</a><a href="#roomStudio">Salas compartilhadas</a><a href="#ajuda">Ajuda</a>';
+ back.after(side);
+
  const syncView=()=>{
   const view=views[location.hash]||'home';
   main.dataset.suView=view;
+  side.querySelectorAll('a').forEach(a=>{if(a.hash===location.hash)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
   const control=({rooms:'.su-room-toggle',account:'.su-account-toggle',history:'.su-history-toggle'})[view];
   const toggle=control&&main.querySelector(control);
   if(toggle?.getAttribute('aria-expanded')==='false')toggle.click();
