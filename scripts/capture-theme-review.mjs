@@ -51,6 +51,31 @@ try{
    }
   }
   await page.goto(base+'/?suTheme=classic',{waitUntil:'domcontentloaded'});
+  // Validate the new classic views before testing legacy disclosures.
+  await expect(page.locator('.su-classic-hero')).toBeVisible();
+  await expect(page.locator('#form')).toBeHidden();
+  await expect(page.locator('#privacidade')).toBeHidden();
+  if(width===390){
+   const menu=page.locator('.su-classic-menu-button');
+   await expect(menu).toBeVisible();
+   await menu.click();
+   await expect(menu).toHaveAttribute('aria-expanded','true');
+   await expect(page.locator('.su-classic-menu')).toBeVisible();
+  }
+  for(const [hash,view,target] of [
+   ['su-home-quick-draw','draw','#draw'],['ajuda','help','#ajuda'],
+   ['privacidade','privacy','#privacidade'],['su-plans','plans','#su-plans'],
+   ['conta','account','#conta'],['roomStudio','rooms','#roomStudio'],
+   ['su-home-history','history','#su-home-history']
+  ]){
+   await page.goto(base+'/?suTheme=classic#'+hash,{waitUntil:'domcontentloaded'});
+   await expect(page.locator('main.wrap')).toHaveAttribute('data-su-view',view);
+   await expect(page.locator(target)).toBeVisible();
+   await expect(page.locator('.su-home-directory')).toBeHidden();
+   await page.locator('.su-classic-back').click();
+   await expect(page.locator('.su-home-directory')).toBeVisible();
+  }
+  await page.goto(base+'/?suTheme=classic',{waitUntil:'domcontentloaded'});
   const roomToggle=page.locator('.su-room-toggle');
   const roomPanel=page.locator('#roomStudio');
   await expect(roomToggle).toHaveAttribute('aria-expanded','false');
