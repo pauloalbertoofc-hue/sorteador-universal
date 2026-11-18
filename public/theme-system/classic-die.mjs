@@ -9,7 +9,7 @@ export function mountClassicDie(host){
  uniform vec2 resolution, tilt;
  uniform float time;
  mat2 rot(float a){return mat2(cos(a),-sin(a),sin(a),cos(a));}
- vec3 local(vec3 p){p.y-=.07*sin(time);p.xz=rot(.65+tilt.x)*p.xz;p.yz=rot(-.42+tilt.y)*p.yz;return p;}
+ vec3 local(vec3 p){p.y-=.07*sin(time);p.xz=rot(.65+tilt.x)*p.xz;p.yz=rot(.42+tilt.y)*p.yz;return p;}
  float box(vec3 p){vec3 q=abs(p)-vec3(.69);return length(max(q,0.))+min(max(q.x,max(q.y,q.z)),0.)-.13;}
  float pip(vec2 p,vec2 c){return length(p-c)-.104;}
  float holes(vec3 p){
@@ -18,12 +18,12 @@ export function mountClassicDie(host){
  a=min(a,pip(p.xz,vec2(0.)));
  float b=min(pip(p.xy,vec2(-.37,-.37)),min(pip(p.xy,vec2(.37,.37)),pip(p.xy,vec2(0.))));
  float c=min(min(pip(p.zy,vec2(-.37,-.37)),pip(p.zy,vec2(.37,.37))),min(pip(p.zy,vec2(-.37,.37)),pip(p.zy,vec2(.37,-.37))));
- return min(max(a,abs(p.y-.82)-.05),min(max(b,abs(p.z-.82)-.05),max(c,abs(p.x-.82)-.05)));
+ return min(max(a,abs(abs(p.y)-.82)-.05),min(max(b,abs(abs(p.z)-.82)-.05),max(c,abs(abs(p.x)-.82)-.05)));
  }
  float scene(vec3 p){p=local(p);return max(box(p),-holes(p));}
  void main(){
  vec2 uv=(gl_FragCoord.xy-.5*resolution)/resolution.y;
- vec3 ro=vec3(uv*3.4,4.),rd=vec3(0.,0.,-1.);
+ vec3 ro=vec3(uv*2.65,4.),rd=vec3(0.,0.,-1.);
  float t=0.;bool hit=false;
  for(int i=0;i<72;i++){float d=scene(ro+rd*t);if(d<.002){hit=true;break;}t+=max(d,.002);if(t>7.)break;}
  if(!hit){float sh=.20*exp(-10.*uv.x*uv.x-100.*(uv.y+.33)*(uv.y+.33));gl_FragColor=vec4(.12,.31,.59,sh);return;}
@@ -31,8 +31,8 @@ export function mountClassicDie(host){
  vec3 n=normalize(vec3(scene(p+e.xyy)-scene(p-e.xyy),scene(p+e.yxy)-scene(p-e.yxy),scene(p+e.yyx)-scene(p-e.yyx)));
  vec3 l=normalize(vec3(-.5,.8,.9));float diff=max(dot(n,l),0.);
  float spec=pow(max(dot(n,normalize(l-rd)),0.),30.);
- vec3 q=local(p);vec3 color=holes(q)<.009?vec3(.018,.12,.37):vec3(.88,.94,1.);
- gl_FragColor=vec4(color*(.56+.44*diff)+vec3(.32)*spec,1.);
+ vec3 q=local(p);vec3 color=holes(q)<.009?vec3(.018,.12,.37):vec3(.97,.985,1.);
+ gl_FragColor=vec4(color*(.76+.24*diff)+vec3(.22)*spec,1.);
  }`;
  const shader=(type,source)=>{const sh=gl.createShader(type);gl.shaderSource(sh,source);gl.compileShader(sh);if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS)){gl.deleteShader(sh);throw Error('hero shader');}return sh;};
  try{
