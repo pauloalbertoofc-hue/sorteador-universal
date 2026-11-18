@@ -196,6 +196,22 @@ try{
   await expect(embedded.locator('body')).toHaveAttribute('data-su-theme','amethyst');
   await expect(embedded.locator('#result')).toContainText('Ana');
   await expect(embedded.locator('#items')).toHaveValue('Ana');
+  await page.goto(base+'/?suTheme=classic',{waitUntil:'domcontentloaded'});
+  const consent=page.locator('#su-analytics-choice');
+  await expect(consent).toBeVisible();
+  await expect(consent.getByRole('button',{name:'Aceitar análise'})).toBeVisible();
+  const reject=consent.getByRole('button',{name:'Recusar análise'});
+  await expect(reject).toBeVisible();
+  if(width===390){
+   const bounds=await consent.boundingBox();
+   if(!bounds||bounds.height>220)throw new Error('Mobile consent exceeds compact height budget');
+  }
+  await reject.click();
+  await expect(consent).toHaveCount(0);
+  await page.reload({waitUntil:'domcontentloaded'});
+  await expect(consent).toHaveCount(0);
+  const analytics=await page.evaluate(()=>({choice:localStorage.getItem('su-ga4-consent-v1'),loaded:!!window.__suGa4Loaded}));
+  if(analytics.choice!=='rejected'||analytics.loaded)throw new Error('Analytics refusal was not respected');
   await page.close();
  }
 }finally{await browser.close()}
