@@ -3,9 +3,13 @@
 export function mountClassicDie(host){
  const canvas=document.createElement('canvas');
  const gl=canvas.getContext('webgl',{alpha:true,antialias:true,premultipliedAlpha:false});
- if(!gl)return;
+ if(!gl||!gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER,gl.HIGH_FLOAT)?.precision)return;
  const vertex='attribute vec2 p; void main(){gl_Position=vec4(p,0.,1.);}';
- const fragment=`precision mediump float;
+ const fragment=`#ifdef GL_FRAGMENT_PRECISION_HIGH
+ precision highp float;
+ #else
+ precision mediump float;
+ #endif
  uniform vec2 resolution, tilt;
  uniform float time;
  mat2 rot(float a){return mat2(cos(a),-sin(a),sin(a),cos(a));}
@@ -37,8 +41,13 @@ export function mountClassicDie(host){
  vec3 n=normalize(vec3(scene(p+e.xyy)-scene(p-e.xyy),scene(p+e.yxy)-scene(p-e.yxy),scene(p+e.yyx)-scene(p-e.yyx)));
  vec3 l=normalize(vec3(-.5,.8,.9));float diff=max(dot(n,l),0.);
  float spec=pow(max(dot(n,normalize(l-rd)),0.),30.);
- vec3 q=local(p);vec3 color=holes(q)<.009?vec3(.018,.12,.37):vec3(.97,.985,1.);
- gl_FragColor=vec4(color*(.76+.24*diff)+vec3(.22)*spec,1.);
+ vec3 q=local(p);vec3 a=abs(q);float d;
+ if(a.x>=a.y&&a.x>=a.z)d=face(q.zy,q.x>0.?1.:6.);
+ else if(a.y>=a.z)d=face(q.xz,q.y>0.?5.:2.);
+ else d=face(q.xy,q.z>0.?3.:4.);
+ float ink=1.-smoothstep(-.012,.012,d);
+ vec3 color=mix(vec3(.96,.98,1.),vec3(.035,.19,.48),ink);
+ gl_FragColor=vec4(color*(.48+.48*diff)+vec3(.12)*spec*(1.-ink),1.);
  }`;
  const shader=(type,source)=>{const sh=gl.createShader(type);gl.shaderSource(sh,source);gl.compileShader(sh);if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS)){gl.deleteShader(sh);throw Error('hero shader');}return sh;};
  try{
