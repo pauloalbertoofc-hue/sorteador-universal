@@ -192,3 +192,7 @@ body.su-home-themed[data-su-theme="classic"] #conta :is(.account-note,.account-t
 body.su-home-themed[data-su-theme="classic"] #conta :is(#accountGuest,#accountMember,#proStudio):not([hidden]){background:white;border:1px solid #d1deef;border-radius:12px;padding:16px;margin-top:16px}
 body.su-home-themed[data-su-theme="classic"] #conta :is(#accountLogin,#accountCheckout){background:#1264d9;color:white}
 @media(max-width:650px){body.su-home-themed[data-su-theme="classic"] .su-plan-grid{grid-template-columns:1fr}body.su-home-themed[data-su-theme="classic"] .su-plan-grid article{padding:18px}}
+
+/* Give the classic hero illustration its own responsive negative space. */
+body.su-home-themed[data-su-theme="classic"] .su-classic-art svg{width:100%;height:auto;max-height:310px;margin:auto}
+@media(max-width:600px){body.su-home-themed[data-su-theme="classic"] .su-classic-art svg{max-height:175px}}
