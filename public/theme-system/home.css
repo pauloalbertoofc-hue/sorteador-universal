@@ -137,3 +137,33 @@ body.su-home-themed[data-su-theme="classic"] main[data-su-view="draw"] > :is(hea
 body.su-home-themed[data-su-theme="classic"] main[data-su-view="help"] > :not(.top,.su-classic-back,#ajuda,.foot,script),
 body.su-home-themed[data-su-theme="classic"] main[data-su-view="privacy"] > :not(.top,.su-classic-back,#privacidade,.foot,script){display:none!important}
 body.su-home-themed[data-su-theme="classic"] main[data-su-view]:not([data-su-view="home"]) > .su-classic-back{display:inline-flex;align-items:center;min-height:44px;color:#1264d9;text-decoration:none;font-weight:650;margin:10px 0}
+
+/* Classic tool workspace: preserve all existing inputs and draw handlers. */
+body.su-home-themed[data-su-theme="classic"] .panel{box-shadow:0 4px 20px #173d700b;border-radius:16px}
+body.su-home-themed[data-su-theme="classic"] #form .fields{gap:12px;align-items:start}
+body.su-home-themed[data-su-theme="classic"] #form .field{min-width:0}
+body.su-home-themed[data-su-theme="classic"] #form .field textarea{min-height:210px;background:#f8faff}
+body.su-home-themed[data-su-theme="classic"] #form .check{padding:12px;border:1px solid var(--su-border);border-radius:10px;background:#f8faff;min-height:46px}
+body.su-home-themed[data-su-theme="classic"] #form .check input{accent-color:#1264d9;flex-shrink:0}
+body.su-home-themed[data-su-theme="classic"] .panel .buttons{display:flex;flex-wrap:wrap;gap:8px}
+body.su-home-themed[data-su-theme="classic"] #draw{flex:1 1 220px;min-height:48px;background:#1264d9;color:white}
+body.su-home-themed[data-su-theme="classic"] #draw:hover{background:#104fa9}
+body.su-home-themed[data-su-theme="classic"] #result{border:1px solid #d1deef;background:#edf4ff;color:#112747;border-radius:12px}
+body.su-home-themed[data-su-theme="classic"] .wheel-zone{background:#f8faff;border-color:#d1deef}
+body.su-home-themed[data-su-theme="classic"] .wheel-note,body.su-home-themed[data-su-theme="classic"] .wheel-speed-control{color:#405875}
+body.su-home-themed[data-su-theme="classic"] .wheel-speed-control select{background:white;color:#112747;border:1px solid #d1deef}
+body.su-home-themed[data-su-theme="classic"] #spin{background:#1264d9;color:white;min-height:48px}
+@media(min-width:760px){
+ body.su-home-themed[data-su-theme="classic"] #form .fields:has(#items){grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)}
+ body.su-home-themed[data-su-theme="classic"] #form .fields:has(#items) > .field:has(#items){grid-column:1;grid-row:1/span 4;align-self:stretch}
+ body.su-home-themed[data-su-theme="classic"] #form .fields:has(#items) #items{flex:1}
+ body.su-home-themed[data-su-theme="classic"] #form .fields:has(#items) > :is(.field:has(#winners),.check,#resetWinners){grid-column:2}
+ body.su-home-themed[data-su-theme="classic"] #form .fields:has(#players) > .field:has(#players){grid-column:1;grid-row:1/span 3;align-self:stretch}
+ body.su-home-themed[data-su-theme="classic"] #form .fields:has(#players) #players{flex:1}
+ body.su-home-themed[data-su-theme="classic"] #form .fields:has(#players) > .field:not(:has(#players)):not(:has(#teamnames)){grid-column:2}
+}
+@media(max-width:759px){
+ body.su-home-themed[data-su-theme="classic"] #form .fields{grid-template-columns:1fr}
+ body.su-home-themed[data-su-theme="classic"] .panel{padding:16px}
+ body.su-home-themed[data-su-theme="classic"] #draw{flex-basis:100%}
+}
