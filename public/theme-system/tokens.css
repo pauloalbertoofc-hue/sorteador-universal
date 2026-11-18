@@ -1,0 +1,15 @@
+/* Shared visual tokens for future integration. Not loaded by production pages yet. */
+:root,[data-su-theme="classic"]{--su-bg:#f5f7fd;--su-surface:#ffffff;--su-text:#172448;--su-muted:#52617d;--su-border:#dce3f1;--su-accent:#6243df;--su-on-accent:#ffffff;--su-focus:#285fd4;--su-radius:16px;--su-shadow:0 10px 32px rgba(34,45,87,.08)}
+[data-su-theme="modern"]{--su-bg:#f9f7fd;--su-surface:#ffffff;--su-text:#30274c;--su-muted:#655a7a;--su-border:#e6dff2;--su-accent:#ad428a;--su-on-accent:#fff;--su-focus:#7d2fb8}
+[data-su-theme="amethyst"]{--su-bg:#11152c;--su-surface:#202747;--su-text:#f5f3ff;--su-muted:#c6c4df;--su-border:#465074;--su-accent:#b59aff;--su-on-accent:#17112d;--su-focus:#d4c7ff;--su-shadow:0 12px 34px rgba(0,0,0,.3)}
+[data-su-theme="ruby"]{--su-bg:#14151b;--su-surface:#26232b;--su-text:#fff4f5;--su-muted:#d8bfc6;--su-border:#55404b;--su-accent:#f17691;--su-on-accent:#2a0d19;--su-focus:#ffadc0;--su-shadow:0 12px 34px rgba(0,0,0,.28)}
+[data-su-theme="crystal"]{--su-bg:#eaf4fa;--su-surface:#fff;--su-text:#223a57;--su-muted:#4e657c;--su-border:#c9dfec;--su-accent:#5868bc;--su-on-accent:#fff;--su-focus:#3651a0}
+[data-su-theme="abyssal"]{--su-bg:#071c2a;--su-surface:#103349;--su-text:#e8f9ff;--su-muted:#b0d4e1;--su-border:#376578;--su-accent:#6de2df;--su-on-accent:#06303a;--su-focus:#a5ffff;--su-shadow:0 12px 34px rgba(0,0,0,.28)}
+/* Original is deliberately unstyled: legacy page CSS remains authoritative. */
+[data-su-theme="original"]{}
+.su-shell{background:var(--su-bg);color:var(--su-text);min-height:100vh}
+.su-surface{background:var(--su-surface);border:1px solid var(--su-border);border-radius:var(--su-radius,16px);box-shadow:var(--su-shadow,none)}
+.su-muted{color:var(--su-muted)}
+.su-action{background:var(--su-accent);color:var(--su-on-accent);border:0;border-radius:12px;padding:.8rem 1.2rem;cursor:pointer;font:inherit}
+.su-shell :focus-visible{outline:3px solid var(--su-focus);outline-offset:3px}
+@media(prefers-reduced-motion:reduce){.su-shell *, .su-shell *::before,.su-shell *::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
