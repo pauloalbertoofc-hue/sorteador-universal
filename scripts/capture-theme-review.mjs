@@ -179,6 +179,13 @@ try{
   await expect(embedded.locator('body')).toHaveAttribute('data-su-visual-persistence','kept');
   const retained=await embedded.locator('input:not([type="hidden"]),textarea').first().inputValue();
   if(retained!==inputState.marker)throw new Error('Theme change cleared entered draw data at '+width+'px');
+  for(const theme of ['abyssal','original','classic']){
+   await page.locator('.su-nav select').selectOption(theme);
+   await expect(embedded.locator('body')).toHaveAttribute('data-su-theme',theme);
+   await expect(embedded.locator('body')).toHaveAttribute('data-su-visual-persistence','kept');
+   const current=await embedded.locator('input:not([type="hidden"]),textarea').first().inputValue();
+   if(current!==inputState.marker)throw new Error('Theme sequence cleared entered draw data: '+theme+' at '+width+'px');
+  }
   await page.close();
  }
 }finally{await browser.close()}
