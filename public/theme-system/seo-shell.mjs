@@ -25,6 +25,9 @@ export function mountSuSeoShell({root=document.body,main=document.querySelector(
   if(iframe.getAttribute('src')!==next)iframe.setAttribute('src',next);
  };
  updateEmbed();
- select.addEventListener('change',updateEmbed);
+ select.addEventListener('change',()=>{
+  if(!iframe)return;
+  iframe.contentWindow?.postMessage({type:'su:set-embed-theme',theme:root.getAttribute('data-su-theme')},location.origin);
+ });
  enableThemeNavigation(document,()=>root.getAttribute('data-su-theme'));
 }
