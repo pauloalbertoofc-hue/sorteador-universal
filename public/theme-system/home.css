@@ -300,3 +300,8 @@ body.su-home-themed[data-su-theme="classic"] .su-home-grid a:after{display:none}
 body.su-home-themed[data-su-theme="classic"] .su-home-grid a strong{font-size:14px}
 body.su-home-themed[data-su-theme="classic"] .su-home-grid a span:not(.su-classic-glyph){font-size:12px}
 }
+
+/* Dedicated classic views remain isolated even when legacy observers expand panels. */
+body.su-home-themed[data-su-theme="classic"] main[data-su-view]:not([data-su-view="history"]) > #su-home-history,
+body.su-home-themed[data-su-theme="classic"] main[data-su-view]:not([data-su-view="account"]) > #conta,
+body.su-home-themed[data-su-theme="classic"] main[data-su-view]:not([data-su-view="rooms"]) > #roomStudio{display:none!important}
