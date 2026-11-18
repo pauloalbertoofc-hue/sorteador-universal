@@ -279,3 +279,24 @@ body.su-home-themed[data-su-theme="classic"] main:is([data-su-view="account"],[d
 body.su-home-themed[data-su-theme="classic"] .su-classic-account-nav a{background:#fff;border:1px solid #dce6f4;border-radius:12px;padding:12px 16px;box-shadow:0 2px 8px #163b650a}
 body.su-home-themed[data-su-theme="classic"] .su-classic-account-nav a[aria-current="page"]{background:#e8f1ff}
 }
+
+body.su-home-themed[data-su-theme="classic"] main[data-su-view="home"]>header{background:radial-gradient(ellipse at 88% 25%,#1769b5 0%,transparent 56%),linear-gradient(135deg,#09294f,#083e86);border:1px solid #164c8b;border-radius:18px;padding:24px}
+body.su-home-themed[data-su-theme="classic"] .su-classic-copy h2{color:#fff}
+body.su-home-themed[data-su-theme="classic"] .su-classic-copy p{color:#e5efff}
+body.su-home-themed[data-su-theme="classic"] .su-classic-eyebrow{display:inline-block;background:#ffffff24;color:white}
+body.su-home-themed[data-su-theme="classic"] .su-classic-art{background:radial-gradient(ellipse,#75caff55,transparent 68%)}
+@media(max-width:700px){
+body.su-home-themed[data-su-theme="classic"] main[data-su-view="home"]>header{padding:16px}
+body.su-home-themed[data-su-theme="classic"] .su-classic-hero{position:relative;display:block}
+body.su-home-themed[data-su-theme="classic"] .su-classic-copy{position:relative;z-index:1}
+body.su-home-themed[data-su-theme="classic"] .su-classic-copy h2{font-size:clamp(23px,6vw,32px);max-width:57%;margin:12px 0;overflow-wrap:break-word}
+body.su-home-themed[data-su-theme="classic"] .su-classic-copy p{max-width:57%;font-size:13px}
+body.su-home-themed[data-su-theme="classic"] .su-classic-art{position:absolute!important;right:-8px;top:20px;width:43%;height:145px;z-index:0}
+body.su-home-themed[data-su-theme="classic"] .su-classic-actions{display:grid;grid-template-columns:1fr 1fr}
+body.su-home-themed[data-su-theme="classic"] .su-classic-actions a{justify-content:center;text-align:center;font-size:12px;padding:8px}
+body.su-home-themed[data-su-theme="classic"] .su-home-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+body.su-home-themed[data-su-theme="classic"] .su-home-grid a{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-height:112px;padding:12px 8px;gap:6px}
+body.su-home-themed[data-su-theme="classic"] .su-home-grid a:after{display:none}
+body.su-home-themed[data-su-theme="classic"] .su-home-grid a strong{font-size:14px}
+body.su-home-themed[data-su-theme="classic"] .su-home-grid a span:not(.su-classic-glyph){font-size:12px}
+}
