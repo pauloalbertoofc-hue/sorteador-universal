@@ -62,3 +62,12 @@ test('original SEO navigation uses dark legacy palette',()=>{
  assert.match(css,/body\.su-integrated\[data-su-theme="original"\]\{[^}]*--su-surface:#151d28/);
  assert.match(css,/body\.su-integrated\[data-su-theme="original"\]\{[^}]*--su-text:#edf2f9/);
 });
+
+test('catalog-first homepage retains direct quick draw access',()=>{
+ const js=read('../public/theme-system/home.mjs');
+ const css=read('../public/theme-system/home.css');
+ assert.match(js,/Escolha uma ferramenta/);
+ assert.match(js,/su-home-quick-draw/);
+ assert.match(js,/main\.querySelector\('\.tabs'\)/);
+ assert.match(css,/su-home-quick-link/);
+});
