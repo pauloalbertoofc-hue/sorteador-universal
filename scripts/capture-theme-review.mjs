@@ -22,11 +22,10 @@ try{
   await page.goto(base+'/sortear-nomes/?suTheme=classic',{waitUntil:'domcontentloaded'});
   const embedded=page.frameLocator('#sorteador-embed');
   await expect(embedded.locator('body')).toHaveAttribute('data-su-theme','classic');
-  const frameBefore=await page.locator('#sorteador-embed').evaluate(el=>el.contentWindow);
+  await embedded.locator('body').evaluate(body=>{body.dataset.suVisualPersistence='kept';});
   await page.locator('.su-nav select').selectOption('ruby');
   await expect(embedded.locator('body')).toHaveAttribute('data-su-theme','ruby');
-  const frameAfter=await page.locator('#sorteador-embed').evaluate(el=>el.contentWindow);
-  if(frameBefore!==frameAfter)throw new Error('Embedded tool window changed during theme switch');
+  await expect(embedded.locator('body')).toHaveAttribute('data-su-visual-persistence','kept');
   await page.close();
  }
 }finally{await browser.close()}
