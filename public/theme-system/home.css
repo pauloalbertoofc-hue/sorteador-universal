@@ -169,9 +169,9 @@ body.su-home-themed[data-su-theme="classic"] #spin{background:#1264d9;color:whit
 }
 
 /* Dedicated classic workspaces, without remounting account or room state. */
-body.su-home-themed[data-su-theme="classic"] main[data-su-view="account"] > :not(.top,.su-classic-back,#conta,.su-account-toggle,.foot,script),
+body.su-home-themed[data-su-theme="classic"] main[data-su-view="account"] > :not(.top,.su-classic-back,.su-classic-account-nav,#conta,.su-account-toggle,.foot,script),
 body.su-home-themed[data-su-theme="classic"] main[data-su-view="rooms"] > :not(.top,.su-classic-back,#roomStudio,.su-room-toggle,.foot,script),
-body.su-home-themed[data-su-theme="classic"] main[data-su-view="history"] > :not(.top,.su-classic-back,#su-home-history,.su-history-toggle,.foot,script){display:none!important}
+body.su-home-themed[data-su-theme="classic"] main[data-su-view="history"] > :not(.top,.su-classic-back,.su-classic-account-nav,#su-home-history,.su-history-toggle,.foot,script){display:none!important}
 body.su-home-themed[data-su-theme="classic"] :is(#conta,#roomStudio,#su-home-history){background:#fff;color:#112747;border:1px solid #dbe5f4;border-radius:16px;padding:clamp(16px,3vw,28px)}
 body.su-home-themed[data-su-theme="classic"] :is(#conta,#roomStudio,#su-home-history) :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea){background:#f8faff;color:#112747;border:1px solid #d1deef;border-radius:9px;max-width:100%}
 body.su-home-themed[data-su-theme="classic"] :is(#conta,#roomStudio,#su-home-history) .small{color:#405875}
@@ -179,7 +179,7 @@ body.su-home-themed[data-su-theme="classic"] main[data-su-view="rooms"] .room-cr
 body.su-home-themed[data-su-theme="classic"] main[data-su-view="rooms"] #roomCreate{background:#1264d9;color:white;min-height:44px}
 
 .su-classic-plans{display:none}
-body.su-home-themed[data-su-theme="classic"] main[data-su-view="plans"] > :not(.top,.su-classic-back,#su-plans,.foot,script){display:none!important}
+body.su-home-themed[data-su-theme="classic"] main[data-su-view="plans"] > :not(.top,.su-classic-back,.su-classic-account-nav,#su-plans,.foot,script){display:none!important}
 body.su-home-themed[data-su-theme="classic"] main[data-su-view="plans"] #su-plans{display:block;color:#112747;margin:16px 0}
 body.su-home-themed[data-su-theme="classic"] .su-plan-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 body.su-home-themed[data-su-theme="classic"] .su-plan-grid article{background:white;border:1px solid #d1deef;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:12px}
