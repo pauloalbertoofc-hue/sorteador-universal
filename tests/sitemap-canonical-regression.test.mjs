@@ -30,3 +30,18 @@ test('robots.txt points to the canonical sitemap', () => {
   const robots = readFileSync(new URL('robots.txt', root), 'utf8');
   assert.ok(robots.includes(`Sitemap: ${origin}/sitemap.xml`));
 });
+
+test('primary landing pages expose valid, matching WebPage JSON-LD for search engines', () => {
+  for (const slug of ['sortear-nomes', 'sortear-numeros', 'sortear-equipes', 'roleta-online']) {
+    const html = readFileSync(new URL(slug + '/index.html', root), 'utf8');
+    const match = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
+    assert.ok(match, 'missing JSON-LD: ' + slug);
+    const data = JSON.parse(match[1]);
+    const url = origin + '/' + slug + '/';
+    assert.equal(data['@type'], 'WebPage');
+    assert.equal(data.url, url);
+    assert.equal(data.name, html.match(/<title>([^<]+)<\/title>/)[1]);
+    assert.equal(data.description, html.match(/<meta name="description" content="([^"]+)"/)[1]);
+    assert.equal(data.isPartOf.url, origin + '/');
+  }
+});
