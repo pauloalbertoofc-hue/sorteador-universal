@@ -189,6 +189,16 @@ try{
    const tool=page.frameLocator('#sorteador-embed');
    await expect(tool.locator('body')).toHaveAttribute('data-su-theme','abyssal',{timeout:15000});
    await expect(tool.locator('#draw')).toBeVisible();
+   const frame=page.locator('#sorteador-embed');
+   await expect.poll(()=>frame.evaluate(el=>{
+    const content=el.contentDocument?.querySelector('main.wrap');
+    return !!content&&Math.abs(el.clientHeight-Math.max(640,Math.min(12000,Math.ceil(content.getBoundingClientRect().bottom+el.contentWindow.scrollY+12))))<=4;
+   })).toBe(true);
+   // A taller legacy inline height must not feed back into intrinsic sizing.
+   const before=await frame.evaluate(el=>el.clientHeight);
+   await frame.evaluate(el=>{el.style.height='12000px'});
+   await expect.poll(()=>frame.evaluate(el=>el.clientHeight)).toBe(before);
+
   }
   await page.goto(base+'/sortear-nomes/?suTheme=classic',{waitUntil:'domcontentloaded'});
   const embedded=page.frameLocator('#sorteador-embed');
