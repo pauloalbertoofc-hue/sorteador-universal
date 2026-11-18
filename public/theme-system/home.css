@@ -47,3 +47,6 @@ body.su-home-themed:not([data-su-theme="original"]) .field input:focus-visible,
 body.su-home-themed:not([data-su-theme="original"]) .field select:focus-visible,
 body.su-home-themed:not([data-su-theme="original"]) .field textarea:focus-visible,
 body.su-home-themed:not([data-su-theme="original"]) button:focus-visible{outline:3px solid var(--su-focus);outline-offset:3px}
+
+/* Legacy dark palette is used only for the newly added homepage controls. */
+body.su-home-themed[data-su-theme="original"]{--su-surface:#151d28;--su-text:#eef2f8;--su-muted:#a9b5c5;--su-border:#344255;--su-accent:#dceafa;--su-on-accent:#111924;--su-focus:#8bbaff}
