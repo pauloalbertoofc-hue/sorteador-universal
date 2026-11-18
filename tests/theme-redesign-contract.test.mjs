@@ -71,3 +71,11 @@ test('catalog-first homepage retains direct quick draw access',()=>{
  assert.match(js,/main\.querySelector\('\.tabs'\)/);
  assert.match(css,/su-home-quick-link/);
 });
+
+test('homepage hides redundant directory without removing its SEO links',()=>{
+ const js=read('../public/theme-system/home.mjs');
+ const html=read('../public/index.html');
+ assert.match(js,/duplicateDirectory\.hidden=true/);
+ assert.match(html,/class="tool-directory"/);
+ assert.match(html,/aria-label="Ferramentas para pesquisa"/);
+});
