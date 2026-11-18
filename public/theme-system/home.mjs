@@ -58,6 +58,16 @@ function mount(){
  const logo=top.querySelector('.logo');if(logo){const mark=document.createElement('span');mark.className='su-classic-mark';mark.setAttribute('aria-hidden','true');mark.innerHTML=svgIcon('<path d="m12 2 9 5v10l-9 5-9-5V7zM3 7l9 5 9-5M12 12v10"/><g fill="currentColor" stroke="none"><circle cx="12" cy="6" r="1.3"/><circle cx="7" cy="12" r="1.3"/><circle cx="17" cy="12" r="1.3"/><circle cx="7" cy="16" r="1.3"/><circle cx="17" cy="17" r="1.3"/></g>');logo.after(mark);}
  const menuButton=document.createElement('button');menuButton.type='button';menuButton.className='su-classic-menu-button';menuButton.textContent='Menu';menu.id='su-classic-menu';menuButton.setAttribute('aria-controls',menu.id);menuButton.setAttribute('aria-expanded','false');menu.addEventListener('keydown',e=>{if(e.key==='Escape'){menu.classList.remove('su-menu-open');menuButton.setAttribute('aria-expanded','false');menuButton.focus();}});menuButton.addEventListener('click',()=>{const open=menuButton.getAttribute('aria-expanded')!=='true';menuButton.setAttribute('aria-expanded',String(open));menu.classList.toggle('su-menu-open',open)});top.insertBefore(menuButton,menu);
 
+ const profile=document.createElement('a');profile.className='su-classic-profile';profile.href='#conta';profile.setAttribute('aria-label','Minha conta');profile.innerHTML=svgIcon('<circle cx="12" cy="12" r="10"/><circle cx="12" cy="9" r="3"/><path d="M5 19a7 7 0 0 1 14 0"/>');top.append(profile);
+ const backdrop=document.createElement('button');backdrop.type='button';backdrop.className='su-classic-backdrop';backdrop.setAttribute('aria-label','Fechar menu');top.append(backdrop);
+ const close=document.createElement('button');close.type='button';close.className='su-classic-menu-close';close.setAttribute('aria-label','Fechar menu');close.textContent='×';menu.prepend(close);
+ const homeLink=document.createElement('a');homeLink.href='#su-catalog';homeLink.textContent='Início';menu.insertBefore(homeLink,close.nextSibling);
+ menuButton.innerHTML=svgIcon('<path d="M3 6h18M3 12h18M3 18h18"/>');menuButton.setAttribute('aria-label','Menu');
+ const closeDrawer=()=>{menu.classList.remove('su-menu-open');menuButton.setAttribute('aria-expanded','false');menuButton.focus();};
+ close.addEventListener('click',closeDrawer);backdrop.addEventListener('click',closeDrawer);
+ menu.addEventListener('click',e=>{if(e.target.closest('a')){menu.classList.remove('su-menu-open');menuButton.setAttribute('aria-expanded','false');}});
+ const relocatePicker=()=>{if(document.body.dataset.suTheme==='classic')menu.append(picker);else top.append(picker);};
+ select.addEventListener('change',relocatePicker);relocatePicker();
  const room=main.querySelector('#roomStudio');
  if(room){
   const toggle=document.createElement('button');
