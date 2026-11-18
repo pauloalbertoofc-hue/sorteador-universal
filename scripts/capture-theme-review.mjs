@@ -121,91 +121,39 @@ try{
 
   await page.screenshot({path:'artifacts/theme-review/classic-wheel-'+width+'.png',fullPage:true});
   await page.goto(base+'/?suTheme=classic',{waitUntil:'domcontentloaded'});
-  const roomToggle=page.locator('.su-room-toggle');
-  const roomPanel=page.locator('#roomStudio');
-  await expect(roomToggle).toHaveAttribute('aria-expanded','false');
-  await expect(roomPanel).toBeHidden();
-  await roomToggle.click();
-  await expect(roomToggle).toHaveAttribute('aria-expanded','true');
-  await expect(roomPanel).toBeVisible();
-  await roomToggle.click();
-  await expect(roomPanel).toBeHidden();
-  await page.locator('#roomActive').evaluate(el=>{el.hidden=false});
-  await expect(roomPanel).toBeVisible();
-  await expect(roomToggle).toHaveAttribute('aria-expanded','true');
-  await page.locator('#roomActive').evaluate(el=>{el.hidden=true});
-  await page.goto(base+'/?suTheme=classic',{waitUntil:'domcontentloaded'});
-  const accountToggle=page.locator('.su-account-toggle');
-  const accountPanel=page.locator('#conta');
-  await expect(accountToggle).toHaveAttribute('aria-expanded','false');
-  await expect(accountPanel).toBeHidden();
-  await accountToggle.click();
-  await expect(accountPanel).toBeVisible();
-  await accountToggle.click();
-  await expect(accountPanel).toBeHidden();
-  await page.locator('#accountMember').evaluate(el=>{el.hidden=false});
-  await expect(accountPanel).toBeVisible();
-  await expect(accountToggle).toHaveAttribute('aria-expanded','true');
-  await page.goto(base+'/?suTheme=classic#conta',{waitUntil:'domcontentloaded'});
+  await expect(page.locator('.su-room-toggle')).toBeHidden();
+  await expect(page.locator('.su-account-toggle')).toBeHidden();
+  await expect(page.locator('.su-history-toggle')).toBeHidden();
+  await expect(page.locator('#conta')).toBeHidden();
+  await expect(page.locator('#su-home-history')).toBeHidden();
+  const profile=page.locator('.su-classic-profile');
+  await expect(profile).toBeVisible();
+  await profile.focus();
+  await expect(profile).toBeFocused();
+  await page.keyboard.press('Enter');
   await expect(page.locator('#conta')).toBeVisible();
-  await page.goto(base+'/?suTheme=classic',{waitUntil:'domcontentloaded'});
-  // The real wheel spin above deliberately populated local history.
-  // Reset through the existing UI before testing the empty-history contract.
-  const seededHistory=page.locator('.su-history-toggle');
-  if(await seededHistory.getAttribute('aria-expanded')==='true'){
-   page.once('dialog',dialog=>dialog.accept());
-   await page.locator('#clear').click();
-   await page.reload({waitUntil:'domcontentloaded'});
+  await expect(page.locator('.su-classic-profile-card')).toBeVisible();
+  await page.locator('.su-classic-account-nav a[href="#su-home-history"]').click();
+  await expect(page.locator('#su-home-history')).toBeVisible();
+  await page.once('dialog',dialog=>dialog.accept());
+  await page.locator('#clear').click();
+  await page.locator('.su-classic-back').click();
+  await expect(page.locator('#su-home-history')).toBeHidden();
+  if(width===390){
+   const menu=page.locator('.su-classic-menu-button');
+   await menu.focus();
+   await page.keyboard.press('Space');
+   await expect(menu).toHaveAttribute('aria-expanded','true');
+   const drawer=page.locator('.su-classic-menu');
+   await expect(drawer.locator('#su-home-theme')).toBeVisible();
+   const bounds=await drawer.boundingBox();
+   if(!bounds||Math.abs(bounds.x)>2)throw Error('Drawer is not left aligned');
+   await page.screenshot({path:'artifacts/theme-review/classic-drawer-'+width+'.png'});
+   await drawer.locator('.su-classic-menu-close').focus();
+   await page.keyboard.press('Escape');
+   await expect(menu).toBeFocused();
+   await expect(menu).toHaveAttribute('aria-expanded','false');
   }
-  const historyToggle=page.locator('.su-history-toggle');
-  const historyPanel=page.locator('#su-home-history');
-  await expect(historyToggle).toHaveAttribute('aria-expanded','false');
-  await expect(historyPanel).toBeHidden();
-  await historyToggle.click();
-  await expect(historyPanel).toBeVisible();
-  await historyToggle.click();
-  await expect(historyPanel).toBeHidden();
-  await page.locator('#history').evaluate(el=>{
-   const item=document.createElement('li');item.textContent='Resultado de teste';el.append(item);
-  });
-  await expect(historyPanel).toBeHidden();
-  await page.locator('#history').evaluate(el=>{
-   const item=document.createElement('li');
-   const actions=document.createElement('div');
-   actions.className='history-item-actions';
-   item.append(actions);el.append(item);
-  });
-  await expect(historyPanel).toBeVisible();
-  await expect(historyToggle).toHaveAttribute('aria-expanded','true');
-  await page.goto(base+'/?suTheme=classic',{waitUntil:'domcontentloaded'});
-  for(const [selector,panel] of [
-   ['.su-room-toggle','#roomStudio'],
-   ['.su-account-toggle','#conta'],
-   ['.su-history-toggle','#su-home-history']
-  ]){
-   const button=page.locator(selector);
-   await button.focus();
-   await expect(button).toBeFocused();
-   const focusVisible=await button.evaluate(el=>{
-    const style=getComputedStyle(el);
-    return style.outlineStyle!=='none'&&parseFloat(style.outlineWidth)>=2;
-   });
-   if(!focusVisible)throw new Error('Keyboard focus indicator missing on '+selector+' at '+width+'px');
-   const previous=await button.getAttribute('aria-expanded');
-   await page.keyboard.press('Enter');
-   await expect(button).toHaveAttribute('aria-expanded',previous==='true'?'false':'true');
-   if(previous==='false')await expect(page.locator(panel)).toBeVisible();
-   else await expect(page.locator(panel)).toBeHidden();
-   await page.keyboard.press('Enter');
-   await expect(button).toHaveAttribute('aria-expanded',previous);
-  }
-
-  await page.goto(base+'/?suTheme=classic',{waitUntil:'domcontentloaded'});
-  const roomSpace=page.locator('.su-room-toggle');
-  await roomSpace.focus();
-  const beforeSpace=await roomSpace.getAttribute('aria-expanded');
-  await page.keyboard.press('Space');
-  await expect(roomSpace).toHaveAttribute('aria-expanded',beforeSpace==='true'?'false':'true');
   const firstTool=page.locator('.su-home-grid a').first();
   await firstTool.focus();
   await expect(firstTool).toBeFocused();
