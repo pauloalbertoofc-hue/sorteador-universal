@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {SU_THEMES,SU_DEFAULT_THEME,isSuTheme,setSuTheme,getSuTheme} from '../public/theme-system/themes.mjs';
+import {SU_THEMES,SU_DEFAULT_THEME,isSuTheme,setSuTheme,getSuTheme,themeFromUrl,themedPublicHref} from '../public/theme-system/themes.mjs';
 
 const read=(path)=>readFileSync(new URL(path,import.meta.url),'utf8');
 const routes=['sortear-nomes','sortear-numeros','sortear-equipes','roleta-online','sorteio-rifa-online','cara-ou-coroa-online','sortear-aluno-online','dividir-turma-em-grupos'];
@@ -36,4 +36,15 @@ test('sitemap retains current SEO routes',()=>{
  const xml=read('../public/sitemap.xml');
  for(const slug of routes)assert.ok(xml.includes('https://sorteador.shadownink.com/'+slug+'/'));
  assert.doesNotMatch(xml,/amigo-secreto/);
+});
+
+test('selected theme follows only public routes without browser storage',()=>{
+ const base='https://sorteador.shadownink.com/';
+ assert.equal(themeFromUrl(base+'sortear-nomes/?suTheme=abyssal'),'abyssal');
+ assert.equal(themeFromUrl(base+'sortear-nomes/?suTheme=invalid'),'classic');
+ assert.equal(themedPublicHref('/roleta-online/','ruby',base),base+'roleta-online/?suTheme=ruby');
+ assert.equal(themedPublicHref('/roleta-online/?suTheme=ruby','classic',base),base+'roleta-online/');
+ assert.equal(themedPublicHref('/amigo-secreto/','ruby',base),null);
+ assert.equal(themedPublicHref('/?room=private','ruby',base),null);
+ assert.equal(themedPublicHref('https://example.org/','ruby',base),null);
 });
