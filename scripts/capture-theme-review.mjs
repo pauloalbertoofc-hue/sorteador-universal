@@ -149,6 +149,14 @@ try{
   await page.goto(base+'/?suTheme=classic#conta',{waitUntil:'domcontentloaded'});
   await expect(page.locator('#conta')).toBeVisible();
   await page.goto(base+'/?suTheme=classic',{waitUntil:'domcontentloaded'});
+  // The real wheel spin above deliberately populated local history.
+  // Reset through the existing UI before testing the empty-history contract.
+  const seededHistory=page.locator('.su-history-toggle');
+  if(await seededHistory.getAttribute('aria-expanded')==='true'){
+   page.once('dialog',dialog=>dialog.accept());
+   await page.locator('#clear').click();
+   await page.reload({waitUntil:'domcontentloaded'});
+  }
   const historyToggle=page.locator('.su-history-toggle');
   const historyPanel=page.locator('#su-home-history');
   await expect(historyToggle).toHaveAttribute('aria-expanded','false');
