@@ -80,7 +80,7 @@ function mount(){
   toggle.type='button';toggle.className='su-history-toggle';toggle.setAttribute('aria-controls','su-home-history');
   history.id='su-home-history';
   const entries=history.querySelector('#history');
-  const hasEntries=()=>Boolean(entries&&entries.children.length);
+  const hasEntries=()=>Boolean(entries?.querySelector('.history-item-actions'));
   let expanded=hasEntries()||url.hash==='#su-home-history';
   const render=()=>{
    history.hidden=!expanded;
