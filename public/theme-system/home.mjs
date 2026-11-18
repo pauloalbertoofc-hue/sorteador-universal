@@ -143,6 +143,18 @@ function mount(){
  const side=document.createElement('nav');side.className='su-classic-account-nav';side.setAttribute('aria-label','Menu da conta');
  side.innerHTML='<strong>Minha área</strong><a href="#conta">Minha conta</a><a href="#su-home-history">Histórico</a><a href="#su-plans">Plano e assinatura</a><a href="#roomStudio">Salas compartilhadas</a><a href="#ajuda">Ajuda</a>';
  back.after(side);
+ if(account){
+  const overview=document.createElement('div');overview.className='su-classic-account-overview';
+  const title=document.createElement('h2');title.textContent='Minha conta';
+  const intro=document.createElement('p');intro.textContent='Gerencie seu perfil, histórico e assinatura.';
+  const card=document.createElement('div');card.className='su-classic-profile-card';
+  card.innerHTML=svgIcon('<circle cx="12" cy="12" r="10"/><circle cx="12" cy="9" r="3"/><path d="M5 19a7 7 0 0 1 14 0"/>')+'<div><strong></strong><small></small></div>';
+  const update=()=>{const member=account.querySelector('#accountMember');const signed=member&&!member.hidden;card.querySelector('strong').textContent=signed?(account.querySelector('#accountIdentity').textContent||'Minha conta'):'Visitante';card.querySelector('small').textContent=signed?(account.querySelector('#subscriptionState').textContent||'Consulte sua assinatura'):'Entre ou crie sua conta';};
+  overview.append(title,intro,card);account.prepend(overview);
+  const member=account.querySelector('#accountMember');if(member)new MutationObserver(update).observe(member,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['hidden']});update();
+  side.innerHTML='<strong>Minha área</strong>'+[['#conta','Meus dados','<circle cx="12" cy="7" r="3"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/>'],['#su-home-history','Histórico de sorteios','<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>'],['#roomStudio','Minhas salas',people],['#su-plans','Assinatura e planos','<rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20"/>'],['#ajuda','Ajuda','<circle cx="12" cy="12" r="10"/><path d="M9 8a3 3 0 1 1 3 4v2M12 18h.01"/>']].map(([href,label,icon])=>'<a href="'+href+'">'+svgIcon(icon)+'<span>'+label+'</span><i aria-hidden="true">›</i></a>').join('');
+ }
+
 
  const syncView=()=>{
   const view=views[location.hash]||'home';
