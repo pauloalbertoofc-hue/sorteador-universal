@@ -98,7 +98,29 @@ try{
   });
   await expect(historyPanel).toBeVisible();
   await expect(historyToggle).toHaveAttribute('aria-expanded','true');
-  // Deep links must bypass homepage decoration in private rooms and keep tools directly usable.
+  await page.goto(base+'/?suTheme=classic',{waitUntil:'domcontentloaded'});
+  for(const [selector,panel] of [
+   ['.su-room-toggle','#roomStudio'],
+   ['.su-account-toggle','#conta'],
+   ['.su-history-toggle','#su-home-history']
+  ]){
+   const button=page.locator(selector);
+   await button.focus();
+   await expect(button).toBeFocused();
+   const focusVisible=await button.evaluate(el=>{
+    const style=getComputedStyle(el);
+    return style.outlineStyle!=='none'&&parseFloat(style.outlineWidth)>=2;
+   });
+   if(!focusVisible)throw new Error('Keyboard focus indicator missing on '+selector+' at '+width+'px');
+   const previous=await button.getAttribute('aria-expanded');
+   await page.keyboard.press('Enter');
+   await expect(button).toHaveAttribute('aria-expanded',previous==='true'?'false':'true');
+   if(previous==='false')await expect(page.locator(panel)).toBeVisible();
+   else await expect(page.locator(panel)).toBeHidden();
+   await page.keyboard.press('Enter');
+   await expect(button).toHaveAttribute('aria-expanded',previous);
+  }
+
   await page.goto(base+'/?room=visual-contract&suTheme=ruby',{waitUntil:'domcontentloaded'});
   await expect(page.locator('.su-home-directory')).toHaveCount(0);
   await expect(page.locator('.su-room-toggle')).toHaveCount(0);
