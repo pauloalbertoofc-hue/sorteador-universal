@@ -129,3 +129,11 @@ body.su-home-themed[data-su-theme="classic"] .su-home-grid a:after{content:'→'
  body.su-home-themed[data-su-theme="classic"] .su-home-grid a:after{grid-column:3;grid-row:1/span 2;align-self:center}
  body.su-home-themed[data-su-theme="classic"] .su-home-grid a strong,body.su-home-themed[data-su-theme="classic"] .su-home-grid a span:not(.su-classic-glyph){grid-column:2}
 }
+
+/* View separation is presentation-only: existing forms and listeners stay mounted. */
+.su-classic-back{display:none}
+body.su-home-themed[data-su-theme="classic"] main[data-su-view="home"] > :is(.tabs,.quick-start,.shareable-models,.panel,#ajuda,#privacidade){display:none!important}
+body.su-home-themed[data-su-theme="classic"] main[data-su-view="draw"] > :is(header,.su-home-directory,.install-section,#roomStudio,.su-room-toggle,#conta,.su-account-toggle,#ajuda,#privacidade){display:none!important}
+body.su-home-themed[data-su-theme="classic"] main[data-su-view="help"] > :not(.top,.su-classic-back,#ajuda,.foot,script),
+body.su-home-themed[data-su-theme="classic"] main[data-su-view="privacy"] > :not(.top,.su-classic-back,#privacidade,.foot,script){display:none!important}
+body.su-home-themed[data-su-theme="classic"] main[data-su-view]:not([data-su-view="home"]) > .su-classic-back{display:inline-flex;align-items:center;min-height:44px;color:#1264d9;text-decoration:none;font-weight:650;margin:10px 0}
