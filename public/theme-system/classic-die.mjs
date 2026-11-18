@@ -12,13 +12,19 @@ export function mountClassicDie(host){
  vec3 local(vec3 p){p.y-=.07*sin(time);p.xz=rot(.65+tilt.x)*p.xz;p.yz=rot(.42+tilt.y)*p.yz;return p;}
  float box(vec3 p){vec3 q=abs(p)-vec3(.69);return length(max(q,0.))+min(max(q.x,max(q.y,q.z)),0.)-.13;}
  float pip(vec2 p,vec2 c){return length(p-c)-.104;}
+ float face(vec2 p,float n){
+ float d=10.;
+ if(n==1.||n==3.||n==5.)d=pip(p,vec2(0.));
+ if(n>=2.)d=min(d,min(pip(p,vec2(-.37,-.37)),pip(p,vec2(.37,.37))));
+ if(n>=4.)d=min(d,min(pip(p,vec2(-.37,.37)),pip(p,vec2(.37,-.37))));
+ if(n==6.)d=min(d,min(pip(p,vec2(-.37,0.)),pip(p,vec2(.37,0.))));
+ return d;
+ }
  float holes(vec3 p){
- float a=min(pip(p.xz,vec2(-.37,-.37)),pip(p.xz,vec2(.37,.37)));
- a=min(a,min(pip(p.xz,vec2(-.37,.37)),pip(p.xz,vec2(.37,-.37))));
- a=min(a,pip(p.xz,vec2(0.)));
- float b=min(pip(p.xy,vec2(-.37,-.37)),min(pip(p.xy,vec2(.37,.37)),pip(p.xy,vec2(0.))));
- float c=min(min(pip(p.zy,vec2(-.37,-.37)),pip(p.zy,vec2(.37,.37))),min(pip(p.zy,vec2(-.37,.37)),pip(p.zy,vec2(.37,-.37))));
- return min(max(a,abs(abs(p.y)-.82)-.05),min(max(b,abs(abs(p.z)-.82)-.05),max(c,abs(abs(p.x)-.82)-.05)));
+ float a=max(face(p.xz,p.y>0.?5.:2.),abs(abs(p.y)-.82)-.05);
+ float b=max(face(p.xy,p.z>0.?3.:4.),abs(abs(p.z)-.82)-.05);
+ float c=max(face(p.zy,p.x>0.?1.:6.),abs(abs(p.x)-.82)-.05);
+ return min(a,min(b,c));
  }
  float scene(vec3 p){p=local(p);return max(box(p),-holes(p));}
  void main(){
@@ -55,7 +61,13 @@ export function mountClassicDie(host){
  }
  const start=()=>{if(!raf&&!lost)raf=requestAnimationFrame(draw);};
  host.addEventListener('pointermove',e=>{const r=host.getBoundingClientRect();tx=(e.clientX-r.left-r.width/2)/r.width*.85;ty=(e.clientY-r.top-r.height/2)/r.height*.65;start();});
- host.addEventListener('pointerleave',()=>{tx=ty=0;});
+ host.style.touchAction='pan-y';
+ let touchStart=null;
+ host.addEventListener('pointerdown',e=>{if(e.pointerType==='touch')touchStart={x:e.clientX,y:e.clientY};});
+ host.addEventListener('pointermove',e=>{if(e.pointerType==='touch'&&touchStart){tx=Math.max(-1.2,Math.min(1.2,(e.clientX-touchStart.x)/90));ty=0;start();}});
+ const release=()=>{touchStart=null;tx=ty=0;start();};
+ host.addEventListener('pointerup',release);host.addEventListener('pointercancel',release);
+ host.addEventListener('pointerleave',release);
  new IntersectionObserver(entries=>{visible=entries[0].isIntersecting;if(visible)start();}).observe(host);
  new ResizeObserver(start).observe(host);new MutationObserver(start).observe(document.body,{attributes:true,attributeFilter:['data-su-theme']});document.addEventListener('visibilitychange',start);reduced.addEventListener('change',start);
  canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();lost=true;canvas.remove();if(fallback)fallback.style.opacity='';});
