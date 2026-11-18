@@ -167,3 +167,13 @@ body.su-home-themed[data-su-theme="classic"] #spin{background:#1264d9;color:whit
  body.su-home-themed[data-su-theme="classic"] .panel{padding:16px}
  body.su-home-themed[data-su-theme="classic"] #draw{flex-basis:100%}
 }
+
+/* Dedicated classic workspaces, without remounting account or room state. */
+body.su-home-themed[data-su-theme="classic"] main[data-su-view="account"] > :not(.top,.su-classic-back,#conta,.su-account-toggle,.foot,script),
+body.su-home-themed[data-su-theme="classic"] main[data-su-view="rooms"] > :not(.top,.su-classic-back,#roomStudio,.su-room-toggle,.foot,script),
+body.su-home-themed[data-su-theme="classic"] main[data-su-view="history"] > :not(.top,.su-classic-back,#su-home-history,.su-history-toggle,.foot,script){display:none!important}
+body.su-home-themed[data-su-theme="classic"] :is(#conta,#roomStudio,#su-home-history){background:#fff;color:#112747;border:1px solid #dbe5f4;border-radius:16px;padding:clamp(16px,3vw,28px)}
+body.su-home-themed[data-su-theme="classic"] :is(#conta,#roomStudio,#su-home-history) :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea){background:#f8faff;color:#112747;border:1px solid #d1deef;border-radius:9px;max-width:100%}
+body.su-home-themed[data-su-theme="classic"] :is(#conta,#roomStudio,#su-home-history) .small{color:#405875}
+body.su-home-themed[data-su-theme="classic"] main[data-su-view="rooms"] .room-create{gap:12px}
+body.su-home-themed[data-su-theme="classic"] main[data-su-view="rooms"] #roomCreate{background:#1264d9;color:white;min-height:44px}
