@@ -4,6 +4,10 @@ function mount(){
  const url=new URL(location.href);
  if(url.searchParams.get('incorporado')==='1'){
   if(url.searchParams.has('suTheme')){document.body.classList.add('su-home-themed');setSuTheme(document.body,themeFromUrl(location.href));}
+  window.addEventListener('message',event=>{
+   if(event.origin!==location.origin||event.data?.type!=='su:set-embed-theme'||!SU_THEMES.includes(event.data.theme))return;
+   document.body.classList.add('su-home-themed');setSuTheme(document.body,event.data.theme);
+  });
   return;
  }
  if(url.searchParams.has('room')||url.searchParams.has('evento')||url.searchParams.has('event'))return;
