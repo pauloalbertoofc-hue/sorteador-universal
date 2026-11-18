@@ -202,3 +202,11 @@ body.su-home-themed[data-su-theme="classic"] main[data-su-view="home"] > header{
 body.su-home-themed[data-su-theme="classic"] .su-classic-hero{grid-template-columns:1fr 1fr;gap:24px}
 body.su-home-themed[data-su-theme="classic"] .su-classic-art{height:300px;display:grid;place-items:center;background:radial-gradient(ellipse,#d6e7ff 0%,transparent 70%)}
 @media(max-width:700px){body.su-home-themed[data-su-theme="classic"] .su-classic-hero{grid-template-columns:1fr;gap:6px}body.su-home-themed[data-su-theme="classic"] .su-classic-art{height:190px}}
+
+.su-classic-room-banner{display:none}
+body.su-home-themed[data-su-theme="classic"] main[data-su-view="home"]>.su-classic-room-banner{display:grid;grid-template-columns:1fr minmax(120px,30%);align-items:center;gap:16px;grid-column:1/-1;padding:24px;background:linear-gradient(115deg,#124cb9,#2879ed);color:white;border-radius:18px;overflow:hidden}
+.su-classic-room-banner h2{color:white;margin:0 0 8px;font-size:clamp(1.2rem,2.4vw,1.65rem)}
+.su-classic-room-banner p{color:#e9f2ff;margin:0 0 16px;line-height:1.5}
+.su-classic-room-banner a{display:inline-block;background:white;color:#124cb9;padding:11px 16px;border-radius:9px;font-weight:700;text-decoration:none}
+.su-classic-room-banner svg{width:100%;max-height:140px}
+@media(max-width:600px){body.su-home-themed[data-su-theme="classic"] main[data-su-view="home"]>.su-classic-room-banner{grid-template-columns:1fr;padding:18px;gap:8px}.su-classic-room-banner svg{max-height:85px}}
