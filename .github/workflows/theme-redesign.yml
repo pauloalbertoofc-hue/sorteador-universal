@@ -1,0 +1,40 @@
+name: Theme redesign contracts
+on:
+  pull_request:
+    paths:
+      - 'public/theme-system/**'
+      - 'public/index.html'
+      - 'public/sortear-nomes/index.html'
+      - 'public/sortear-numeros/index.html'
+      - 'public/sortear-equipes/index.html'
+      - 'public/roleta-online/index.html'
+      - 'public/sorteio-rifa-online/index.html'
+      - 'public/cara-ou-coroa-online/index.html'
+      - 'public/sortear-aluno-online/index.html'
+      - 'public/dividir-turma-em-grupos/index.html'
+      - 'tests/theme-redesign-contract.test.mjs'
+      - '.github/workflows/theme-redesign.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'public/theme-system/**'
+      - 'tests/theme-redesign-contract.test.mjs'
+      - '.github/workflows/theme-redesign.yml'
+permissions:
+  contents: read
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate JavaScript syntax
+        run: |
+          node --check public/theme-system/themes.mjs
+          node --check public/theme-system/seo-shell.mjs
+          node --check public/theme-system/home.mjs
+      - name: Verify redesign contracts
+        run: node --test tests/theme-redesign-contract.test.mjs
