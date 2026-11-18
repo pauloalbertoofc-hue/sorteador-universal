@@ -235,3 +235,12 @@ body.su-home-themed[data-su-theme="classic"] main:is([data-su-view="account"],[d
 body.su-home-themed[data-su-theme="classic"] main:is([data-su-view="account"],[data-su-view="history"],[data-su-view="plans"])>:is(#conta,#su-home-history,#su-plans,.su-account-toggle,.su-history-toggle){grid-column:2;min-width:0}
 }
 @media(max-width:899px){body.su-home-themed[data-su-theme="classic"] main:is([data-su-view="account"],[data-su-view="history"],[data-su-view="plans"])>.su-classic-account-nav{flex-direction:row;flex-wrap:wrap;align-items:center;gap:4px}}
+
+/* Classic consent: preserve equal prominence for both choices. */
+body.su-home-themed[data-su-theme="classic"] #su-analytics-choice{background:#fff!important;color:#17304e!important;border:1px solid #c8d9ef!important;box-shadow:0 8px 30px #183b6526!important}
+body.su-home-themed[data-su-theme="classic"] #su-analytics-choice button{background:#edf4ff!important;color:#17477d!important;border:1px solid #b8cdec!important;min-height:44px}
+body.su-home-themed[data-su-theme="classic"] #su-analytics-choice button:focus-visible{outline:3px solid #1764ca;outline-offset:2px}
+@media(max-width:700px){
+ body.su-home-themed[data-su-theme="classic"] .su-classic-art{height:150px}
+ body.su-home-themed[data-su-theme="classic"] .su-classic-hero{gap:4px}
+}
