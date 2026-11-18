@@ -14,6 +14,7 @@ on:
       - 'public/dividir-turma-em-grupos/index.html'
       - 'tests/theme-redesign-contract.test.mjs'
       - '.github/workflows/theme-redesign.yml'
+      - 'scripts/capture-theme-review.mjs'
   push:
     branches: [main]
     paths:
@@ -25,7 +26,7 @@ permissions:
 jobs:
   contracts:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -38,3 +39,19 @@ jobs:
           node --check public/theme-system/home.mjs
       - name: Verify redesign contracts
         run: node --test tests/theme-redesign-contract.test.mjs
+      - name: Install browser dependencies
+        run: |
+          npm ci --ignore-scripts
+          npx playwright install --with-deps chromium
+      - name: Capture homepage and SEO pages in seven themes
+        run: |
+          python3 -m http.server 8765 --directory public > /tmp/su-static-server.log 2>&1 &
+          node scripts/capture-theme-review.mjs
+      - name: Upload visual review screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: theme-review-seven-themes
+          path: artifacts/theme-review/
+          if-no-files-found: warn
+          retention-days: 7
