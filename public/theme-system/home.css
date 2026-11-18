@@ -80,3 +80,36 @@ body.su-home-themed .su-history-toggle:focus-visible{outline:3px solid var(--su-
 
 /* Legacy homepage heading was hard-coded white; honor light theme contrast. */
 body.su-home-themed:not([data-su-theme="original"]) header h1{color:var(--su-text)}
+
+/* Classic reference pilot. Other themes and embedded tools retain their current layout. */
+.su-classic-hero,.su-classic-menu,.su-classic-mark,.su-home-grid a .su-classic-glyph{display:none}
+body.su-home-themed[data-su-theme="classic"] .top{gap:12px;align-items:center}
+body.su-home-themed[data-su-theme="classic"] .top .logo,body.su-home-themed[data-su-theme="classic"] .top .pill{display:none}
+body.su-home-themed[data-su-theme="classic"] .su-classic-mark{display:inline-block;color:#1264d9;font-size:34px;line-height:1}
+body.su-home-themed[data-su-theme="classic"] .su-classic-menu{display:flex;gap:16px;flex-wrap:wrap}
+body.su-home-themed[data-su-theme="classic"] .su-classic-menu a{color:#19375e;text-decoration:none;font-size:14px;font-weight:650}
+body.su-home-themed[data-su-theme="classic"] header{background:linear-gradient(115deg,#fff,#eaf2ff);border:1px solid #dbe5f4;border-radius:18px;padding:24px;margin:18px 0}
+body.su-home-themed[data-su-theme="classic"] header>h1,body.su-home-themed[data-su-theme="classic"] header>p{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+body.su-home-themed[data-su-theme="classic"] .su-classic-hero{display:grid;grid-template-columns:1.2fr 1fr;align-items:center;gap:12px}
+.su-classic-copy h2{font-size:clamp(25px,4vw,46px);line-height:1.12;letter-spacing:-.035em;margin:12px 0;color:#112747}
+.su-classic-copy p{font-size:15px;line-height:1.5;margin:0 0 16px;color:#405875}
+.su-classic-eyebrow{font-size:12px;background:#e1ecfb;color:#174f9b;border-radius:20px;padding:5px 10px}
+.su-classic-art svg{display:block;width:100%;max-height:240px}
+.su-classic-actions{display:flex;flex-wrap:wrap;gap:8px}
+.su-classic-actions a{display:inline-flex;align-items:center;min-height:44px;padding:8px 14px;border-radius:9px;background:#1264d9;color:white;text-decoration:none;font-weight:700;font-size:14px}
+.su-classic-actions a+a{background:white;color:#19375e;border:1px solid #d1deef}
+body.su-home-themed[data-su-theme="classic"] .su-home-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+body.su-home-themed[data-su-theme="classic"] .su-home-grid a{min-height:0;gap:5px;padding:13px;border-radius:12px;box-shadow:0 2px 5px #173d7009}
+body.su-home-themed[data-su-theme="classic"] .su-home-grid a .su-classic-glyph{display:block;color:#1264d9;font-size:22px;font-weight:750;line-height:1.2}
+body.su-home-themed[data-su-theme="classic"] .install-section{background:#fff!important;border-color:#d1deef!important;color:#112747}
+body.su-home-themed[data-su-theme="classic"] .install-section p{color:#405875!important}
+@media(max-width:600px){
+ body.su-home-themed[data-su-theme="classic"] .su-classic-menu{order:3;width:100%;gap:12px}
+ body.su-home-themed[data-su-theme="classic"] header{padding:16px}
+ body.su-home-themed[data-su-theme="classic"] .su-classic-hero{grid-template-columns:1fr}
+ .su-classic-art svg{max-height:150px}
+ body.su-home-themed[data-su-theme="classic"] .su-home-grid{grid-template-columns:1fr;gap:7px}
+ body.su-home-themed[data-su-theme="classic"] .su-home-grid a{display:grid;grid-template-columns:34px 1fr;align-items:center;padding:10px 12px;gap:2px 8px}
+ body.su-home-themed[data-su-theme="classic"] .su-home-grid a .su-classic-glyph{grid-row:span 2}
+ body.su-home-themed[data-su-theme="classic"] .su-home-grid a strong{font-size:15px}
+}
