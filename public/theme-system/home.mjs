@@ -39,6 +39,15 @@ function mount(){
  const hero=document.createElement('div');hero.className='su-classic-copy';
  hero.innerHTML='<span class="su-classic-eyebrow">Sorteios, roletas e muito mais</span><h2>O que você quer sortear hoje?</h2><p>Ferramentas simples, rápidas e confiáveis para organizar sorteios e atividades em grupo.</p><div class="su-classic-actions"><a href="#su-catalog">Explorar ferramentas →</a><a href="#ajuda">Como funciona</a></div>';
  const heroLayout=document.createElement('div');heroLayout.className='su-classic-hero';heroLayout.append(hero,art);header.append(heroLayout);
+// Load the interactive hero only when the classic theme is selected.
+ let classicDieRequested=false;
+ const loadClassicDie=()=>{
+  if(classicDieRequested||document.body.dataset.suTheme!=='classic')return;
+  classicDieRequested=true;
+  import('./classic-die.mjs').then(m=>m.mountClassicDie(art)).catch(()=>{});
+ };
+ select.addEventListener('change',loadClassicDie);loadClassicDie();
+
  section.id='su-catalog';
  const menu=document.createElement('nav');menu.className='su-classic-menu';menu.setAttribute('aria-label','Navegação principal');menu.innerHTML='<a href="#su-catalog">Ferramentas</a><a href="#roomStudio" data-su-open=".su-room-toggle">Salas</a><a href="#su-plans">Planos</a><a href="#ajuda">Ajuda</a><a href="#conta">Minha conta</a>';top.insertBefore(menu,picker);
  menu.addEventListener('click',event=>{const a=event.target.closest('a[data-su-open]');if(a){const b=main.querySelector(a.dataset.suOpen);if(b?.getAttribute('aria-expanded')==='false')b.click();}});
