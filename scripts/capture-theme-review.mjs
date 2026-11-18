@@ -136,7 +136,7 @@ try{
   });
   if(!toolFocus)throw new Error('Tool catalog keyboard focus indicator missing at '+width+'px');
   await page.keyboard.press('Enter');
-  await expect(page).toHaveURL(/\\/sortear-nomes\\//);
+  await expect(page).toHaveURL(url=>url.pathname==='/sortear-nomes/');
   await expect(page.locator('#sorteador-embed')).toBeVisible();
   await page.goto(base+'/?room=visual-contract&suTheme=ruby',{waitUntil:'domcontentloaded'});
   await expect(page.locator('.su-home-directory')).toHaveCount(0);
