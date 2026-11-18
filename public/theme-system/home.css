@@ -262,3 +262,20 @@ body.su-home-themed[data-su-theme="classic"] .su-classic-menu.su-menu-open~.su-c
 body.su-home-themed[data-su-theme="classic"] .su-classic-menu .su-home-themes{display:flex;flex-direction:column;align-items:stretch;color:white;margin:12px 0}
 body.su-home-themed[data-su-theme="classic"] .su-classic-menu .su-home-themes label{color:white}
 }
+
+.su-classic-account-overview{display:none}
+body.su-home-themed[data-su-theme="classic"] #conta .su-classic-account-overview{display:block;color:#142444;margin-bottom:20px}
+.su-classic-account-overview h2{font-size:26px;margin:0 0 6px}
+.su-classic-account-overview p{color:#43546c;margin:0 0 18px}
+.su-classic-profile-card{display:flex;align-items:center;gap:14px;padding:18px;border:1px solid #dce6f4;border-radius:14px;background:#fff;box-shadow:0 3px 10px #163b650a}
+.su-classic-profile-card>svg{width:52px;height:52px;color:#155bc8;flex-shrink:0}
+.su-classic-profile-card div{min-width:0;overflow-wrap:anywhere}
+.su-classic-profile-card small{display:block;color:#43546c;margin-top:4px}
+body.su-home-themed[data-su-theme="classic"] .su-classic-account-nav a{display:flex;align-items:center;gap:12px;min-height:48px;box-sizing:border-box}
+.su-classic-account-nav a svg{color:#155bc8;flex-shrink:0}
+.su-classic-account-nav a i{margin-left:auto;font-style:normal;font-size:23px}
+@media(max-width:899px){
+body.su-home-themed[data-su-theme="classic"] main:is([data-su-view="account"],[data-su-view="history"],[data-su-view="plans"])>.su-classic-account-nav{flex-direction:column;align-items:stretch;background:transparent;border:0;padding:0;gap:10px}
+body.su-home-themed[data-su-theme="classic"] .su-classic-account-nav a{background:#fff;border:1px solid #dce6f4;border-radius:12px;padding:12px 16px;box-shadow:0 2px 8px #163b650a}
+body.su-home-themed[data-su-theme="classic"] .su-classic-account-nav a[aria-current="page"]{background:#e8f1ff}
+}
