@@ -196,3 +196,9 @@ body.su-home-themed[data-su-theme="classic"] #conta :is(#accountLogin,#accountCh
 /* Give the classic hero illustration its own responsive negative space. */
 body.su-home-themed[data-su-theme="classic"] .su-classic-art svg{width:100%;height:auto;max-height:310px;margin:auto}
 @media(max-width:600px){body.su-home-themed[data-su-theme="classic"] .su-classic-art svg{max-height:175px}}
+
+/* Full-width classic hero and stable canvas dimensions. */
+body.su-home-themed[data-su-theme="classic"] main[data-su-view="home"] > header{width:100%;max-width:none;box-sizing:border-box;grid-column:1/-1}
+body.su-home-themed[data-su-theme="classic"] .su-classic-hero{grid-template-columns:1fr 1fr;gap:24px}
+body.su-home-themed[data-su-theme="classic"] .su-classic-art{height:300px;display:grid;place-items:center;background:radial-gradient(ellipse,#d6e7ff 0%,transparent 70%)}
+@media(max-width:700px){body.su-home-themed[data-su-theme="classic"] .su-classic-hero{grid-template-columns:1fr;gap:6px}body.su-home-themed[data-su-theme="classic"] .su-classic-art{height:190px}}
