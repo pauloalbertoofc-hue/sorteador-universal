@@ -16,4 +16,4 @@ body.su-integrated footer{border-color:var(--su-border)}
 @media(max-width:540px){body.su-integrated .su-nav{align-items:flex-start}body.su-integrated .su-nav label{display:flex;flex-direction:column;gap:5px}body.su-integrated .su-nav select{margin:0}}
 
 /* Original leaves existing landing-page typography, colors and layout untouched. */
-body.su-integrated[data-su-theme="original"]{--su-surface:#fff;--su-text:#172448;--su-muted:#52617d;--su-border:#dce3f1;--su-accent:#6243df;--su-on-accent:#fff;--su-focus:#285fd4}
+body.su-integrated[data-su-theme="original"]{--su-surface:#151d28;--su-text:#edf2f9;--su-muted:#b2c0d0;--su-border:#344153;--su-accent:#bedcff;--su-on-accent:#111924;--su-focus:#8bbaff}
