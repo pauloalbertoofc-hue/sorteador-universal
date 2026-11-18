@@ -15,11 +15,14 @@ on:
       - 'tests/theme-redesign-contract.test.mjs'
       - '.github/workflows/theme-redesign.yml'
       - 'scripts/capture-theme-review.mjs'
+  workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, design/unified-themes-and-seo-routes]
     paths:
       - 'public/theme-system/**'
       - 'tests/theme-redesign-contract.test.mjs'
+      - 'scripts/capture-theme-review.mjs'
+      - 'public/index.html'
       - '.github/workflows/theme-redesign.yml'
 permissions:
   contents: read
