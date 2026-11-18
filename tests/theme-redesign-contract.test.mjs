@@ -48,3 +48,11 @@ test('selected theme follows only public routes without browser storage',()=>{
  assert.equal(themedPublicHref('/?room=private','ruby',base),null);
  assert.equal(themedPublicHref('https://example.org/','ruby',base),null);
 });
+
+test('original theme does not receive redesigned legacy panel palette',()=>{
+ const home=read('../public/theme-system/home.css');
+ const seo=read('../public/theme-system/seo-shell.css');
+ assert.match(home,/su-home-themed:not\(\[data-su-theme="original"\]\) \.panel/);
+ assert.match(home,/su-home-themed:not\(\[data-su-theme="original"\]\) \.field input/);
+ assert.match(seo,/su-integrated:not\(\[data-su-theme="original"\]\) h1/);
+});
