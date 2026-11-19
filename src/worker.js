@@ -99,7 +99,7 @@ async function api(req,env,url,ctx){const path=url.pathname,method=req.method;
  }
  if(path==='/api/health'&&method==='GET')return json({ok:true,version:'2.0.4'});
  if(path==='/api/password/request'&&method==='POST'){
-  const resetUnavailable=reason=>{console.warn('password-reset-config',reason);return fail('Recuperação temporariamente indisponível.',503);};
+  const resetUnavailable=reason=>{console.warn('password-reset-config',reason);const codes={'missing-api-key':'R01','missing-sender':'R02','missing-site-url':'R03','invalid-site-url':'R04','invalid-site-url-policy':'R05','origin-mismatch':'R06'};return fail('Recuperação temporariamente indisponível.'+(url.hostname==='design-unified-themes-and-seo-routes-sorteador-universal.paulo-alberto-ofc.workers.dev'?' ['+codes[reason]+']':''),503);};
   if(!env.RESET_EMAIL_API_KEY)return resetUnavailable('missing-api-key');
   if(!env.RESET_EMAIL_FROM)return resetUnavailable('missing-sender');
   if(!env.RESET_SITE_URL)return resetUnavailable('missing-site-url');
