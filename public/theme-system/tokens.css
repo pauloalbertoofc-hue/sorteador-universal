@@ -51,3 +51,9 @@ body.su-home-themed[data-su-theme="abyssal"] .su-home-grid a{border-radius:24px 
 .su-recovery [role=status]:empty{display:none}
 button.su-forgot-password{display:block;width:fit-content;max-width:100%;min-height:44px;margin:4px 0 8px auto;padding:6px 0;border:0;background:transparent;color:var(--su-text,#172448);font:inherit;font-size:.875rem;text-decoration:underline;text-underline-offset:3px;box-shadow:none;cursor:pointer}
 .su-recovery :focus-visible,button.su-forgot-password:focus-visible{outline:3px solid var(--su-focus,#285fd4);outline-offset:3px}
+
+/* Inline account registration and readable feedback across themes. */
+body.su-home-themed #accountGuest [hidden]{display:none!important}
+body.su-home-themed #accountGuest #accountMessage{color:var(--su-text,#172448)!important;background:var(--su-bg,#f5f7fd);border:1px solid var(--su-border,#dce3f1);border-radius:8px;padding:10px 12px;margin:8px 0 0;line-height:1.5;overflow-wrap:anywhere;min-height:0}
+body.su-home-themed #accountGuest #accountMessage:empty{display:none}
+body.su-home-themed #accountGuest .account-actions button{min-height:44px}
