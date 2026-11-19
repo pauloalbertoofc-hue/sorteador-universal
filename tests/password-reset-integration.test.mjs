@@ -47,4 +47,38 @@ test('password reset: expiry, one-time consumption, concurrent submissions and s
  await seed(expired,Date.now()-1000);
  await worker.scheduled({},env);
  assert.equal((await db.prepare('SELECT COUNT(*) AS n FROM password_resets WHERE user_id=?').bind(user.id).first()).n,0);
+ // Mock the provider in the Node process; no network or real credentials.
+ const sent=[];
+ let providerStatus=200;
+ t.mock.method(globalThis,'fetch',async (url,options)=>{
+  assert.equal(url,'https://api.resend.com/emails');
+  sent.push(JSON.parse(options.body));
+  return new Response('{}',{status:providerStatus});
+ });
+ Object.assign(env,{RESET_EMAIL_API_KEY:'test-only',RESET_EMAIL_FROM:'test@example.test',RESET_SITE_URL:base});
+ const unknown=await post('/api/password/request',{email:'unknown@example.test'});
+ const first=await post('/api/password/request',{email});
+ assert.equal(first.status,200);
+ assert.deepEqual(await first.json(),await unknown.json());
+ assert.equal(sent.length,1);
+ const extract=mail=>mail.text.match(/#su-reset=([a-f0-9]{64})/)[1];
+ const firstToken=extract(sent[0]);
+ let stored=await db.prepare('SELECT token_hash,expires_at FROM password_resets WHERE user_id=?').bind(user.id).first();
+ assert.equal(stored.token_hash,digest(firstToken));
+ assert.ok(stored.expires_at>Date.now()&&stored.expires_at<=Date.now()+900000);
+ assert.equal((await post('/api/password/request',{email})).status,200);
+ assert.equal(sent.length,2);
+ const secondToken=extract(sent[1]);
+ assert.notEqual(firstToken,secondToken);
+ assert.equal((await post('/api/password/reset',{token:firstToken,password:oldPassword})).status,400);
+ providerStatus=500;
+ assert.equal((await post('/api/password/request',{email})).status,200);
+ assert.equal(sent.length,3);
+ assert.equal(await db.prepare('SELECT token_hash FROM password_resets WHERE user_id=?').bind(user.id).first(),null);
+ assert.equal((await post('/api/password/request',{email})).status,200);
+ assert.equal(sent.length,3,'email rate limit suppresses further delivery');
+ env.RESET_SITE_URL='https://wrong.example';
+ assert.equal((await post('/api/password/request',{email})).status,503);
+ assert.equal((await post('/api/password/request',{email:'unknown@example.test'})).status,503);
+
 });
