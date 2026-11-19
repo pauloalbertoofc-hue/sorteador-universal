@@ -23,6 +23,17 @@ test('password reset: expiry, one-time consumption, concurrent submissions and s
  }
  const reg=await post('/api/register',{email,password:oldPassword});
  assert.equal(reg.status,201);
+ // Profile records are scoped to the authenticated account.
+ const cookie=reg.headers.get('set-cookie').split(';')[0];
+ const profileRequest=(method='GET',body,session=cookie,origin=base)=>worker.fetch(new Request(base+'/api/profile',{method,headers:{cookie:session,origin,'content-type':'application/json'},...(body?{body:JSON.stringify(body)}:{})}),env);
+ assert.equal((await profileRequest('GET',null,'')).status,401);
+ assert.deepEqual((await (await profileRequest()).json()).profile,{full_name:'',display_name:'',username:null});
+ const data={full_name:'Pessoa de Teste',display_name:'Teste',username:'TESTE_123'};
+ assert.equal((await profileRequest('POST',data,cookie,'https://wrong.example')).status,403);
+ assert.equal((await profileRequest('POST',{...data,username:'!!'})).status,400);
+ assert.equal((await profileRequest('POST',data)).status,200);
+ assert.deepEqual((await (await profileRequest()).json()).profile,{...data,username:'teste_123'});
+
  const user=await db.prepare('SELECT id FROM users WHERE email=?').bind(email).first();
  const digest=token=>createHash('sha256').update(token).digest('hex');
  async function seed(token,expires){
