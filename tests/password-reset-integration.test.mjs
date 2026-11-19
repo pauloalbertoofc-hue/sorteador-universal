@@ -18,8 +18,8 @@ test('password reset: expiry, one-time consumption, concurrent submissions and s
  }
  const base='https://example.test',email='reset@example.test',oldPassword='Old-password-123',newPassword='New-password-456';
  const env={DB:db};
- async function post(path,data,origin=base){
-  return worker.fetch(new Request(base+path,{method:'POST',headers:{origin,'content-type':'application/json','cf-connecting-ip':'203.0.113.9'},body:JSON.stringify(data)}),env);
+ async function post(path,data,origin=base,ctx){
+  return worker.fetch(new Request(base+path,{method:'POST',headers:{origin,'content-type':'application/json','cf-connecting-ip':'203.0.113.9'},body:JSON.stringify(data)}),env,ctx);
  }
  const reg=await post('/api/register',{email,password:oldPassword});
  assert.equal(reg.status,201);
@@ -77,6 +77,31 @@ test('password reset: expiry, one-time consumption, concurrent submissions and s
  assert.equal(await db.prepare('SELECT token_hash FROM password_resets WHERE user_id=?').bind(user.id).first(),null);
  assert.equal((await post('/api/password/request',{email})).status,200);
  assert.equal(sent.length,3,'email rate limit suppresses further delivery');
+ // Exercise the real execution-context branch without waiting for the provider.
+ const asyncEmail='async-reset@example.test';
+ assert.equal((await post('/api/register',{email:asyncEmail,password:oldPassword})).status,201);
+ let release,entered;
+ const gate=new Promise(resolve=>{release=resolve;});
+ const started=new Promise(resolve=>{entered=resolve;});
+ globalThis.fetch=async (url,options)=>{
+  assert.equal(url,'https://api.resend.com/emails');
+  entered();await gate;
+  return new Response('{}',{status:200});
+ };
+ const pending=[],ctx={waitUntil(promise){pending.push(promise);}};
+ try{
+  const response=await post('/api/password/request',{email:asyncEmail},base,ctx);
+  assert.equal(response.status,200);
+  assert.equal(pending.length,1);
+  await started;
+  let finished=false;pending[0].then(()=>{finished=true;});
+  await Promise.resolve();assert.equal(finished,false);
+  release();await Promise.all(pending);
+  assert.equal(finished,true);
+  const absent=await post('/api/password/request',{email:'absent-async@example.test'},base,ctx);
+  assert.deepEqual(await absent.json(),await response.json());
+  assert.equal(pending.length,2);await Promise.all(pending);
+ }finally{release();await Promise.allSettled(pending);}
  env.RESET_SITE_URL='https://wrong.example';
  assert.equal((await post('/api/password/request',{email})).status,503);
  assert.equal((await post('/api/password/request',{email:'unknown@example.test'})).status,503);
