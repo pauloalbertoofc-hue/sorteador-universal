@@ -309,3 +309,22 @@ body.su-home-themed[data-su-theme="classic"] main[data-su-view]:not([data-su-vie
 /* Keep navigation focus visible for keyboard and programmatic focus. */
 body.su-home-themed[data-su-theme="classic"] :is(.su-home-grid a,.su-classic-profile,.su-classic-menu-button,.su-classic-menu a,.su-classic-menu-close,.su-classic-account-nav a,.su-classic-back):focus{outline:3px solid #1762ce!important;outline-offset:3px}
 body.su-home-themed[data-su-theme="classic"] .su-classic-menu.su-menu-open :is(a,button,select):focus{outline:3px solid #9acaff!important;outline-offset:2px}
+
+.su-profile-popover,.su-auth-intro{display:none}
+body.su-home-themed[data-su-theme="classic"] .top{position:relative;overflow:visible}
+body.su-home-themed[data-su-theme="classic"] .su-classic-profile{border:0;background:transparent;padding:0;cursor:pointer}
+body.su-home-themed[data-su-theme="classic"] .su-classic-profile.su-profile-signed{background:#155dcc;color:white;border-radius:50%;font-weight:700}
+body.su-home-themed[data-su-theme="classic"] .su-profile-popover:not([hidden]){position:absolute;right:0;top:calc(100% - 4px);z-index:10000;display:flex;flex-direction:column;gap:4px;width:min(270px,85vw);padding:16px;background:white;color:#142444;border:1px solid #dce6f4;border-radius:14px;box-shadow:0 12px 30px #10243e33;box-sizing:border-box}
+.su-profile-popover small{color:#43546c;overflow-wrap:anywhere}
+.su-profile-popover hr{width:100%;border:0;border-top:1px solid #dce6f4;margin:5px 0}
+body.su-home-themed[data-su-theme="classic"] .su-profile-popover :is(a,button){display:block;text-align:left;padding:10px;border:0;border-radius:8px;background:white;color:#142444;font:inherit;text-decoration:none}
+body.su-home-themed[data-su-theme="classic"] .su-profile-popover a.su-profile-primary{background:#155dcc;color:white;font-weight:600;text-align:center}
+body.su-home-themed[data-su-theme="classic"] .su-profile-popover :is(a,button):focus{outline:3px solid #1762ce}
+body.su-home-themed[data-su-theme="classic"] main[data-su-view="account"][data-su-signed="false"]>.su-classic-account-nav,
+body.su-home-themed[data-su-theme="classic"] main[data-su-view="account"][data-su-signed="false"] #conta :is(.account-top,.account-note,.su-classic-account-overview){display:none!important}
+body.su-home-themed[data-su-theme="classic"] main[data-su-view="account"][data-su-signed="false"]>#conta{grid-column:1/-1;width:min(100%,620px);margin-inline:auto;box-sizing:border-box}
+body.su-home-themed[data-su-theme="classic"] .su-auth-intro{display:block;margin-bottom:16px}
+body.su-home-themed[data-su-theme="classic"] main[data-su-account-route="su-register"] #accountRegister{background:#155dcc;color:white}
+body.su-home-themed[data-su-theme="classic"] main[data-su-account-route="su-register"] #accountLogin{background:white;color:#155dcc}
+body.su-home-themed[data-su-theme="classic"] main[data-su-signed="true"][data-su-account-route="su-lists"] #conta :is(.account-top,.account-note,#accountMember,.su-classic-account-overview),
+body.su-home-themed[data-su-theme="classic"] main[data-su-signed="true"][data-su-account-route="su-subscription"] #proStudio{display:none!important}
