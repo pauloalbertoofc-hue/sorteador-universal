@@ -170,6 +170,19 @@ function mount(){
   authHero.querySelector('strong').prepend(authDie.querySelector('svg').cloneNode(true));
 
   const password=account.querySelector('#accountPassword'),email=account.querySelector('#accountEmail');
+  const guest=account.querySelector('#accountGuest');
+  const recovery=document.createElement('dialog');recovery.className='su-recovery';recovery.innerHTML='<form><h2>Recuperar senha</h2><p>Informe seu e-mail para receber as instruções.</p><label>E-mail<input type="email" required autocomplete="email" maxlength="254"></label><label hidden>Nova senha<input type="password" autocomplete="new-password" minlength="10" maxlength="128"></label><p role="status" aria-live="polite"></p><button type="submit">Enviar instruções</button> <button type="button" class="secondary">Voltar</button></form>';
+  document.body.append(recovery);
+  const rf=recovery.querySelector('form'),re=recovery.querySelector('input[type=email]'),rp=recovery.querySelector('input[type=password]'),rs=recovery.querySelector('[role=status]'),rb=recovery.querySelector('[type=submit]');
+  let resetToken='';
+  function openRecovery(token=''){resetToken=token;rf.reset();rs.textContent='';re.value=email.value;re.parentElement.hidden=!!token;re.required=!token;rp.parentElement.hidden=!token;rp.required=!!token;recovery.querySelector('h2').textContent=token?'Criar nova senha':'Recuperar senha';recovery.querySelector('h2+p').textContent=token?'Escolha uma senha com pelo menos 10 caracteres.':'Informe seu e-mail para receber as instruções.';rb.textContent=token?'Redefinir senha':'Enviar instruções';if(!recovery.open)recovery.showModal();}
+  const forgot=document.createElement('button');forgot.type='button';forgot.className='su-forgot-password';forgot.textContent='Esqueceu sua senha?';guest.querySelector('.account-actions').before(forgot);forgot.addEventListener('click',()=>openRecovery());
+  recovery.querySelector('[type=button]').addEventListener('click',()=>recovery.close());
+  recovery.addEventListener('close',()=>{resetToken='';rf.reset();});
+  rf.addEventListener('submit',async e=>{e.preventDefault();rb.disabled=true;rs.textContent='Processando…';const token=resetToken;try{const response=await fetch(token?'/api/password/reset':'/api/password/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(token?{token,password:rp.value}:{email:re.value})});const data=await response.json();if(!response.ok)throw Error(data.error||'Não foi possível concluir.');rs.textContent=token?'Senha redefinida. Volte para entrar.':data.message;rp.value='';if(token){resetToken='';rb.hidden=true;}}catch(error){rs.textContent=error.message||'Não foi possível conectar.';}finally{rb.disabled=false;}});
+  recovery.addEventListener('close',()=>{rb.hidden=false;});
+  const incomingReset=location.hash.match(/^#su-reset=([a-f0-9]{64})$/);if(incomingReset){history.replaceState(null,'',location.pathname+location.search+'#conta');openRecovery(incomingReset[1]);}
+
   const wrapField=(input,art)=>{const wrap=document.createElement('span');wrap.className='su-auth-field';input.before(wrap);wrap.innerHTML='<span class="su-auth-field-icon" aria-hidden="true">'+svgIcon(art)+'</span>';wrap.append(input);return wrap;};
   wrapField(email,'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>');
   const passwordWrap=wrapField(password,'<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>');
