@@ -142,6 +142,18 @@ try{
   await page.locator('#su-profile-popover a[href="#conta"]').click();
   await expect(page.locator('#conta')).toBeVisible();
   await expect(page.locator('#accountEmail')).toBeVisible();
+  const authArt=page.locator('.su-auth-die');
+  await expect(authArt).toBeVisible();
+  await expect(authArt).toHaveAttribute('data-su-die-render','validated',{timeout:15000});
+  const artBounds=await authArt.boundingBox(), heroBounds=await page.locator('.su-auth-hero').boundingBox();
+  if(!artBounds||!heroBounds||artBounds.x<heroBounds.x-1||artBounds.y<heroBounds.y-1||artBounds.x+artBounds.width>heroBounds.x+heroBounds.width+1||artBounds.y+artBounds.height>heroBounds.y+heroBounds.height+1)throw Error('Login die clipped by hero');
+  await expect(page.locator('#accountPassword')).toHaveAttribute('type','password');
+  await page.locator('.su-auth-reveal').click();
+  await expect(page.locator('#accountPassword')).toHaveAttribute('type','text');
+  await page.locator('.su-auth-reveal').click();
+  await expect(page.locator('#accountPassword')).toHaveAttribute('type','password');
+  await page.screenshot({path:'artifacts/theme-review/classic-login-'+width+'.png',fullPage:true});
+
   await expect(page.locator('#conta .account-top')).toBeHidden();
   await expect(page.locator('#su-profile-popover')).toBeHidden();
   await profile.click();
