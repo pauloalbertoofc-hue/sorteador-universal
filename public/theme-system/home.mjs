@@ -183,7 +183,7 @@ function mount(){
   new MutationObserver(refreshProfile).observe(account.querySelector('#accountMember'),{attributes:true,attributeFilter:['hidden'],childList:true,subtree:true,characterData:true});refreshProfile();
   // Personal profile data is isolated from billing and cleared at authentication changes.
   const edit=document.createElement('button');edit.type='button';edit.className='su-edit-personal';edit.textContent='Editar informações';edit.disabled=true;card.append(edit);
-  const editor=document.createElement('dialog');editor.className='su-recovery su-personal-editor';editor.setAttribute('aria-labelledby','su-edit-title');
+  const editor=document.createElement('dialog');editor.className='su-personal-editor';editor.setAttribute('aria-labelledby','su-edit-title');
   editor.innerHTML='<form><h2 id="su-edit-title">Editar informações</h2><label>Nome completo<input name="full_name" maxlength="100" autocomplete="name"></label><label>Nome de exibição<input name="display_name" maxlength="60" autocomplete="nickname"></label><label>Nome de usuário<input name="username" maxlength="30" pattern="[a-zA-Z0-9_]{3,30}" autocomplete="username"></label><p role="status" aria-live="polite"></p><button type="submit">Salvar alterações</button> <button type="button" class="secondary">Cancelar</button></form>';
   document.body.append(editor);
   const form=editor.querySelector('form'),status=editor.querySelector('[role=status]'),save=editor.querySelector('[type=submit]');
