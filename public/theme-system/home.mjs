@@ -194,7 +194,8 @@ function mount(){
   });
   function consumeRecoveryLink(){const incomingReset=location.hash.match(/^#su-reset=([a-f0-9]{64})$/);if(incomingReset){window.history.replaceState(null,'',location.pathname+location.search+'#conta');openRecovery(incomingReset[1]);}}
   window.addEventListener('hashchange',consumeRecoveryLink);
-  consumeRecoveryLink();
+  const initialRecoveryToken=window.suTakeRecoveryToken?.();
+  if(initialRecoveryToken)openRecovery(initialRecoveryToken);else consumeRecoveryLink();
 
   const wrapField=(input,art)=>{const wrap=document.createElement('span');wrap.className='su-auth-field';input.before(wrap);wrap.innerHTML='<span class="su-auth-field-icon" aria-hidden="true">'+svgIcon(art)+'</span>';wrap.append(input);return wrap;};
   wrapField(email,'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>');
