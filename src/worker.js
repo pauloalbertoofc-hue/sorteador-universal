@@ -100,6 +100,8 @@ async function api(req,env,url){const path=url.pathname,method=req.method;
  if(path==='/api/health'&&method==='GET')return json({ok:true,version:'2.0.4'});
  if(path==='/api/password/request'&&method==='POST'){
   if(!env.RESET_EMAIL_API_KEY||!env.RESET_EMAIL_FROM||!env.RESET_SITE_URL)return fail('Recuperação temporariamente indisponível.',503);
+  let link;try{link=new URL(env.RESET_SITE_URL);}catch{return fail('Recuperação temporariamente indisponível.',503);}
+  if(link.protocol!=='https:'||link.origin!==url.origin||link.username||link.password||link.pathname!=='/'||link.search||link.hash)return fail('Recuperação temporariamente indisponível.',503);
   const {email}=await readBody(req);const e=String(email||'').trim().toLowerCase();
   const generic=()=>json({ok:true,message:'Se houver uma conta elegível, enviaremos instruções por e-mail.'});
   if(e.length>254||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e))return generic();
@@ -107,7 +109,7 @@ async function api(req,env,url){const path=url.pathname,method=req.method;
   const user=await env.DB.prepare('SELECT id,email FROM users WHERE email=?').bind(e).first();
   if(!user)return generic();
   const token=random(32),digest=await sha(token),now=Date.now();
-  const link=new URL(env.RESET_SITE_URL);if(link.protocol!=='https:'||link.origin!==url.origin)return fail('Recuperação temporariamente indisponível.',503);
+
   link.hash='su-reset='+token;
   await env.DB.prepare('INSERT INTO password_resets(user_id,token_hash,expires_at) VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET token_hash=excluded.token_hash,expires_at=excluded.expires_at').bind(user.id,digest,now+900000).run();
   try{
@@ -180,6 +182,7 @@ export default {async scheduled(_event,env){
   await env.DB.prepare('DELETE FROM draw_room_entries WHERE room_id IN (SELECT id FROM draw_rooms WHERE expires_at<=?)').bind(now).run();
   await env.DB.prepare('DELETE FROM draw_rooms WHERE expires_at<=?').bind(now).run();
   await env.DB.prepare('DELETE FROM draw_room_rate_limits WHERE expires_at<=?').bind(now).run();
+  await env.DB.prepare('DELETE FROM password_resets WHERE expires_at<=?').bind(now).run();
 },async fetch(req,env){const url=new URL(req.url);if(env.PREVIEW_ROOMS_ONLY==='true'&&url.pathname.startsWith('/api/')&&url.pathname!=='/api/rooms'&&!/^\/api\/rooms\/[a-f0-9]{32}(?:\/(?:join|close|draw))?$/.test(url.pathname))return fail('Rota indisponível no ambiente de prévia',404);if(url.pathname.startsWith('/api/')){try{return await api(req,env,url)}catch(e){
    if(e instanceof BillingError){
      if(url.pathname==='/api/webhooks/mercadopago' && e.message==='Webhook indisponível.'){
