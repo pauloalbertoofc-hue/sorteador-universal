@@ -6,7 +6,7 @@ const browser=await chromium.launch({headless:true});
 await mkdir('artifacts/theme-review',{recursive:true});
 try{
  for(const width of [390,1280]){
-  const page=await browser.newPage({viewport:{width,height:850},deviceScaleFactor:1});
+  const page=await browser.newPage({viewport:{width,height:850},deviceScaleFactor:1,serviceWorkers:'block'});
   for(const theme of themes){
    for(const [name,path] of [['home','/'],['seo','/sortear-nomes/']]){
     await page.goto(base+path+'?suTheme='+theme,{waitUntil:'domcontentloaded'});
