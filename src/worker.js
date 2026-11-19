@@ -99,9 +99,13 @@ async function api(req,env,url,ctx){const path=url.pathname,method=req.method;
  }
  if(path==='/api/health'&&method==='GET')return json({ok:true,version:'2.0.4'});
  if(path==='/api/password/request'&&method==='POST'){
-  if(!env.RESET_EMAIL_API_KEY||!env.RESET_EMAIL_FROM||!env.RESET_SITE_URL)return fail('Recuperação temporariamente indisponível.',503);
-  let link;try{link=new URL(env.RESET_SITE_URL);}catch{return fail('Recuperação temporariamente indisponível.',503);}
-  if(link.protocol!=='https:'||link.origin!==url.origin||link.username||link.password||link.pathname!=='/'||link.search||link.hash)return fail('Recuperação temporariamente indisponível.',503);
+  const resetUnavailable=reason=>{console.warn('password-reset-config',reason);return fail('Recuperação temporariamente indisponível.',503);};
+  if(!env.RESET_EMAIL_API_KEY)return resetUnavailable('missing-api-key');
+  if(!env.RESET_EMAIL_FROM)return resetUnavailable('missing-sender');
+  if(!env.RESET_SITE_URL)return resetUnavailable('missing-site-url');
+  let link;try{link=new URL(env.RESET_SITE_URL);}catch{return resetUnavailable('invalid-site-url');}
+  if(link.protocol!=='https:'||link.username||link.password||link.pathname!=='/'||link.search||link.hash)return resetUnavailable('invalid-site-url-policy');
+  if(link.origin!==url.origin)return resetUnavailable('origin-mismatch');
   const {email}=await readBody(req);const e=String(email||'').trim().toLowerCase();
   const generic=()=>json({ok:true,message:'Se houver uma conta elegível, enviaremos instruções por e-mail.'});
   if(e.length>254||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e))return generic();
