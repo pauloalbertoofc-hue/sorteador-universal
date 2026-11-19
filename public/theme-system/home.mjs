@@ -192,7 +192,7 @@ function mount(){
    }catch{if(current())rs.textContent='Não foi possível conectar. Tente novamente.';}
    finally{if(current())rb.disabled=false;}
   });
-  function consumeRecoveryLink(){const incomingReset=location.hash.match(/^#su-reset=([a-f0-9]{64})$/);if(incomingReset){history.replaceState(null,'',location.pathname+location.search+'#conta');openRecovery(incomingReset[1]);}}
+  function consumeRecoveryLink(){const incomingReset=location.hash.match(/^#su-reset=([a-f0-9]{64})$/);if(incomingReset){window.history.replaceState(null,'',location.pathname+location.search+'#conta');openRecovery(incomingReset[1]);}}
   window.addEventListener('hashchange',consumeRecoveryLink);
   consumeRecoveryLink();
 
