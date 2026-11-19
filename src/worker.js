@@ -165,7 +165,7 @@ async function api(req,env,url,ctx){const path=url.pathname,method=req.method;
   const b=await readBody(req);
   if(!b||typeof b.full_name!=='string'||typeof b.display_name!=='string'||typeof b.username!=='string')return fail('Dados inválidos');
   const full=b.full_name.trim(),display=b.display_name.trim(),username=b.username.trim().toLowerCase();
-  if(full.length>100||display.length>60||/[\\x00-\\x1f\\x7f]/.test(full+display)||(username&&!/^[a-z0-9_]{3,30}$/.test(username)))return fail('Nome ou usuário inválido. Use 3 a 30 letras, números ou sublinhados no usuário.');
+  if(full.length>100||display.length>60||/[\x00-\x1f\x7f]/.test(full+display)||(username&&!/^[a-z0-9_]{3,30}$/.test(username)))return fail('Nome ou usuário inválido. Use 3 a 30 letras, números ou sublinhados no usuário.');
   try{
    await env.DB.prepare('INSERT INTO user_profiles(user_id,full_name,display_name,username) VALUES(?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET full_name=excluded.full_name,display_name=excluded.display_name,username=excluded.username').bind(user.id,full,display,username||null).run();
   }catch(e){if(/UNIQUE constraint failed: user_profiles.username/i.test(String(e)))return fail('Nome de usuário indisponível',409);throw e;}
