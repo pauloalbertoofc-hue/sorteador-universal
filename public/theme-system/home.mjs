@@ -181,6 +181,44 @@ function mount(){
    pop.innerHTML='<strong>Minha conta</strong><small></small><hr>'+(signed?'<a href="#conta" data-profile-action="route">Minha conta</a><a href="#su-home-history" data-profile-action="route">Histórico de sorteios</a><a href="#su-lists" data-profile-action="route">Listas salvas</a><a href="#roomStudio" data-profile-action="route">Minhas salas</a><a href="#su-subscription" data-profile-action="route">Assinatura e planos</a>':'<a class="su-profile-primary" href="#conta" data-profile-action="route">Entrar na minha conta</a><a href="#su-register" data-profile-action="route">Criar conta</a><a href="#su-home-history" data-profile-action="route">Histórico</a>')+'<button type="button" data-profile-action="settings">Configurações</button><a href="#ajuda" data-profile-action="route">Ajuda</a>'+(signed?'<hr><button type="button" data-profile-action="logout">Sair da conta</button>':'');pop.querySelector('small').textContent=signed?(identity||'Minha conta'):'Visitante';if(signed){pop.querySelector('strong').textContent='Minha conta';const head=document.createElement('div');head.className='su-pop-identity';const initial=document.createElement('span');initial.className='su-personal-avatar';initial.textContent=profile.textContent;const info=document.createElement('div');info.append(pop.querySelector('strong'),pop.querySelector('small'));head.append(initial,info);pop.prepend(head);const icons=[glyphs.user,glyphs.clock,glyphs.plan,glyphs.user,glyphs.plan,glyphs.shield,glyphs.user,glyphs.lock];pop.querySelectorAll('a,button').forEach((el,i)=>el.insertAdjacentHTML('afterbegin',svgIcon(icons[i]||glyphs.user)));}
   };
   new MutationObserver(refreshProfile).observe(account.querySelector('#accountMember'),{attributes:true,attributeFilter:['hidden'],childList:true,subtree:true,characterData:true});refreshProfile();
+  // Personal profile data is isolated from billing and cleared at authentication changes.
+  const edit=document.createElement('button');edit.type='button';edit.className='su-edit-personal';edit.textContent='Editar informações';edit.disabled=true;card.append(edit);
+  const editor=document.createElement('dialog');editor.className='su-recovery su-personal-editor';editor.setAttribute('aria-labelledby','su-edit-title');
+  editor.innerHTML='<form><h2 id="su-edit-title">Editar informações</h2><label>Nome completo<input name="full_name" maxlength="100" autocomplete="name"></label><label>Nome de exibição<input name="display_name" maxlength="60" autocomplete="nickname"></label><label>Nome de usuário<input name="username" maxlength="30" pattern="[a-zA-Z0-9_]{3,30}" autocomplete="username"></label><p role="status" aria-live="polite"></p><button type="submit">Salvar alterações</button> <button type="button" class="secondary">Cancelar</button></form>';
+  document.body.append(editor);
+  const form=editor.querySelector('form'),status=editor.querySelector('[role=status]'),save=editor.querySelector('[type=submit]');
+  let personal=null,personalKey='',personalEpoch=0;
+  const identityKey=()=>account.querySelector('#accountMember').hidden?'':account.querySelector('#accountIdentity').textContent.trim();
+  function paintPersonal(){
+   if(!personal||!identityKey())return;
+   const fields=details.querySelectorAll('.su-personal-row small');
+   ['full_name','display_name','username'].forEach((name,i)=>fields[i].textContent=personal[name]||'Ainda não cadastrado');
+   const name=personal.display_name||personal.full_name||identityKey();
+   card.querySelector('strong').textContent=name;
+   const initial=(name.match(/[\p{L}\p{N}]/u)?.[0]||'U').toUpperCase();
+   card.querySelector('.su-personal-avatar').textContent=initial;profile.textContent=initial;
+   const head=pop.querySelector('.su-pop-identity');if(head){head.querySelector('strong').textContent=name;head.querySelector('.su-personal-avatar').textContent=initial;}
+  }
+  async function loadPersonal(){
+   const key=identityKey();
+   if(key===personalKey){paintPersonal();return;}
+   personalKey=key;personal=null;const epoch=++personalEpoch;edit.disabled=true;
+   if(editor.open)editor.close();
+   details.querySelectorAll('.su-personal-row small').forEach((field,i)=>{if(i<3)field.textContent='Ainda não cadastrado';});
+   if(!key)return;
+   try{const response=await fetch('/api/profile',{credentials:'same-origin',cache:'no-store'});if(!response.ok)throw Error();const data=await response.json();if(epoch!==personalEpoch||identityKey()!==key)return;personal=data.profile;edit.disabled=false;paintPersonal();}
+   catch{if(epoch===personalEpoch&&identityKey()===key){edit.disabled=false;personalKey='';}}
+  }
+  edit.addEventListener('click',()=>{if(!identityKey())return;if(!personal){loadPersonal();return;}form.reset();for(const name of ['full_name','display_name','username'])form.elements.namedItem(name).value=personal[name]||'';status.textContent='';save.disabled=false;editor.showModal();});
+  editor.querySelector('.secondary').addEventListener('click',()=>editor.close());
+  form.addEventListener('submit',async event=>{
+   event.preventDefault();if(!personal||!identityKey())return;const epoch=personalEpoch,key=identityKey();save.disabled=true;status.textContent='Salvando…';
+   try{const body=Object.fromEntries(new FormData(form));const response=await fetch('/api/profile',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify(body)});const data=await response.json();if(epoch!==personalEpoch||key!==identityKey())return;if(!response.ok)throw Error(data.error||'Não foi possível salvar.');personal=data.profile;paintPersonal();status.textContent='Informações salvas.';}
+   catch(error){if(epoch===personalEpoch)status.textContent=error.message||'Não foi possível salvar.';}
+   finally{if(epoch===personalEpoch)save.disabled=false;}
+  });
+  new MutationObserver(loadPersonal).observe(account.querySelector('#accountMember'),{attributes:true,attributeFilter:['hidden'],childList:true,subtree:true,characterData:true});loadPersonal();
+
   const auth=document.createElement('div');auth.className='su-auth-intro';auth.innerHTML='<h2>Acesse sua conta</h2><p>Entre para acessar os recursos da sua conta.</p>';account.querySelector('#accountGuest').prepend(auth);
   const authHero=document.createElement('section');authHero.className='su-auth-hero';authHero.innerHTML='<strong>Sorteador Universal</strong><h2>Entrar na minha conta</h2><p>Acesse seu histórico, listas salvas, salas e muito mais.</p><div class="su-auth-die" aria-hidden="true">'+svgIcon('<path d="m12 2 9 5v10l-9 5-9-5V7zM3 7l9 5 9-5M12 12v10"/><g fill="currentColor" stroke="none"><circle cx="12" cy="6" r="1"/><circle cx="7" cy="12" r="1"/><circle cx="17" cy="16" r="1"/></g>')+'</div>';account.querySelector('#accountGuest').before(authHero);
   const authDie=authHero.querySelector('.su-auth-die');let authDieMounted=false;
