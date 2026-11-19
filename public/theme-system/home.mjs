@@ -204,6 +204,21 @@ function mount(){
 
 
 
+  const loginButton=guest.querySelector('#accountLogin'),registerButton=guest.querySelector('#accountRegister'),message=account.querySelector('#accountMessage');
+  const confirmation=document.createElement('label');confirmation.hidden=true;confirmation.textContent='Confirme sua senha';
+  const confirmPassword=document.createElement('input');confirmPassword.type='password';confirmPassword.autocomplete='new-password';confirmPassword.minLength=10;confirmPassword.maxLength=128;confirmation.append(confirmPassword);guest.querySelector('.account-form').append(confirmation);
+  const switchLogin=document.createElement('button');switchLogin.type='button';switchLogin.className='secondary';switchLogin.textContent='Já possui uma conta? Entrar';switchLogin.hidden=true;guest.querySelector('.account-actions').append(switchLogin);
+  let registering=false;
+  function setRegisterMode(value){registering=value;confirmation.hidden=!value;switchLogin.hidden=!value;loginButton.hidden=value;forgot.hidden=value;registerButton.textContent=value?'Cadastrar':'Criar conta';auth.querySelector('h2').textContent=value?'Crie sua conta':'Acesse sua conta';auth.querySelector('p').textContent=value?'Cadastre seu e-mail e escolha uma senha.':'Entre para acessar os recursos da sua conta.';authHero.querySelector('h2').textContent=value?'Crie sua conta':'Entrar na minha conta';password.autocomplete=value?'new-password':'current-password';confirmPassword.value='';message.textContent='';}
+  registerButton.addEventListener('click',event=>{if(!registering){event.preventDefault();event.stopImmediatePropagation();setRegisterMode(true);email.focus();return;}if(!email.validity.valid||!email.value.trim()||password.value.length<10||password.value.length>128||password.value!==confirmPassword.value){event.preventDefault();event.stopImmediatePropagation();message.textContent=password.value!==confirmPassword.value?'As senhas não coincidem.':'Informe um e-mail válido e uma senha de 10 a 128 caracteres.';return;}confirmPassword.value='';},true);
+  switchLogin.addEventListener('click',()=>{if(registerButton.disabled)return;setRegisterMode(false);email.focus();});
+  const syncAuthRoute=()=>{if(location.hash==='#su-register')setRegisterMode(true);else if(location.hash==='#conta'&&registering)setRegisterMode(false);};
+  window.addEventListener('hashchange',syncAuthRoute);syncAuthRoute();
+  guest.addEventListener('keydown',event=>{if(event.key==='Enter'&&event.target.matches('input')){event.preventDefault();(registering?registerButton:loginButton).click();}});
+  const memberStatus=account.querySelector('#accountMember');
+  const placeMessage=()=>{if(memberStatus.hidden){guest.append(message);}else{account.append(message);if(registering)setRegisterMode(false);}};
+  new MutationObserver(placeMessage).observe(memberStatus,{attributes:true,attributeFilter:['hidden']});placeMessage();
+  message.setAttribute('aria-live','polite');
   const member=account.querySelector('#accountMember');if(member)new MutationObserver(update).observe(member,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['hidden']});update();
   side.innerHTML='<strong>Minha área</strong>'+[['#conta','Meus dados','<circle cx="12" cy="7" r="3"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/>'],['#su-home-history','Histórico de sorteios','<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>'],['#roomStudio','Minhas salas',people],['#su-plans','Assinatura e planos','<rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20"/>'],['#ajuda','Ajuda','<circle cx="12" cy="12" r="10"/><path d="M9 8a3 3 0 1 1 3 4v2M12 18h.01"/>']].map(([href,label,icon])=>'<a href="'+href+'">'+svgIcon(icon)+'<span>'+label+'</span><i aria-hidden="true">›</i></a>').join('');
  }
