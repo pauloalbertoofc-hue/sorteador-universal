@@ -448,3 +448,21 @@ body.su-home-themed[data-su-theme="classic"] main[data-su-view="account"][data-s
 body.su-home-themed[data-su-theme="classic"] main[data-su-view="account"][data-su-signed="true"]>#conta{grid-column:1/-1}
 body.su-home-themed[data-su-theme="classic"] main[data-su-signed="true"][data-su-account-route="conta"] .su-personal-details{grid-template-columns:minmax(0,1fr);gap:12px}
 }
+
+/* Compact identity and grouped rows from the approved mobile reference. */
+.su-personal-avatar{display:grid;place-items:center;flex:none;width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,#087bfa,#0754cf);color:white;font-size:32px;font-weight:750}
+.su-pop-identity{display:flex;align-items:center;gap:12px;padding:6px 0 10px;min-width:0}
+.su-pop-identity>div{min-width:0;overflow-wrap:anywhere}
+.su-pop-identity strong,.su-pop-identity small{display:block}
+.su-pop-identity .su-personal-avatar{width:48px;height:48px;font-size:22px}
+body.su-home-themed[data-su-theme="classic"] main[data-su-signed="true"][data-su-account-route="conta"] .su-classic-profile-card{display:flex;align-items:center;gap:16px;padding:16px;border:1px solid var(--su-border);border-radius:16px;background:var(--su-surface);box-shadow:0 2px 5px #10243e0a}
+.su-classic-profile-card>div{min-width:0;overflow-wrap:anywhere}
+.su-classic-profile-card small{display:inline-block;background:#e4efff;color:#164782;padding:3px 10px;border-radius:20px;margin-top:6px}
+.su-personal-details section{box-shadow:0 2px 5px #10243e0a}
+.su-personal-details .su-personal-row{padding:9px 0;gap:16px}
+.su-personal-details .su-personal-row strong{font-size:15px}
+.su-personal-details .su-personal-row small{line-height:1.4;margin-top:2px}
+.su-personal-details .su-personal-logout{background:#fff0f0;font-weight:700}
+body.su-home-themed[data-su-theme="classic"] .su-profile-popover:not([hidden]){width:min(290px,88vw);padding:12px;gap:0;box-shadow:0 8px 24px #10243e26}
+body.su-home-themed[data-su-theme="classic"] .su-profile-popover :is(a,button){min-height:43px;padding:8px 10px;box-sizing:border-box}
+@media(max-width:899px){.su-personal-details section{padding:14px}.su-personal-details section:nth-child(3){grid-row:2}.su-personal-avatar{width:64px;height:64px;font-size:28px}}
