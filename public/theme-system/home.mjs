@@ -174,13 +174,24 @@ function mount(){
   const recovery=document.createElement('dialog');recovery.className='su-recovery';recovery.setAttribute('aria-labelledby','su-recovery-title');recovery.innerHTML='<form><h2 id="su-recovery-title">Recuperar senha</h2><p>Informe seu e-mail para receber as instruções.</p><label>E-mail<input type="email" required autocomplete="email" maxlength="254"></label><label hidden>Nova senha<input type="password" autocomplete="new-password" minlength="10" maxlength="128"></label><p role="status" aria-live="polite"></p><button type="submit">Enviar instruções</button> <button type="button" class="secondary">Voltar</button></form>';
   document.body.append(recovery);
   const rf=recovery.querySelector('form'),re=recovery.querySelector('input[type=email]'),rp=recovery.querySelector('input[type=password]'),rs=recovery.querySelector('[role=status]'),rb=recovery.querySelector('[type=submit]');
-  let resetToken='';
-  function openRecovery(token=''){resetToken=token;rf.reset();rs.textContent='';re.value=email.value;re.parentElement.hidden=!!token;re.required=!token;rp.parentElement.hidden=!token;rp.required=!!token;recovery.querySelector('h2').textContent=token?'Criar nova senha':'Recuperar senha';recovery.querySelector('h2+p').textContent=token?'Escolha uma senha com pelo menos 10 caracteres.':'Informe seu e-mail para receber as instruções.';rb.textContent=token?'Redefinir senha':'Enviar instruções';if(!recovery.open)recovery.showModal();(token?rp:re).focus();}
+  let resetToken='',recoveryEpoch=0;
+  function openRecovery(token=''){recoveryEpoch++;rb.disabled=false;rb.hidden=false;rp.disabled=false;resetToken=token;rf.reset();rs.textContent='';re.value=email.value;re.parentElement.hidden=!!token;re.required=!token;rp.parentElement.hidden=!token;rp.required=!!token;recovery.querySelector('h2').textContent=token?'Criar nova senha':'Recuperar senha';recovery.querySelector('h2+p').textContent=token?'Escolha uma senha com pelo menos 10 caracteres.':'Informe seu e-mail para receber as instruções.';rb.textContent=token?'Redefinir senha':'Enviar instruções';if(!recovery.open)recovery.showModal();(token?rp:re).focus();}
   const forgot=document.createElement('button');forgot.type='button';forgot.className='su-forgot-password';forgot.textContent='Esqueceu sua senha?';guest.querySelector('.account-actions').before(forgot);forgot.addEventListener('click',()=>openRecovery());
   recovery.querySelector('[type=button]').addEventListener('click',()=>recovery.close());
-  recovery.addEventListener('close',()=>{resetToken='';rf.reset();if(forgot.getClientRects().length)forgot.focus();});
-  rf.addEventListener('submit',async e=>{e.preventDefault();rb.disabled=true;rs.textContent='Processando…';const token=resetToken;try{const response=await fetch(token?'/api/password/reset':'/api/password/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(token?{token,password:rp.value}:{email:re.value})});const data=await response.json();if(!response.ok)throw Error(data.error||'Não foi possível concluir.');rs.textContent=token?'Senha redefinida. Volte para entrar.':data.message;rp.value='';if(token){resetToken='';rb.hidden=true;}}catch(error){rs.textContent=error.message||'Não foi possível conectar.';}finally{rb.disabled=false;}});
-  recovery.addEventListener('close',()=>{rb.hidden=false;});
+  recovery.addEventListener('close',()=>{if(recovery.open)return;recoveryEpoch++;resetToken='';rf.reset();if(forgot.getClientRects().length)forgot.focus();});
+  rf.addEventListener('submit',async e=>{
+   e.preventDefault();if(!recovery.open||rb.disabled||rb.hidden)return;
+   const epoch=recoveryEpoch,token=resetToken;rb.disabled=true;rs.textContent='Processando…';
+   const current=()=>recovery.open&&epoch===recoveryEpoch;
+   try{
+    const response=await fetch(token?'/api/password/reset':'/api/password/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(token?{token,password:rp.value}:{email:re.value})});
+    const data=await response.json().catch(()=>null);if(!current())return;
+    if(!response.ok||!data?.ok){rs.textContent=typeof data?.error==='string'?data.error:'Não foi possível concluir. Tente novamente.';return;}
+    rs.textContent=token?'Senha redefinida. Volte para entrar.':data.message;rp.value='';
+    if(token){resetToken='';rb.hidden=true;rp.disabled=true;recovery.querySelector('[type=button]').focus();}
+   }catch{if(current())rs.textContent='Não foi possível conectar. Tente novamente.';}
+   finally{if(current())rb.disabled=false;}
+  });
   const incomingReset=location.hash.match(/^#su-reset=([a-f0-9]{64})$/);if(incomingReset){history.replaceState(null,'',location.pathname+location.search+'#conta');openRecovery(incomingReset[1]);}
 
   const wrapField=(input,art)=>{const wrap=document.createElement('span');wrap.className='su-auth-field';input.before(wrap);wrap.innerHTML='<span class="su-auth-field-icon" aria-hidden="true">'+svgIcon(art)+'</span>';wrap.append(input);return wrap;};
