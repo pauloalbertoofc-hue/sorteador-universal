@@ -58,7 +58,14 @@ function mount(){
  const logo=top.querySelector('.logo');if(logo){const mark=document.createElement('span');mark.className='su-classic-mark';mark.setAttribute('aria-hidden','true');mark.innerHTML=svgIcon('<path d="m12 2 9 5v10l-9 5-9-5V7zM3 7l9 5 9-5M12 12v10"/><g fill="currentColor" stroke="none"><circle cx="12" cy="6" r="1.3"/><circle cx="7" cy="12" r="1.3"/><circle cx="17" cy="12" r="1.3"/><circle cx="7" cy="16" r="1.3"/><circle cx="17" cy="17" r="1.3"/></g>');logo.after(mark);}
  const menuButton=document.createElement('button');menuButton.type='button';menuButton.className='su-classic-menu-button';menuButton.textContent='Menu';menu.id='su-classic-menu';menuButton.setAttribute('aria-controls',menu.id);menuButton.setAttribute('aria-expanded','false');menu.addEventListener('keydown',e=>{if(e.key==='Escape'){menu.classList.remove('su-menu-open');menuButton.setAttribute('aria-expanded','false');menuButton.focus();}});menuButton.addEventListener('click',()=>{const open=menuButton.getAttribute('aria-expanded')!=='true';menuButton.setAttribute('aria-expanded',String(open));menu.classList.toggle('su-menu-open',open)});top.insertBefore(menuButton,menu);
 
- const profile=document.createElement('a');profile.className='su-classic-profile';profile.href='#conta';profile.setAttribute('aria-label','Minha conta');profile.innerHTML=svgIcon('<circle cx="12" cy="12" r="10"/><circle cx="12" cy="9" r="3"/><path d="M5 19a7 7 0 0 1 14 0"/>');top.append(profile);
+ const profile=document.createElement('button');profile.type='button';profile.className='su-classic-profile';profile.setAttribute('aria-label','Minha conta');profile.setAttribute('aria-expanded','false');profile.setAttribute('aria-controls','su-profile-popover');
+ const guestIcon=svgIcon('<circle cx="12" cy="12" r="10"/><circle cx="12" cy="9" r="3"/><path d="M5 19a7 7 0 0 1 14 0"/>');profile.innerHTML=guestIcon;top.append(profile);
+ const pop=document.createElement('nav');pop.id='su-profile-popover';pop.className='su-profile-popover';pop.setAttribute('aria-label','Opções da conta');pop.hidden=true;top.append(pop);
+ const closeProfile=(focus=false)=>{pop.hidden=true;profile.setAttribute('aria-expanded','false');if(focus)profile.focus();};
+ profile.addEventListener('click',()=>{if(!pop.hidden){closeProfile();return;}pop.hidden=false;profile.setAttribute('aria-expanded','true');});
+ document.addEventListener('pointerdown',e=>{if(!pop.contains(e.target)&&!profile.contains(e.target))closeProfile();});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!pop.hidden)closeProfile(true);});
+ pop.addEventListener('click',e=>{const action=e.target.closest('[data-profile-action]');if(!action)return;closeProfile();if(action.dataset.profileAction==='logout')document.querySelector('#accountLogout')?.click();if(action.dataset.profileAction==='settings'){if(innerWidth<=700&&menuButton.getAttribute('aria-expanded')!=='true')menuButton.click();select.focus();}});
  const backdrop=document.createElement('button');backdrop.type='button';backdrop.className='su-classic-backdrop';backdrop.setAttribute('aria-label','Fechar menu');top.append(backdrop);
  const close=document.createElement('button');close.type='button';close.className='su-classic-menu-close';close.setAttribute('aria-label','Fechar menu');close.textContent='×';menu.prepend(close);
  const homeLink=document.createElement('a');homeLink.href='#su-catalog';homeLink.textContent='Início';menu.insertBefore(homeLink,close.nextSibling);
@@ -138,7 +145,7 @@ function mount(){
  }
  // Classic navigation separates the exploration page from the quick draw and legal/help content.
  const plans=document.createElement('section');plans.id='su-plans';plans.className='su-classic-plans';plans.innerHTML='<h2>Escolha seu plano</h2><p>Faça sorteios gratuitamente ou conheça o Estúdio Pro.</p><div class="su-plan-grid"><article><h3>Gratuito</h3><strong>R$ 0</strong><ul><li>Sorteios sem cadastro</li><li>Histórico local</li><li>Publicidade</li></ul><a href="#su-catalog">Explorar ferramentas</a></article><article><h3>Pro</h3><strong>R$ 4,90/mês</strong><ul><li>Sem anúncios com assinatura ativa</li><li>Estúdio Pro e listas salvas</li><li>Cobrança recorrente pelo Mercado Pago, quando disponível</li></ul><a href="#conta">Consultar assinatura</a></article></div>';main.querySelector('.foot').before(plans);
- const views={'#su-home-quick-draw':'draw','#ajuda':'help','#privacidade':'privacy','#roomStudio':'rooms','#conta':'account','#su-plans':'plans','#su-home-history':'history'};
+ const views={'#su-home-quick-draw':'draw','#ajuda':'help','#privacidade':'privacy','#roomStudio':'rooms','#conta':'account','#su-register':'account','#su-lists':'account','#su-subscription':'account','#su-plans':'plans','#su-home-history':'history'};
  const back=document.createElement('a');back.className='su-classic-back';back.href='#su-catalog';back.textContent='← Voltar ao início';top.after(back);
  const side=document.createElement('nav');side.className='su-classic-account-nav';side.setAttribute('aria-label','Menu da conta');
  side.innerHTML='<strong>Minha área</strong><a href="#conta">Minha conta</a><a href="#su-home-history">Histórico</a><a href="#su-plans">Plano e assinatura</a><a href="#roomStudio">Salas compartilhadas</a><a href="#ajuda">Ajuda</a>';
@@ -151,6 +158,12 @@ function mount(){
   card.innerHTML=svgIcon('<circle cx="12" cy="12" r="10"/><circle cx="12" cy="9" r="3"/><path d="M5 19a7 7 0 0 1 14 0"/>')+'<div><strong></strong><small></small></div>';
   const update=()=>{const member=account.querySelector('#accountMember');const signed=member&&!member.hidden;card.querySelector('strong').textContent=signed?(account.querySelector('#accountIdentity').textContent||'Minha conta'):'Visitante';card.querySelector('small').textContent=signed?(account.querySelector('#subscriptionState').textContent||'Consulte sua assinatura'):'Entre ou crie sua conta';};
   overview.append(title,intro,card);account.prepend(overview);
+  const refreshProfile=()=>{const signed=!account.querySelector('#accountMember').hidden;const identity=account.querySelector('#accountIdentity').textContent.trim();main.dataset.suSigned=String(signed);profile.innerHTML=signed?'':guestIcon;if(signed)profile.textContent=(identity.match(/[\\p{L}\\p{N}]/u)?.[0]||'U').toUpperCase();profile.classList.toggle('su-profile-signed',signed);
+   pop.innerHTML='<strong>Minha conta</strong><small></small><hr>'+(signed?'<a href="#conta" data-profile-action="route">Meu perfil</a><a href="#su-home-history" data-profile-action="route">Histórico</a><a href="#su-lists" data-profile-action="route">Listas salvas</a><a href="#roomStudio" data-profile-action="route">Minhas salas</a><a href="#su-subscription" data-profile-action="route">Minha assinatura</a>':'<a class="su-profile-primary" href="#conta" data-profile-action="route">Entrar na minha conta</a><a href="#su-register" data-profile-action="route">Criar conta</a><a href="#su-home-history" data-profile-action="route">Histórico</a>')+'<button type="button" data-profile-action="settings">Configurações</button>'+(signed?'<hr><button type="button" data-profile-action="logout">Sair</button>':'');pop.querySelector('small').textContent=signed?(identity||'Minha conta'):'Visitante';
+  };
+  new MutationObserver(refreshProfile).observe(account.querySelector('#accountMember'),{attributes:true,attributeFilter:['hidden'],childList:true,subtree:true,characterData:true});refreshProfile();
+  const auth=document.createElement('div');auth.className='su-auth-intro';auth.innerHTML='<h2>Acesse sua conta</h2><p>Entre para acessar os recursos da sua conta.</p>';account.querySelector('#accountGuest').prepend(auth);
+
   const member=account.querySelector('#accountMember');if(member)new MutationObserver(update).observe(member,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['hidden']});update();
   side.innerHTML='<strong>Minha área</strong>'+[['#conta','Meus dados','<circle cx="12" cy="7" r="3"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/>'],['#su-home-history','Histórico de sorteios','<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>'],['#roomStudio','Minhas salas',people],['#su-plans','Assinatura e planos','<rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20"/>'],['#ajuda','Ajuda','<circle cx="12" cy="12" r="10"/><path d="M9 8a3 3 0 1 1 3 4v2M12 18h.01"/>']].map(([href,label,icon])=>'<a href="'+href+'">'+svgIcon(icon)+'<span>'+label+'</span><i aria-hidden="true">›</i></a>').join('');
  }
@@ -158,7 +171,7 @@ function mount(){
 
  const syncView=()=>{
   const view=views[location.hash]||'home';
-  main.dataset.suView=view;
+  main.dataset.suView=view;main.dataset.suAccountRoute=location.hash.slice(1);closeProfile();
   side.querySelectorAll('a').forEach(a=>{if(a.hash===location.hash)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
   const control=({rooms:'.su-room-toggle',account:'.su-account-toggle',history:'.su-history-toggle'})[view];
   const toggle=control&&main.querySelector(control);
@@ -166,7 +179,7 @@ function mount(){
   menu.classList.remove('su-menu-open');menuButton.setAttribute('aria-expanded','false');
   if(document.body.getAttribute('data-su-theme')==='classic'&&view!=='home'){
    const target=main.querySelector(location.hash);
-   requestAnimationFrame(()=>target?.scrollIntoView({block:'start'}));
+   if(view==='account')requestAnimationFrame(()=>window.scrollTo(0,0));else requestAnimationFrame(()=>target?.scrollIntoView({block:'start'}));
   }
  };
  window.addEventListener('hashchange',syncView);
