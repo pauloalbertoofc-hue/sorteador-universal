@@ -174,10 +174,10 @@ function mount(){
   details.innerHTML='<section><h3>Informações da conta</h3>'+row('user','Nome completo','Ainda não cadastrado')+row('user','Nome de exibição','Ainda não cadastrado')+row('user','Nome de usuário','Ainda não cadastrado')+row('mail','E-mail cadastrado','')+row('clock','Membro desde','Não disponível')+'</section><section><h3>Segurança da conta</h3>'+row('lock','Alterar senha','Disponível futuramente nesta área')+row('mail','Verificação de e-mail','Estado não disponível')+row('shield','Dispositivos conectados','Ainda não disponível')+row('shield','Autenticação em duas etapas','Ainda não disponível')+'</section><section><h3>Plano atual</h3>'+row('plan','Plano','')+'<a href="#su-subscription">Gerenciar assinatura ›</a></section><section><h3>Privacidade e dados</h3>'+row('download','Exportar meus dados','Consulte a política para solicitar uma cópia.')+row('trash','Excluir minha conta','Consulte a política para solicitar exclusão.')+'<a href="#privacidade">Privacidade e solicitações ›</a></section><button type="button" class="su-personal-logout">Sair da conta</button>';
   overview.append(details);
   details.querySelector('.su-personal-logout').addEventListener('click',()=>account.querySelector('#accountLogout').click());
-  const syncDetails=()=>{const identity=account.querySelector('#accountIdentity').textContent.trim();details.querySelectorAll('.su-personal-row small')[3].textContent=identity||'Não informado';details.querySelectorAll('.su-personal-row small')[9].textContent=account.querySelector('#subscriptionState').textContent||'Consulte sua assinatura';card.querySelector('strong').textContent=identity||'Minha conta';card.querySelector('small').textContent='Conta pessoal';card.querySelector('.su-personal-avatar').textContent=(identity.match(/[\\p{L}\\p{N}]/u)?.[0]||'U').toUpperCase();};
+  const syncDetails=()=>{const identity=account.querySelector('#accountIdentity').textContent.trim();details.querySelectorAll('.su-personal-row small')[3].textContent=identity||'Não informado';details.querySelectorAll('.su-personal-row small')[9].textContent=account.querySelector('#subscriptionState').textContent||'Consulte sua assinatura';card.querySelector('strong').textContent=identity||'Minha conta';card.querySelector('small').textContent='Conta pessoal';card.querySelector('.su-personal-avatar').textContent=(identity.match(/[\p{L}\p{N}]/u)?.[0]||'U').toUpperCase();};
   new MutationObserver(syncDetails).observe(account.querySelector('#accountMember'),{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['hidden']});syncDetails();
 
-  const refreshProfile=()=>{const signed=!account.querySelector('#accountMember').hidden;const identity=account.querySelector('#accountIdentity').textContent.trim();main.dataset.suSigned=String(signed);profile.innerHTML=signed?'':guestIcon;if(signed)profile.textContent=(identity.match(/[\\p{L}\\p{N}]/u)?.[0]||'U').toUpperCase();profile.classList.toggle('su-profile-signed',signed);
+  const refreshProfile=()=>{const signed=!account.querySelector('#accountMember').hidden;const identity=account.querySelector('#accountIdentity').textContent.trim();main.dataset.suSigned=String(signed);profile.innerHTML=signed?'':guestIcon;if(signed)profile.textContent=(identity.match(/[\p{L}\p{N}]/u)?.[0]||'U').toUpperCase();profile.classList.toggle('su-profile-signed',signed);
    pop.innerHTML='<strong>Minha conta</strong><small></small><hr>'+(signed?'<a href="#conta" data-profile-action="route">Minha conta</a><a href="#su-home-history" data-profile-action="route">Histórico de sorteios</a><a href="#su-lists" data-profile-action="route">Listas salvas</a><a href="#roomStudio" data-profile-action="route">Minhas salas</a><a href="#su-subscription" data-profile-action="route">Assinatura e planos</a>':'<a class="su-profile-primary" href="#conta" data-profile-action="route">Entrar na minha conta</a><a href="#su-register" data-profile-action="route">Criar conta</a><a href="#su-home-history" data-profile-action="route">Histórico</a>')+'<button type="button" data-profile-action="settings">Configurações</button><a href="#ajuda" data-profile-action="route">Ajuda</a>'+(signed?'<hr><button type="button" data-profile-action="logout">Sair da conta</button>':'');pop.querySelector('small').textContent=signed?(identity||'Minha conta'):'Visitante';if(signed){pop.querySelector('strong').textContent='Minha conta';const head=document.createElement('div');head.className='su-pop-identity';const initial=document.createElement('span');initial.className='su-personal-avatar';initial.textContent=profile.textContent;const info=document.createElement('div');info.append(pop.querySelector('strong'),pop.querySelector('small'));head.append(initial,info);pop.prepend(head);const icons=[glyphs.user,glyphs.clock,glyphs.plan,glyphs.user,glyphs.plan,glyphs.shield,glyphs.user,glyphs.lock];pop.querySelectorAll('a,button').forEach((el,i)=>el.insertAdjacentHTML('afterbegin',svgIcon(icons[i]||glyphs.user)));}
   };
   new MutationObserver(refreshProfile).observe(account.querySelector('#accountMember'),{attributes:true,attributeFilter:['hidden'],childList:true,subtree:true,characterData:true});refreshProfile();
@@ -198,6 +198,7 @@ function mount(){
    const initial=(name.match(/[\p{L}\p{N}]/u)?.[0]||'U').toUpperCase();
    card.querySelector('.su-personal-avatar').textContent=initial;profile.textContent=initial;
    const head=pop.querySelector('.su-pop-identity');if(head){head.querySelector('strong').textContent=name;head.querySelector('.su-personal-avatar').textContent=initial;}
+   if(typeof avatarKey!=='undefined')paintAvatar();
   }
   async function loadPersonal(){
    const key=identityKey();
@@ -218,6 +219,53 @@ function mount(){
    finally{if(epoch===personalEpoch)save.disabled=false;}
   });
   new MutationObserver(loadPersonal).observe(account.querySelector('#accountMember'),{attributes:true,attributeFilter:['hidden'],childList:true,subtree:true,characterData:true});loadPersonal();
+  // Avatar state follows the authenticated identity, never local storage.
+  const photoButton=document.createElement('button');photoButton.type='button';photoButton.className='su-edit-personal';photoButton.textContent='Alterar fotografia';photoButton.disabled=true;card.append(photoButton);
+  const photoDialog=document.createElement('dialog');photoDialog.className='su-personal-editor';photoDialog.setAttribute('aria-label','Fotografia de perfil');
+  photoDialog.innerHTML='<form><h2>Fotografia de perfil</h2><img alt="Prévia da fotografia" hidden style="width:96px;height:96px;border-radius:50%;object-fit:cover"><label>Selecionar imagem<input type="file" accept="image/jpeg,image/png,image/webp"></label><p role="status" aria-live="polite"></p><button type="submit" disabled>Salvar fotografia</button> <button type="button" data-remove>Remover fotografia</button> <button type="button" data-close>Cancelar</button></form>';
+  document.body.append(photoDialog);
+  const photoForm=photoDialog.querySelector('form'),photoInput=photoDialog.querySelector('input'),photoPreview=photoDialog.querySelector('img'),photoStatus=photoDialog.querySelector('[role=status]'),photoSave=photoDialog.querySelector('[type=submit]'),photoRemove=photoDialog.querySelector('[data-remove]');
+  let avatarKey='',avatarEpoch=0,avatarUrl='',pendingPhoto=null,pendingUrl='',selectionEpoch=0,avatarBusy=false;
+  function clearPending(){selectionEpoch++;pendingPhoto=null;if(pendingUrl)URL.revokeObjectURL(pendingUrl);pendingUrl='';photoInput.value='';photoSave.disabled=true;photoPreview.hidden=true;photoPreview.removeAttribute('src');}
+  function paintAvatar(){
+   if(!avatarKey||avatarKey!==identityKey())return;
+   for(const el of [profile,card.querySelector('.su-personal-avatar'),pop.querySelector('.su-personal-avatar')]){
+    if(!el)continue;
+    if(!avatarUrl){el.querySelector('img[data-account-avatar]')?.remove();continue;}
+    let img=el.querySelector('img[data-account-avatar]');if(!img){img=document.createElement('img');img.dataset.accountAvatar='';img.alt='';img.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:50%;display:block';el.replaceChildren(img);}img.src=avatarUrl;
+   }
+  }
+  function setAvatar(blob){if(avatarUrl)URL.revokeObjectURL(avatarUrl);avatarUrl=blob?URL.createObjectURL(blob):'';paintPersonal();paintAvatar();}
+  async function loadAvatar(){
+   const key=identityKey();if(key===avatarKey){paintAvatar();return;}
+   avatarKey=key;const epoch=++avatarEpoch;avatarBusy=false;photoInput.disabled=false;photoButton.disabled=true;clearPending();if(photoDialog.open)photoDialog.close();setAvatar(null);
+   if(!key)return;
+   try{const response=await fetch('/api/profile/avatar',{credentials:'same-origin',cache:'no-store'});if(!response.ok&&response.status!==404)throw Error();const blob=response.ok?await response.blob():null;if(epoch!==avatarEpoch||key!==identityKey())return;setAvatar(blob);}
+   catch{if(epoch===avatarEpoch)avatarKey='';}
+   finally{if(epoch===avatarEpoch)photoButton.disabled=false;}
+  }
+  photoButton.addEventListener('click',()=>{if(!identityKey()||avatarBusy)return;if(avatarKey!==identityKey()){loadAvatar();return;}clearPending();photoStatus.textContent='';photoRemove.disabled=!avatarUrl;if(avatarUrl){photoPreview.src=avatarUrl;photoPreview.hidden=false;}photoDialog.showModal();});
+  photoDialog.querySelector('[data-close]').addEventListener('click',()=>photoDialog.close());
+  photoDialog.addEventListener('close',clearPending);
+  photoInput.addEventListener('change',async()=>{
+   const file=photoInput.files?.[0];clearPending();const seq=selectionEpoch,epoch=avatarEpoch;if(!file)return;
+   if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>10485760){photoStatus.textContent='Escolha JPEG, PNG ou WebP de até 10 MB.';return;}
+   let bitmap;
+   try{bitmap=await createImageBitmap(file);const canvas=document.createElement('canvas');canvas.width=canvas.height=256;const ctx=canvas.getContext('2d');const side=Math.min(bitmap.width,bitmap.height);ctx.fillStyle='#fff';ctx.fillRect(0,0,256,256);ctx.drawImage(bitmap,(bitmap.width-side)/2,(bitmap.height-side)/2,side,side,0,0,256,256);
+    let blob;for(const quality of [.85,.7,.5,.3]){blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',quality));if(blob&&blob.size<=65536)break;}
+    if(!blob||blob.size>65536)throw Error();if(seq!==selectionEpoch||epoch!==avatarEpoch||!photoDialog.open)return;pendingPhoto=blob;pendingUrl=URL.createObjectURL(blob);photoPreview.src=pendingUrl;photoPreview.hidden=false;photoSave.disabled=false;photoStatus.textContent='Fotografia pronta para salvar.';
+   }catch{if(seq===selectionEpoch&&epoch===avatarEpoch)photoStatus.textContent='Não foi possível preparar a imagem.';}finally{bitmap?.close();}
+  });
+  async function writeAvatar(remove){
+   if(avatarBusy||!avatarKey||avatarKey!==identityKey()||(!remove&&!pendingPhoto))return;
+   const epoch=avatarEpoch,key=avatarKey,blob=pendingPhoto;avatarBusy=true;photoSave.disabled=photoRemove.disabled=photoInput.disabled=true;photoStatus.textContent='Salvando…';
+   try{const response=await fetch('/api/profile/avatar',{method:remove?'DELETE':'POST',credentials:'same-origin',...(remove?{}:{headers:{'content-type':'image/jpeg'},body:blob})});if(!response.ok)throw Error();if(epoch!==avatarEpoch||key!==identityKey())return;setAvatar(remove?null:blob);clearPending();if(avatarUrl){photoPreview.src=avatarUrl;photoPreview.hidden=false;}photoStatus.textContent=remove?'Fotografia removida.':'Fotografia salva.';}
+   catch{if(epoch===avatarEpoch)photoStatus.textContent='Não foi possível concluir. Tente novamente.';}
+   finally{if(epoch===avatarEpoch){avatarBusy=false;photoInput.disabled=false;photoRemove.disabled=!avatarUrl;photoSave.disabled=!pendingPhoto;}}
+  }
+  photoForm.addEventListener('submit',e=>{e.preventDefault();writeAvatar(false);});photoRemove.addEventListener('click',()=>writeAvatar(true));
+  new MutationObserver(loadAvatar).observe(account.querySelector('#accountMember'),{attributes:true,attributeFilter:['hidden'],childList:true,subtree:true,characterData:true});loadAvatar();
+
 
   const auth=document.createElement('div');auth.className='su-auth-intro';auth.innerHTML='<h2>Acesse sua conta</h2><p>Entre para acessar os recursos da sua conta.</p>';account.querySelector('#accountGuest').prepend(auth);
   const authHero=document.createElement('section');authHero.className='su-auth-hero';authHero.innerHTML='<strong>Sorteador Universal</strong><h2>Entrar na minha conta</h2><p>Acesse seu histórico, listas salvas, salas e muito mais.</p><div class="su-auth-die" aria-hidden="true">'+svgIcon('<path d="m12 2 9 5v10l-9 5-9-5V7zM3 7l9 5 9-5M12 12v10"/><g fill="currentColor" stroke="none"><circle cx="12" cy="6" r="1"/><circle cx="7" cy="12" r="1"/><circle cx="17" cy="16" r="1"/></g>')+'</div>';account.querySelector('#accountGuest').before(authHero);
