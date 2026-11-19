@@ -13,8 +13,8 @@ export function mountClassicDie(host){
  uniform vec2 resolution, tilt;
  uniform float time;
  mat2 rot(float a){return mat2(cos(a),-sin(a),sin(a),cos(a));}
- vec3 local(vec3 p){p.y-=.07*sin(time);p.xz=rot(.65+tilt.x)*p.xz;p.yz=rot(.42+tilt.y)*p.yz;return p;}
- float box(vec3 p){vec3 q=abs(p)-vec3(.69);return length(max(q,0.))+min(max(q.x,max(q.y,q.z)),0.)-.13;}
+ vec3 local(vec3 p){p.y-=.045*sin(time*.85);p.xz=rot(.65+.045*sin(time*.55)+tilt.x)*p.xz;p.yz=rot(.42+tilt.y)*p.yz;return p;}
+ float box(vec3 p){vec3 q=abs(p)-vec3(.65);return length(max(q,0.))+min(max(q.x,max(q.y,q.z)),0.)-.17;}
  float pip(vec2 p,vec2 c){return length(p-c)-.104;}
  float face(vec2 p,float n){
  float d=10.;
@@ -35,25 +35,28 @@ export function mountClassicDie(host){
  vec2 uv=(gl_FragCoord.xy-.5*resolution)/resolution.y;
  vec3 ro=vec3(uv*2.65,4.),rd=vec3(0.,0.,-1.);
  float t=0.;bool hit=false;
- for(int i=0;i<72;i++){float d=scene(ro+rd*t);if(d<.002){hit=true;break;}t+=max(d,.002);if(t>7.)break;}
- if(!hit){float sh=.20*exp(-10.*uv.x*uv.x-100.*(uv.y+.33)*(uv.y+.33));gl_FragColor=vec4(.12,.31,.59,sh);return;}
- vec3 p=ro+rd*t;vec2 e=vec2(.004,0.);
+ for(int i=0;i<72;i++){float d=scene(ro+rd*t);if(d<.0015){hit=true;break;}t+=max(d,.002);if(t>7.)break;}
+ if(!hit){float sh=.24*exp(-14.*uv.x*uv.x-85.*(uv.y+.36)*(uv.y+.36));gl_FragColor=vec4(.025,.07,.15,sh);return;}
+ vec3 p=ro+rd*t;vec2 e=vec2(.0025,0.);
  vec3 n=normalize(vec3(scene(p+e.xyy)-scene(p-e.xyy),scene(p+e.yxy)-scene(p-e.yxy),scene(p+e.yyx)-scene(p-e.yyx)));
  vec3 l=normalize(vec3(-.5,.8,.9));float diff=max(dot(n,l),0.);
- float spec=pow(max(dot(n,normalize(l-rd)),0.),30.);
+ float spec=pow(max(dot(n,normalize(l-rd)),0.),48.);
  vec3 q=local(p);vec3 a=abs(q);float d;
  if(a.x>=a.y&&a.x>=a.z)d=face(q.zy,q.x>0.?1.:6.);
  else if(a.y>=a.z)d=face(q.xz,q.y>0.?5.:2.);
  else d=face(q.xy,q.z>0.?3.:4.);
  float ink=1.-smoothstep(-.012,.012,d);
- vec3 color=mix(vec3(.96,.98,1.),vec3(.035,.19,.48),ink);
+ vec3 color=mix(vec3(.98,.985,1.),vec3(.025,.14,.39),ink);
  float sky=.5+.5*n.y;
  float rim=pow(1.-max(0.,dot(n,-rd)),3.);
  float fill=max(0.,dot(n,normalize(vec3(.8,.15,.5))));
- vec3 ambient=mix(vec3(.32,.39,.53),vec3(.62,.67,.75),sky);
- vec3 lit=color*(ambient+.30*diff+.12*fill);
- lit+=vec3(.12,.16,.22)*rim*(1.-ink);
- lit+=vec3(.19)*spec*(1.-ink);
+ vec3 ambient=mix(vec3(.57,.62,.71),vec3(.76,.80,.86),sky);
+ float cavity=1.-.38*ink*(1.-smoothstep(.765,.82,max(a.x,max(a.y,a.z))));
+ vec3 lit=color*(ambient+.23*diff+.12*fill)*cavity;
+ float broad=pow(max(dot(n,normalize(vec3(-.65,.7,1.))),0.),9.);
+ lit+=vec3(.045,.065,.10)*rim*(1.-ink);
+ lit+=vec3(.055)*broad*(1.-ink);
+ lit+=vec3(.16)*spec*(1.-.75*ink);
  gl_FragColor=vec4(clamp(lit,0.,1.),1.);
  }`;
  const shader=(type,source)=>{const sh=gl.createShader(type);gl.shaderSource(sh,source);gl.compileShader(sh);if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS)){gl.deleteShader(sh);throw Error('hero shader');}return sh;};
@@ -69,7 +72,7 @@ export function mountClassicDie(host){
  function draw(now){
  raf=0;if(lost||!visible||document.hidden||document.body.dataset.suTheme!=='classic')return;
  const r=host.getBoundingClientRect();if(!r.width||!r.height)return;
- const scale=Math.min(devicePixelRatio||1,1.25,640/r.width);const w=Math.max(1,Math.round(r.width*scale)),h=Math.max(1,Math.round(r.height*scale));
+ const scale=Math.min(devicePixelRatio||1,2,560/Math.max(r.width,r.height),Math.sqrt(125000/(r.width*r.height)));const w=Math.max(1,Math.round(r.width*scale)),h=Math.max(1,Math.round(r.height*scale));
  if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}
  const dt=Math.min(.033,Math.max(.001,last?(now-last)/1000:1/60));last=now;
  vx+=(tx-x)*65*dt;vy+=(ty-y)*65*dt;
