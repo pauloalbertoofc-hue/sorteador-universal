@@ -164,6 +164,11 @@ function mount(){
   new MutationObserver(refreshProfile).observe(account.querySelector('#accountMember'),{attributes:true,attributeFilter:['hidden'],childList:true,subtree:true,characterData:true});refreshProfile();
   const auth=document.createElement('div');auth.className='su-auth-intro';auth.innerHTML='<h2>Acesse sua conta</h2><p>Entre para acessar os recursos da sua conta.</p>';account.querySelector('#accountGuest').prepend(auth);
   const authHero=document.createElement('section');authHero.className='su-auth-hero';authHero.innerHTML='<strong>Sorteador Universal</strong><h2>Entrar na minha conta</h2><p>Acesse seu histórico, listas salvas, salas e muito mais.</p><div class="su-auth-die" aria-hidden="true">'+svgIcon('<path d="m12 2 9 5v10l-9 5-9-5V7zM3 7l9 5 9-5M12 12v10"/><g fill="currentColor" stroke="none"><circle cx="12" cy="6" r="1"/><circle cx="7" cy="12" r="1"/><circle cx="17" cy="16" r="1"/></g>')+'</div>';account.querySelector('#accountGuest').before(authHero);
+  const authDie=authHero.querySelector('.su-auth-die');let authDieMounted=false;
+  const mountAuthDie=()=>{if(authDieMounted||!authDie.getBoundingClientRect().width)return;authDieMounted=true;import('./classic-die.mjs').then(m=>m.mountClassicDie(authDie)).catch(()=>{authDieMounted=false;});};
+  new ResizeObserver(mountAuthDie).observe(authDie);
+  authHero.querySelector('strong').prepend(authDie.querySelector('svg').cloneNode(true));
+
   const password=account.querySelector('#accountPassword');const reveal=document.createElement('button');reveal.type='button';reveal.className='su-auth-reveal';reveal.textContent='Mostrar senha';reveal.setAttribute('aria-pressed','false');password.after(reveal);reveal.addEventListener('click',()=>{const show=password.type==='password';password.type=show?'text':'password';reveal.textContent=show?'Ocultar senha':'Mostrar senha';reveal.setAttribute('aria-pressed',String(show));});
 
 
