@@ -358,3 +358,11 @@ body.su-home-themed[data-su-theme="classic"] .su-auth-die>svg{max-height:100%}
 body.su-home-themed[data-su-theme="classic"] .su-auth-hero>.su-auth-die{position:absolute!important;inset:50% 12px auto auto;width:30%;height:auto;aspect-ratio:1;transform:translateY(-35%);overflow:hidden;margin:0}
 body.su-home-themed[data-su-theme="classic"] .su-auth-hero>h2,body.su-home-themed[data-su-theme="classic"] .su-auth-hero>p{max-width:65%;position:relative;z-index:1}
 @media(max-width:700px){body.su-home-themed[data-su-theme="classic"] .su-auth-hero{min-height:180px;box-sizing:border-box}}
+
+/* Auth artwork occupies its own grid cell, never an absolute overlay. */
+body.su-home-themed[data-su-theme="classic"] main[data-su-signed="false"] #conta .su-auth-hero{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(90px,32%);grid-template-rows:auto auto auto;align-content:center;align-items:center;gap:12px;position:relative;min-height:0}
+body.su-home-themed[data-su-theme="classic"] #conta .su-auth-hero>strong{grid-column:1/-1;margin:0}
+body.su-home-themed[data-su-theme="classic"] #conta .su-auth-hero>h2{grid-column:1;grid-row:2;max-width:none;margin:0}
+body.su-home-themed[data-su-theme="classic"] #conta .su-auth-hero>p{grid-column:1;grid-row:3;max-width:none;margin:0}
+body.su-home-themed[data-su-theme="classic"] #conta .su-auth-hero>.su-auth-die{grid-column:2;grid-row:2/4;position:relative!important;inset:auto!important;transform:none!important;width:100%!important;height:auto!important;aspect-ratio:1;align-self:center;min-width:0;overflow:hidden}
+body.su-home-themed[data-su-theme="classic"] #conta .su-auth-die>canvas{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%;margin:0}
