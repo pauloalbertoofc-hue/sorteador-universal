@@ -154,6 +154,57 @@ try{
   await expect(page.locator('#accountPassword')).toHaveAttribute('type','password');
   await page.screenshot({path:'artifacts/theme-review/classic-login-'+width+'.png',fullPage:true});
 
+  // Recovery UI contracts: simulated API only, no actual email delivery.
+  const recovery=page.locator('dialog.su-recovery');
+  const forgot=page.getByRole('button',{name:'Esqueceu sua senha?'});
+  const recoveryEmail=recovery.locator('input[type=email]');
+  const recoveryPassword=recovery.locator('input[type=password]');
+  const recoveryStatus=recovery.getByRole('status');
+  let requestCount=0,resetCount=0;
+  await page.route('**/api/password/request',async route=>{
+   requestCount++;
+   await route.fulfill({json:{ok:true,message:'Se houver uma conta elegível, enviaremos instruções por e-mail.'}});
+  });
+  await page.route('**/api/password/reset',async route=>{
+   resetCount++;
+   await route.fulfill(resetCount===1?{status:400,json:{error:'Link inválido ou expirado.'}}:{json:{ok:true}});
+  });
+  await page.locator('#accountEmail').fill('review@example.test');
+  await forgot.focus();
+  await page.keyboard.press('Enter');
+  await expect(recovery).toBeVisible();
+  await expect(recoveryEmail).toBeFocused();
+  await expect(recoveryEmail).toHaveValue('review@example.test');
+  await expect(recoveryPassword).toBeHidden();
+  const recoveryBounds=await recovery.boundingBox();
+  if(!recoveryBounds||recoveryBounds.x<0||recoveryBounds.x+recoveryBounds.width>width+1)throw Error('Recovery dialog overflows viewport');
+  await page.screenshot({path:'artifacts/theme-review/classic-recovery-'+width+'.png'});
+  await recovery.getByRole('button',{name:'Enviar instruções'}).click();
+  await expect(recoveryStatus).toContainText('Se houver uma conta');
+  if(requestCount!==1)throw Error('Unexpected recovery request count');
+  await page.keyboard.press('Escape');
+  await expect(recovery).toBeHidden();
+  await expect(forgot).toBeFocused();
+  await page.goto(base+'/?suTheme=classic#su-reset='+'a'.repeat(64),{waitUntil:'domcontentloaded'});
+  await expect(recovery).toBeVisible();
+  await expect(page).toHaveURL(url=>url.hash==='#conta');
+  await expect(recoveryPassword).toBeFocused();
+  await expect(recoveryEmail).toBeHidden();
+  await recoveryPassword.fill('Valid-password-123');
+  await recovery.getByRole('button',{name:'Redefinir senha'}).click();
+  await expect(recoveryStatus).toHaveText('Link inválido ou expirado.');
+  await recovery.getByRole('button',{name:'Redefinir senha'}).click();
+  await expect(recoveryStatus).toContainText('Senha redefinida.');
+  await expect(recoveryPassword).toBeDisabled();
+  await expect(recovery.getByRole('button',{name:'Redefinir senha'})).toBeHidden();
+  await page.screenshot({path:'artifacts/theme-review/classic-reset-success-'+width+'.png'});
+  await recovery.getByRole('button',{name:'Voltar'}).click();
+  await expect(recovery).toBeHidden();
+  await expect(page.locator('#accountEmail')).toBeVisible();
+  await page.unroute('**/api/password/request');
+  await page.unroute('**/api/password/reset');
+
+
   await expect(page.locator('#conta .account-top')).toBeHidden();
   await expect(page.locator('#su-profile-popover')).toBeHidden();
   await profile.click();
