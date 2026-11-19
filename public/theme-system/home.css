@@ -477,3 +477,15 @@ body.su-home-themed[data-su-theme="classic"] main[data-su-signed="true"][data-su
 .su-personal-details section h3{font-size:20px;letter-spacing:-.015em}
 .su-personal-details .su-personal-row{min-height:48px;box-sizing:border-box}
 }
+
+/* Independent personal editor, without password-recovery selectors. */
+.su-personal-editor{width:min(420px,calc(100% - 32px));box-sizing:border-box;border:1px solid #dce5f5;border-radius:20px;padding:24px;background:#fff;color:#142444;box-shadow:0 20px 70px #12294d33}
+.su-personal-editor::backdrop{background:#10234477}
+.su-personal-editor form{display:grid;gap:14px}
+.su-personal-editor label{display:grid;gap:6px;font-weight:600}
+.su-personal-editor input{width:100%;box-sizing:border-box;padding:12px;border:1px solid #cbd8eb;border-radius:10px;background:#fff;color:#142444}
+.su-personal-editor button,.su-edit-personal{border:1px solid #cbd8eb;border-radius:10px;padding:10px 14px;font-weight:600;cursor:pointer}
+.su-personal-editor button[type=submit]{background:#175dcc;color:#fff;border-color:#175dcc}
+.su-edit-personal{background:#edf4ff;color:#175dcc;margin-inline-start:auto}
+.su-edit-personal:disabled{opacity:.6;cursor:default}
+@media(max-width:600px){.su-edit-personal{margin-inline-start:0}.su-classic-profile-card{flex-wrap:wrap}}
