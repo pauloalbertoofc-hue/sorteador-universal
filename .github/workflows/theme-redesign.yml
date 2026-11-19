@@ -13,6 +13,9 @@ on:
       - 'public/sortear-aluno-online/index.html'
       - 'public/dividir-turma-em-grupos/index.html'
       - 'tests/theme-redesign-contract.test.mjs'
+      - 'tests/password-reset-integration.test.mjs'
+      - 'src/worker.js'
+      - 'migrations/**'
       - '.github/workflows/theme-redesign.yml'
       - 'scripts/capture-theme-review.mjs'
   workflow_dispatch:
@@ -21,6 +24,9 @@ on:
     paths:
       - 'public/theme-system/**'
       - 'tests/theme-redesign-contract.test.mjs'
+      - 'tests/password-reset-integration.test.mjs'
+      - 'src/worker.js'
+      - 'migrations/**'
       - 'scripts/capture-theme-review.mjs'
       - 'public/index.html'
       - '.github/workflows/theme-redesign.yml'
@@ -47,6 +53,8 @@ jobs:
         run: |
           npm ci --ignore-scripts
           npx playwright install --with-deps chromium
+      - name: Verify authenticated profile and password reset integration
+        run: node --test tests/password-reset-integration.test.mjs
       - name: Capture homepage and SEO pages in seven themes
         run: |
           python3 -m http.server 8765 --directory public > /tmp/su-static-server.log 2>&1 &
