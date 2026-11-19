@@ -328,3 +328,22 @@ body.su-home-themed[data-su-theme="classic"] main[data-su-account-route="su-regi
 body.su-home-themed[data-su-theme="classic"] main[data-su-account-route="su-register"] #accountLogin{background:white;color:#155dcc}
 body.su-home-themed[data-su-theme="classic"] main[data-su-signed="true"][data-su-account-route="su-lists"] #conta :is(.account-top,.account-note,#accountMember,.su-classic-account-overview),
 body.su-home-themed[data-su-theme="classic"] main[data-su-signed="true"][data-su-account-route="su-subscription"] #proStudio{display:none!important}
+
+.su-auth-hero,.su-auth-reveal{display:none}
+body.su-home-themed[data-su-theme="classic"] main[data-su-view="account"][data-su-signed="false"] #conta{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);width:100%;max-width:1000px;padding:0;gap:0;overflow:hidden}
+body.su-home-themed[data-su-theme="classic"] main[data-su-signed="false"] .su-auth-hero{display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden;min-height:260px;padding:32px;background:radial-gradient(ellipse at 90% 40%,#1769b5,transparent 65%),linear-gradient(135deg,#09294f,#083e86);color:white}
+.su-auth-hero h2{color:white!important;font-size:clamp(24px,3vw,38px);max-width:70%;margin:24px 0 12px}
+.su-auth-hero p{color:#e5efff!important;max-width:75%;margin:0}
+.su-auth-die{position:absolute;right:16px;top:35%;width:25%;color:#dceeff}
+.su-auth-die svg{width:100%;height:auto}
+body.su-home-themed[data-su-theme="classic"] #accountGuest{padding:28px;border:0;margin:0;box-shadow:none}
+body.su-home-themed[data-su-theme="classic"] .su-auth-intro p{color:#43546c}
+body.su-home-themed[data-su-theme="classic"] .su-auth-reveal{display:inline-block;background:transparent;color:#155dcc;border:0;font-size:13px;padding:8px;align-self:end}
+body.su-home-themed[data-su-theme="classic"] #accountGuest .account-actions{display:flex;flex-wrap:wrap;gap:10px}
+body.su-home-themed[data-su-theme="classic"] #accountGuest #accountLogin{flex:1}
+body.su-home-themed[data-su-theme="classic"] #accountMessage{grid-column:1/-1;margin:0;padding:0 20px}
+@media(max-width:700px){
+body.su-home-themed[data-su-theme="classic"] main[data-su-view="account"][data-su-signed="false"] #conta{grid-template-columns:1fr}
+body.su-home-themed[data-su-theme="classic"] main[data-su-signed="false"] .su-auth-hero{min-height:0;padding:22px}
+body.su-home-themed[data-su-theme="classic"] #accountGuest{padding:20px}
+}
