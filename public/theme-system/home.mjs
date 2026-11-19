@@ -169,7 +169,12 @@ function mount(){
   new ResizeObserver(mountAuthDie).observe(authDie);
   authHero.querySelector('strong').prepend(authDie.querySelector('svg').cloneNode(true));
 
-  const password=account.querySelector('#accountPassword');const reveal=document.createElement('button');reveal.type='button';reveal.className='su-auth-reveal';reveal.textContent='Mostrar senha';reveal.setAttribute('aria-pressed','false');password.after(reveal);reveal.addEventListener('click',()=>{const show=password.type==='password';password.type=show?'text':'password';reveal.textContent=show?'Ocultar senha':'Mostrar senha';reveal.setAttribute('aria-pressed',String(show));});
+  const password=account.querySelector('#accountPassword'),email=account.querySelector('#accountEmail');
+  const wrapField=(input,art)=>{const wrap=document.createElement('span');wrap.className='su-auth-field';input.before(wrap);wrap.innerHTML='<span class="su-auth-field-icon" aria-hidden="true">'+svgIcon(art)+'</span>';wrap.append(input);return wrap;};
+  wrapField(email,'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>');
+  const passwordWrap=wrapField(password,'<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>');
+  const reveal=document.createElement('button');reveal.type='button';reveal.className='su-auth-reveal';reveal.setAttribute('aria-pressed','false');reveal.setAttribute('aria-label','Mostrar senha');const eye='<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>';reveal.innerHTML=svgIcon(eye);passwordWrap.append(reveal);reveal.addEventListener('click',()=>{const show=password.type==='password';password.type=show?'text':'password';reveal.setAttribute('aria-label',show?'Ocultar senha':'Mostrar senha');reveal.setAttribute('aria-pressed',String(show));reveal.innerHTML=svgIcon(eye+(show?'<path d="m3 3 18 18"/>':''));});
+
 
 
   const member=account.querySelector('#accountMember');if(member)new MutationObserver(update).observe(member,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['hidden']});update();
