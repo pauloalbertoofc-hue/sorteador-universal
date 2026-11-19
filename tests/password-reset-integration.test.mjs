@@ -33,6 +33,14 @@ test('password reset: expiry, one-time consumption, concurrent submissions and s
  assert.equal((await profileRequest('POST',{...data,username:'!!'})).status,400);
  assert.equal((await profileRequest('POST',data)).status,200);
  assert.deepEqual((await (await profileRequest()).json()).profile,{...data,username:'teste_123'});
+ const other=await post('/api/register',{email:'profile-isolation@example.test',password:oldPassword});
+ assert.equal(other.status,201);
+ const otherCookie=other.headers.get('set-cookie').split(';')[0];
+ assert.deepEqual((await (await profileRequest('GET',null,otherCookie)).json()).profile,{full_name:'',display_name:'',username:null});
+ assert.equal((await profileRequest('POST',data,otherCookie)).status,409);
+ assert.equal((await profileRequest('POST',{...data,full_name:'Invalid'+String.fromCharCode(1)})).status,400);
+ assert.deepEqual((await (await profileRequest()).json()).profile,{...data,username:'teste_123'});
+
 
  const user=await db.prepare('SELECT id FROM users WHERE email=?').bind(email).first();
  const digest=token=>createHash('sha256').update(token).digest('hex');
