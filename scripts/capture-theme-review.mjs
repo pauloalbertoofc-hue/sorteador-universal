@@ -185,7 +185,7 @@ try{
   await page.keyboard.press('Escape');
   await expect(recovery).toBeHidden();
   await expect(forgot).toBeFocused();
-  await page.goto(base+'/?suTheme=classic#su-reset='+'a'.repeat(64),{waitUntil:'domcontentloaded'});
+  await page.goto(base+'/?suTheme=classic&recoveryReview=1#su-reset='+'a'.repeat(64),{waitUntil:'domcontentloaded'});
   await expect(recovery).toBeVisible();
   await expect(page).toHaveURL(url=>url.hash==='#conta');
   await expect(recoveryPassword).toBeFocused();
