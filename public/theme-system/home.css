@@ -379,3 +379,20 @@ body.su-home-themed[data-su-theme="classic"] #accountGuest #accountPassword{padd
 body.su-home-themed[data-su-theme="classic"] #accountGuest .su-auth-reveal{position:absolute;right:2px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:44px;height:44px;padding:11px;margin:0}
 body.su-home-themed[data-su-theme="classic"] #accountGuest .su-auth-reveal svg,body.su-home-themed[data-su-theme="classic"] .su-auth-field-icon svg{width:20px;height:20px}
 body.su-home-themed[data-su-theme="classic"] #accountGuest .account-actions{margin:18px 0 0}
+
+/* Desktop uses the same drawer as mobile; retain the approved mobile layout. */
+@media(min-width:701px){
+body.su-home-themed[data-su-theme="classic"] .top{display:grid;grid-template-columns:1fr auto auto 1fr;align-items:center;gap:12px}
+body.su-home-themed[data-su-theme="classic"] .su-classic-menu-button{display:inline-flex;grid-column:1;grid-row:1;justify-self:start;align-items:center;justify-content:center;width:44px;height:44px;padding:8px;border:0;background:transparent;color:#155bc8;margin:0}
+body.su-home-themed[data-su-theme="classic"] .su-classic-mark{grid-column:2;grid-row:1}
+body.su-home-themed[data-su-theme="classic"] .top h1{grid-column:3;grid-row:1;margin:0}
+body.su-home-themed[data-su-theme="classic"] .su-classic-profile{grid-column:4;grid-row:1;justify-self:end;margin:0}
+body.su-home-themed[data-su-theme="classic"] .su-classic-menu{display:none}
+body.su-home-themed[data-su-theme="classic"] .su-classic-menu.su-menu-open{position:fixed;inset:0 auto 0 0;width:min(82vw,320px);height:100dvh;z-index:10002;background:#10243e;color:white;display:flex;flex-direction:column;flex-wrap:nowrap;align-items:stretch;padding:20px 16px;box-sizing:border-box;overflow:auto;gap:8px;box-shadow:8px 0 32px #0003}
+body.su-home-themed[data-su-theme="classic"] .su-classic-menu.su-menu-open a{color:white;padding:10px 14px;border-radius:8px}
+body.su-home-themed[data-su-theme="classic"] .su-classic-menu.su-menu-open a:hover{background:#1b55a5}
+body.su-home-themed[data-su-theme="classic"] .su-classic-menu.su-menu-open .su-classic-menu-close{display:block;align-self:flex-end;background:transparent;border:0;color:white;font-size:28px;min-width:44px;min-height:44px}
+body.su-home-themed[data-su-theme="classic"] .su-classic-menu.su-menu-open~.su-classic-backdrop{display:block;position:fixed;inset:0;z-index:10001;background:#09182b88;border:0;border-radius:0;width:100%;height:100%}
+body.su-home-themed[data-su-theme="classic"] .su-classic-menu .su-home-themes{display:flex;flex-direction:column;align-items:stretch;color:white;margin:12px 0}
+body.su-home-themed[data-su-theme="classic"] .su-classic-menu .su-home-themes label{color:white}
+}
