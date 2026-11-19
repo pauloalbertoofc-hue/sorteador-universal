@@ -466,3 +466,14 @@ body.su-home-themed[data-su-theme="classic"] main[data-su-signed="true"][data-su
 body.su-home-themed[data-su-theme="classic"] .su-profile-popover:not([hidden]){width:min(290px,88vw);padding:12px;gap:0;box-shadow:0 8px 24px #10243e26}
 body.su-home-themed[data-su-theme="classic"] .su-profile-popover :is(a,button){min-height:43px;padding:8px 10px;box-sizing:border-box}
 @media(max-width:899px){.su-personal-details section{padding:14px}.su-personal-details section:nth-child(3){grid-row:2}.su-personal-avatar{width:64px;height:64px;font-size:28px}}
+
+/* Keep mobile card order and destructive accents consistent with the reference. */
+.su-personal-details section:nth-child(4) .su-personal-row:nth-of-type(2) svg{color:#c62630}
+.su-personal-details section:nth-child(3) .su-personal-row small{font-size:20px;font-weight:750;color:var(--su-text,#142444)}
+body.su-home-themed[data-su-theme="classic"] .su-classic-profile-card strong{display:block;font-size:18px;overflow-wrap:anywhere}
+@media(max-width:899px){
+.su-personal-details section:nth-child(3){grid-row:auto}
+body.su-home-themed[data-su-theme="classic"] main[data-su-signed="true"][data-su-account-route="conta"] .su-classic-account-overview h2{font-size:28px;letter-spacing:-.025em}
+.su-personal-details section h3{font-size:20px;letter-spacing:-.015em}
+.su-personal-details .su-personal-row{min-height:48px;box-sizing:border-box}
+}
