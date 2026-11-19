@@ -347,3 +347,9 @@ body.su-home-themed[data-su-theme="classic"] main[data-su-view="account"][data-s
 body.su-home-themed[data-su-theme="classic"] main[data-su-signed="false"] .su-auth-hero{min-height:0;padding:22px}
 body.su-home-themed[data-su-theme="classic"] #accountGuest{padding:20px}
 }
+
+body.su-home-themed[data-su-theme="classic"] .su-auth-hero>strong{display:flex;align-items:center;gap:8px}
+body.su-home-themed[data-su-theme="classic"] .su-auth-hero>strong svg{width:30px;height:30px;flex-shrink:0}
+body.su-home-themed[data-su-theme="classic"] .su-auth-die{width:31%;height:44%;top:32%;right:10px;display:grid;place-items:center}
+body.su-home-themed[data-su-theme="classic"] .su-auth-die>canvas{position:absolute;inset:0;width:100%;height:100%}
+body.su-home-themed[data-su-theme="classic"] .su-auth-die>svg{max-height:100%}
