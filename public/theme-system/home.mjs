@@ -192,7 +192,9 @@ function mount(){
    }catch{if(current())rs.textContent='Não foi possível conectar. Tente novamente.';}
    finally{if(current())rb.disabled=false;}
   });
-  const incomingReset=location.hash.match(/^#su-reset=([a-f0-9]{64})$/);if(incomingReset){history.replaceState(null,'',location.pathname+location.search+'#conta');openRecovery(incomingReset[1]);}
+  function consumeRecoveryLink(){const incomingReset=location.hash.match(/^#su-reset=([a-f0-9]{64})$/);if(incomingReset){history.replaceState(null,'',location.pathname+location.search+'#conta');openRecovery(incomingReset[1]);}}
+  window.addEventListener('hashchange',consumeRecoveryLink);
+  consumeRecoveryLink();
 
   const wrapField=(input,art)=>{const wrap=document.createElement('span');wrap.className='su-auth-field';input.before(wrap);wrap.innerHTML='<span class="su-auth-field-icon" aria-hidden="true">'+svgIcon(art)+'</span>';wrap.append(input);return wrap;};
   wrapField(email,'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>');
