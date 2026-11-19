@@ -156,6 +156,43 @@ async function api(req,env,url,ctx){const path=url.pathname,method=req.method;
  }
  if(path==='/api/logout'&&method==='POST'){const user=await auth(req,env);if(user)await env.DB.prepare('DELETE FROM sessions WHERE token_hash=?').bind(user.token_hash).run();return json({ok:true},200,{'set-cookie':sessionCookie('',0)})}
  const user=await auth(req,env);
+ if(path==='/api/profile/avatar'){
+  if(!user)return fail('Não autenticado',401);
+  if(method==='GET'){
+   const row=await env.DB.prepare('SELECT jpeg FROM user_avatars WHERE user_id=?').bind(user.id).first();
+   if(!row)return fail('Fotografia não cadastrada',404);
+   return new Response(new Uint8Array(row.jpeg),{headers:{'content-type':'image/jpeg','cache-control':'private, no-store','x-content-type-options':'nosniff'}});
+  }
+  if(method==='DELETE'){
+   await env.DB.prepare('DELETE FROM user_avatars WHERE user_id=?').bind(user.id).run();
+   return json({ok:true});
+  }
+  if(req.headers.get('content-type')!=='image/jpeg')return fail('Formato inválido',415);
+  const limit=65536;
+  if(Number(req.headers.get('content-length'))>limit)return fail('Fotografia muito grande',413);
+  if(!req.body)return fail('Fotografia inválida');
+  const reader=req.body.getReader(), bytes=new Uint8Array(limit);let length=0;
+  while(true){const {done,value}=await reader.read();if(done)break;if(length+value.length>limit){await reader.cancel();return fail('Fotografia muito grande',413);}bytes.set(value,length);length+=value.length;}
+  const photo=bytes.slice(0,length);
+  if(length<4||photo[0]!==255||photo[1]!==216||photo[length-2]!==255||photo[length-1]!==217)return fail('Fotografia inválida');
+  // Inspect JPEG frame dimensions before accepting the bounded payload.
+  let dimensions=false;
+  for(let i=2;i+4<length;){
+   if(photo[i++]!==255)break;
+   while(photo[i]===255)i++;
+   const marker=photo[i++];if(marker===218||marker===217)break;
+   const size=photo[i]*256+photo[i+1];if(size<2||i+size>length)break;
+   if(marker===192||marker===194){
+    if(size<8)break;
+    const h=photo[i+3]*256+photo[i+4],w=photo[i+5]*256+photo[i+6];
+    dimensions=w>0&&h>0&&w<=256&&h<=256;break;
+   }
+   i+=size;
+  }
+  if(!dimensions)return fail('Resolução inválida');
+  await env.DB.prepare('INSERT INTO user_avatars(user_id,jpeg) VALUES(?,?) ON CONFLICT(user_id) DO UPDATE SET jpeg=excluded.jpeg').bind(user.id,photo.buffer).run();
+  return json({ok:true});
+ }
  if(path==='/api/profile'&&(method==='GET'||method==='POST')){
   if(!user)return fail('Não autenticado',401);
   if(method==='GET'){
