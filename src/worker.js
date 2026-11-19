@@ -98,6 +98,37 @@ async function api(req,env,url){const path=url.pathname,method=req.method;
   return json({round:event.round_number,winner:event.winner_name,at:event.drawn_at},201);
  }
  if(path==='/api/health'&&method==='GET')return json({ok:true,version:'2.0.4'});
+ if(path==='/api/password/request'&&method==='POST'){
+  if(!env.RESET_EMAIL_API_KEY||!env.RESET_EMAIL_FROM||!env.RESET_SITE_URL)return fail('Recuperação temporariamente indisponível.',503);
+  const {email}=await readBody(req);const e=String(email||'').trim().toLowerCase();
+  const generic=()=>json({ok:true,message:'Se houver uma conta elegível, enviaremos instruções por e-mail.'});
+  if(e.length>254||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e))return generic();
+  if(!await roomRateLimit('reset-ip',requester,10,3600000)||!await roomRateLimit('reset-email',e,3,3600000))return generic();
+  const user=await env.DB.prepare('SELECT id,email FROM users WHERE email=?').bind(e).first();
+  if(!user)return generic();
+  const token=random(32),digest=await sha(token),now=Date.now();
+  const link=new URL(env.RESET_SITE_URL);if(link.protocol!=='https:'||link.origin!==url.origin)return fail('Recuperação temporariamente indisponível.',503);
+  link.hash='su-reset='+token;
+  await env.DB.prepare('INSERT INTO password_resets(user_id,token_hash,expires_at) VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET token_hash=excluded.token_hash,expires_at=excluded.expires_at').bind(user.id,digest,now+900000).run();
+  try{
+   const response=await fetch('https://api.resend.com/emails',{method:'POST',headers:{authorization:'Bearer '+env.RESET_EMAIL_API_KEY,'content-type':'application/json'},body:JSON.stringify({from:env.RESET_EMAIL_FROM,to:[user.email],subject:'Redefinição de senha — Sorteador Universal',text:'Use este link em até 15 minutos: '+link.href+'\nSe não solicitou, ignore este e-mail.'})});
+   if(!response.ok)throw Error('delivery');
+  }catch{await env.DB.prepare('DELETE FROM password_resets WHERE token_hash=?').bind(digest).run();}
+  return generic();
+ }
+ if(path==='/api/password/reset'&&method==='POST'){
+  if(!await roomRateLimit('reset-submit',requester,15,3600000))return fail('Tente mais tarde.',429);
+  const {token,password}=await readBody(req);
+  if(typeof token!=='string'||!/^[a-f0-9]{64}$/.test(token)||typeof password!=='string'||password.length<10||password.length>128)return fail('Link ou senha inválidos.');
+  const digest=await sha(token),salt=random(16),hash=await pbkdf(password,salt),now=Date.now();
+  const results=await env.DB.batch([
+   env.DB.prepare('DELETE FROM sessions WHERE user_id IN (SELECT user_id FROM password_resets WHERE token_hash=? AND expires_at>?)').bind(digest,now),
+   env.DB.prepare('UPDATE users SET password_hash=? WHERE id IN (SELECT user_id FROM password_resets WHERE token_hash=? AND expires_at>?)').bind('pbkdf2$'+salt+'$'+hash,digest,now),
+   env.DB.prepare('DELETE FROM password_resets WHERE token_hash=?').bind(digest)
+  ]);
+  if(!results[1].meta?.changes)return fail('Link inválido ou expirado.');
+  return json({ok:true},200,{'set-cookie':sessionCookie('',0)});
+ }
  if(path==='/api/register'&&method==='POST'){
   const {email,password}=await readBody(req);const e=String(email||'').trim().toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)||e.length>254||typeof password!=='string'||password.length<10||password.length>128)return fail('E-mail ou senha inválidos (mínimo 10 caracteres).');
   const salt=random(16),hash=await pbkdf(password,salt),id=crypto.randomUUID();try{
