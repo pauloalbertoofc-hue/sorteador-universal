@@ -14,7 +14,7 @@ async function auth(req,env){const token=req.headers.get('cookie')?.match(/(?:^|
 // Session expiry is Unix time in milliseconds, matching Date.now() in auth().
 async function createSession(env,id){const token=random(32);await env.DB.prepare('INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(?,?,?)').bind(await sha(token),id,Date.now()+30*86400000).run();return sessionCookie(token,30*86400)}
 function originOk(req){const origin=req.headers.get('origin');return !!origin&&origin===new URL(req.url).origin}
-async function api(req,env,url){const path=url.pathname,method=req.method;
+async function api(req,env,url,ctx){const path=url.pathname,method=req.method;
  if(!env.DB)return fail('Banco D1 não conectado.',503);
  if(!['GET','POST','DELETE'].includes(method))return fail('Método não permitido',405);
  if(method!=='GET'&&!originOk(req)&&path!=='/api/webhooks/mercadopago')return fail('Origem inválida',403);
@@ -106,8 +106,9 @@ async function api(req,env,url){const path=url.pathname,method=req.method;
   const generic=()=>json({ok:true,message:'Se houver uma conta elegível, enviaremos instruções por e-mail.'});
   if(e.length>254||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e))return generic();
   if(!await roomRateLimit('reset-ip',requester,10,3600000)||!await roomRateLimit('reset-email',e,3,3600000))return generic();
+  const deliver=async()=>{
   const user=await env.DB.prepare('SELECT id,email FROM users WHERE email=?').bind(e).first();
-  if(!user)return generic();
+  if(!user)return;
   const token=random(32),digest=await sha(token),now=Date.now();
 
   link.hash='su-reset='+token;
@@ -116,6 +117,8 @@ async function api(req,env,url){const path=url.pathname,method=req.method;
    const response=await fetch('https://api.resend.com/emails',{method:'POST',headers:{authorization:'Bearer '+env.RESET_EMAIL_API_KEY,'content-type':'application/json'},body:JSON.stringify({from:env.RESET_EMAIL_FROM,to:[user.email],subject:'Redefinição de senha — Sorteador Universal',text:'Use este link em até 15 minutos: '+link.href+'\nSe não solicitou, ignore este e-mail.'})});
    if(!response.ok)throw Error('delivery');
   }catch{await env.DB.prepare('DELETE FROM password_resets WHERE token_hash=?').bind(digest).run();}
+  };
+  if(ctx?.waitUntil)ctx.waitUntil(deliver().catch(()=>{}));else await deliver();
   return generic();
  }
  if(path==='/api/password/reset'&&method==='POST'){
@@ -183,7 +186,7 @@ export default {async scheduled(_event,env){
   await env.DB.prepare('DELETE FROM draw_rooms WHERE expires_at<=?').bind(now).run();
   await env.DB.prepare('DELETE FROM draw_room_rate_limits WHERE expires_at<=?').bind(now).run();
   await env.DB.prepare('DELETE FROM password_resets WHERE expires_at<=?').bind(now).run();
-},async fetch(req,env){const url=new URL(req.url);if(env.PREVIEW_ROOMS_ONLY==='true'&&url.pathname.startsWith('/api/')&&url.pathname!=='/api/rooms'&&!/^\/api\/rooms\/[a-f0-9]{32}(?:\/(?:join|close|draw))?$/.test(url.pathname))return fail('Rota indisponível no ambiente de prévia',404);if(url.pathname.startsWith('/api/')){try{return await api(req,env,url)}catch(e){
+},async fetch(req,env,ctx){const url=new URL(req.url);if(env.PREVIEW_ROOMS_ONLY==='true'&&url.pathname.startsWith('/api/')&&url.pathname!=='/api/rooms'&&!/^\/api\/rooms\/[a-f0-9]{32}(?:\/(?:join|close|draw))?$/.test(url.pathname))return fail('Rota indisponível no ambiente de prévia',404);if(url.pathname.startsWith('/api/')){try{return await api(req,env,url,ctx)}catch(e){
    if(e instanceof BillingError){
      if(url.pathname==='/api/webhooks/mercadopago' && e.message==='Webhook indisponível.'){
        // Diagnostics expose only validation outcomes, never secret values or request data.
