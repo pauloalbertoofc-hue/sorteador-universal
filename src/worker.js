@@ -197,7 +197,8 @@ async function api(req,env,url,ctx){const path=url.pathname,method=req.method;
   if(!user)return fail('Não autenticado',401);
   if(method==='GET'){
    const profile=await env.DB.prepare('SELECT full_name,display_name,username FROM user_profiles WHERE user_id=?').bind(user.id).first();
-   return json({profile:profile||{full_name:'',display_name:'',username:null}});
+   const account=await env.DB.prepare('SELECT created_at FROM users WHERE id=?').bind(user.id).first();
+   return json({profile:{...(profile||{full_name:'',display_name:'',username:null}),created_at:account?.created_at??null}});
   }
   const b=await readBody(req);
   if(!b||typeof b.full_name!=='string'||typeof b.display_name!=='string'||typeof b.username!=='string')return fail('Dados inválidos');
@@ -206,7 +207,8 @@ async function api(req,env,url,ctx){const path=url.pathname,method=req.method;
   try{
    await env.DB.prepare('INSERT INTO user_profiles(user_id,full_name,display_name,username) VALUES(?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET full_name=excluded.full_name,display_name=excluded.display_name,username=excluded.username').bind(user.id,full,display,username||null).run();
   }catch(e){if(/UNIQUE constraint failed: user_profiles.username/i.test(String(e)))return fail('Nome de usuário indisponível',409);throw e;}
-  return json({profile:{full_name:full,display_name:display,username:username||null}});
+  const account=await env.DB.prepare('SELECT created_at FROM users WHERE id=?').bind(user.id).first();
+  return json({profile:{full_name:full,display_name:display,username:username||null,created_at:account?.created_at??null}});
  }
  if(path==='/api/me'&&method==='GET'){
   if(!user)return json({user:null,subscription:{active:false}});
