@@ -250,6 +250,32 @@ function mount(){
   sessionDialog.querySelector('.secondary').addEventListener('click',()=>sessionDialog.close());
   sessionDialog.addEventListener('close',()=>{if(!sessionDialog.open){sessionEpoch++;sessionList.replaceChildren();sessionStatus.textContent='';sessionBusy=false;}});
   new MutationObserver(()=>{if(sessionDialog.open&&identityKey()!==sessionIdentity){sessionEpoch++;sessionDialog.close();sessionList.replaceChildren();}}).observe(account.querySelector('#accountMember'),{attributes:true,attributeFilter:['hidden'],childList:true,subtree:true,characterData:true});
+  const verifyRow=details.querySelectorAll('.su-personal-row')[6];
+  const verifyStatus=verifyRow.querySelector('small'),verifyButton=document.createElement('button');verifyButton.type='button';verifyButton.className='su-edit-personal';verifyButton.textContent='Verificar e-mail';verifyRow.append(verifyButton);
+  let verifyEpoch=0,verifyIdentity='',verifyBusy=false;
+  async function refreshVerification(){
+   const key=identityKey(),e=++verifyEpoch;verifyIdentity=key;verifyBusy=false;verifyButton.hidden=true;verifyButton.disabled=true;verifyStatus.textContent='Estado não disponível';if(!key)return;
+   try{const response=await fetch('/api/email/verification',{credentials:'same-origin',cache:'no-store'}),data=await response.json();if(e!==verifyEpoch||identityKey()!==key)return;if(!response.ok)throw Error();verifyStatus.textContent=data.verified?'Endereço verificado':'E-mail ainda não verificado';verifyButton.hidden=Boolean(data.verified);verifyButton.disabled=false;}catch{if(e===verifyEpoch&&identityKey()===key)verifyStatus.textContent='Verificação temporariamente indisponível.';}
+  }
+  verifyButton.addEventListener('click',async()=>{
+   const e=verifyEpoch,key=identityKey();if(!key||key!==verifyIdentity||verifyBusy)return;verifyBusy=true;verifyButton.disabled=true;
+   try{const response=await fetch('/api/email/verification/request',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:'{}'}),data=await response.json();if(e!==verifyEpoch||identityKey()!==key)return;if(!response.ok)throw Error(data.error||'Não foi possível enviar o e-mail.');verifyStatus.textContent=data.verified?'Endereço verificado':'Link enviado. Confira sua caixa de entrada.';verifyButton.hidden=Boolean(data.verified);verifyButton.textContent='Reenviar e-mail';}
+   catch(error){if(e===verifyEpoch&&identityKey()===key)verifyStatus.textContent=error.message;}
+   finally{if(e===verifyEpoch){verifyBusy=false;verifyButton.disabled=false;}}
+  });
+  new MutationObserver(()=>{if(identityKey()!==verifyIdentity){verifyButton.textContent='Verificar e-mail';refreshVerification();}}).observe(account.querySelector('#accountMember'),{attributes:true,attributeFilter:['hidden'],childList:true,subtree:true,characterData:true});
+  refreshVerification();
+  const verificationDialog=document.createElement('dialog');verificationDialog.className='su-personal-editor';verificationDialog.setAttribute('aria-labelledby','su-verify-title');
+  verificationDialog.innerHTML='<form><h2 id="su-verify-title">Confirmar e-mail</h2><p role="status" aria-live="polite">Confirme que deseja validar seu endereço.</p><button type="submit">Confirmar meu e-mail</button><button type="button" class="secondary">Fechar</button></form>';
+  document.body.append(verificationDialog);
+  let verificationToken='',verificationBusy=false;
+  const verificationForm=verificationDialog.querySelector('form'),verificationSubmit=verificationForm.querySelector('[type=submit]'),verificationMessage=verificationForm.querySelector('[role=status]');
+  function consumeVerificationLink(){const match=location.hash.match(/^#su-verify=([a-f0-9]{64})$/);if(!match||verificationBusy)return;verificationToken=match[1];history.replaceState(null,'',location.pathname+location.search);verificationSubmit.disabled=false;verificationMessage.textContent='Confirme que deseja validar seu endereço.';if(!verificationDialog.open)verificationDialog.showModal();}
+  verificationForm.addEventListener('submit',async e=>{e.preventDefault();if(!verificationToken||verificationBusy)return;verificationBusy=true;verificationSubmit.disabled=true;try{const response=await fetch('/api/email/verification/confirm',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({token:verificationToken})}),data=await response.json();if(!response.ok)throw Error(data.error||'Link inválido ou expirado.');verificationToken='';verificationMessage.textContent='E-mail confirmado com sucesso.';refreshVerification();}catch(error){verificationMessage.textContent=error.message;verificationSubmit.disabled=false;}finally{verificationBusy=false;}});
+  verificationForm.querySelector('.secondary').addEventListener('click',()=>{if(!verificationBusy)verificationDialog.close();});
+  verificationDialog.addEventListener('cancel',e=>{if(verificationBusy)e.preventDefault();});
+  verificationDialog.addEventListener('close',()=>{if(!verificationDialog.open)verificationToken='';});
+  window.addEventListener('hashchange',consumeVerificationLink);consumeVerificationLink();
   function paintPersonal(){
    if(!personal||!identityKey())return;
    const fields=details.querySelectorAll('.su-personal-row small');
