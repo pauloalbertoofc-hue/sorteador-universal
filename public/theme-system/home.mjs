@@ -192,6 +192,9 @@ function mount(){
   function paintPersonal(){
    if(!personal||!identityKey())return;
    const fields=details.querySelectorAll('.su-personal-row small');
+   const stamp=typeof personal.created_at==='string'?personal.created_at.trim():'';
+   const date=/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(stamp)?new Date(stamp.replace(' ','T')+'Z'):new Date(stamp);
+   fields[4].textContent=stamp&&Number.isFinite(date.getTime())?new Intl.DateTimeFormat('pt-BR',{day:'numeric',month:'long',year:'numeric',timeZone:'America/Sao_Paulo'}).format(date):'Não disponível';
    ['full_name','display_name','username'].forEach((name,i)=>fields[i].textContent=personal[name]||'Ainda não cadastrado');
    const name=personal.display_name||personal.full_name||identityKey();
    card.querySelector('strong').textContent=name;
@@ -205,7 +208,7 @@ function mount(){
    if(key===personalKey){paintPersonal();return;}
    personalKey=key;personal=null;const epoch=++personalEpoch;edit.disabled=true;
    if(editor.open)editor.close();
-   details.querySelectorAll('.su-personal-row small').forEach((field,i)=>{if(i<3)field.textContent='Ainda não cadastrado';});
+   details.querySelectorAll('.su-personal-row small').forEach((field,i)=>{if(i<3)field.textContent='Ainda não cadastrado';if(i===4)field.textContent='Não disponível';});
    if(!key)return;
    try{const response=await fetch('/api/profile',{credentials:'same-origin',cache:'no-store'});if(!response.ok)throw Error();const data=await response.json();if(epoch!==personalEpoch||identityKey()!==key)return;personal=data.profile;edit.disabled=false;paintPersonal();}
    catch{if(epoch===personalEpoch&&identityKey()===key){edit.disabled=false;personalKey='';}}
