@@ -151,3 +151,52 @@ test('password reset: expiry, one-time consumption, concurrent submissions and s
  assert.equal((await post('/api/password/request',{email:'unknown@example.test'})).status,503);
 
 });
+
+test('avatar editor browser crop: zoom, rotation, drag, pinch and reset',async t=>{
+ const {chromium}=await import('playwright');
+ const browser=await chromium.launch({headless:true});t.after(()=>browser.close());
+ const page=await browser.newPage({viewport:{width:390,height:844},hasTouch:true});
+ const source=await readFile('public/theme-system/home.mjs','utf8');
+ const start=source.indexOf('  const crop=document.createElement');
+ const end=source.indexOf("  photoInput.addEventListener('change',selectPhoto)",start);
+ assert.ok(start>=0&&end>start);
+ await page.setContent('<dialog><img><p></p><button>Salvar</button></dialog>');
+ await page.evaluate(code=>{
+  const photoDialog=document.querySelector('dialog'),photoPreview=photoDialog.querySelector('img'),photoStatus=photoDialog.querySelector('p'),photoSave=photoDialog.querySelector('button');
+  let pendingPhoto=null,selectionEpoch=0,avatarEpoch=0,avatarBusy=false;
+  function clearPending(){selectionEpoch++;pendingPhoto=null;}
+  photoDialog.showModal();
+  // Execute the actual editor block with isolated dialog dependencies.
+  const setup=new Function('photoDialog','photoPreview','photoStatus','photoSave','clearPending', 'let pendingPhoto=null,selectionEpoch=0,avatarEpoch=0,avatarBusy=false;'+code+';return {selectPhoto,resetCrop,getBlob:()=>pendingPhoto};');
+  window.editor=setup(photoDialog,photoPreview,photoStatus,photoSave,clearPending);
+ },source.slice(start,end));
+ await page.evaluate(async()=>{
+  const canvas=document.createElement('canvas');canvas.width=400;canvas.height=200;
+  const ctx=canvas.getContext('2d');ctx.fillStyle='red';ctx.fillRect(0,0,200,200);ctx.fillStyle='blue';ctx.fillRect(200,0,200,200);
+  const blob=await new Promise(r=>canvas.toBlob(r,'image/png'));
+  await window.editor.selectPhoto({currentTarget:{files:[new File([blob],'test.png',{type:'image/png'})],value:''}});
+ });
+ const ranges=page.locator('input[type=range]');
+ await page.waitForFunction(()=>window.editor.getBlob()?.size>0);
+ assert.equal(await ranges.nth(0).inputValue(),'1');
+ await ranges.nth(0).fill('2');
+ await page.waitForFunction(()=>window.editor.getBlob()?.size>0);
+ const canvas=page.locator('dialog canvas'),box=await canvas.boundingBox();
+ assert.ok(box);
+ await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();await page.mouse.move(box.x+box.width/2+30,box.y+box.height/2+20,{steps:5});await page.mouse.up();
+ assert.notEqual(await ranges.nth(1).inputValue(),'0');
+ const cdp=await page.context().newCDPSession(page);
+ const x=Math.round(box.x+box.width/2),y=Math.round(box.y+box.height/2);
+ await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:x-20,y,id:1},{x:x+20,y,id:2}]});
+ await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x-35,y,id:1},{x:x+35,y,id:2}]});
+ await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+ assert.ok(Number(await ranges.nth(0).inputValue())>2);
+ await page.locator('[data-rotate]').click();
+ await page.waitForFunction(()=>window.editor.getBlob()?.size>0);
+ assert.equal(await ranges.nth(1).inputValue(),'0');
+ const result=await page.evaluate(async()=>{const blob=window.editor.getBlob(),image=await createImageBitmap(blob);const result={size:blob.size,type:blob.type,w:image.width,h:image.height};image.close();return result;});
+ assert.ok(result.size<=65536);assert.equal(result.type,'image/jpeg');assert.equal(result.w,256);assert.equal(result.h,256);
+ await page.evaluate(()=>{document.querySelector('dialog').close();});
+ await page.waitForFunction(()=>document.querySelector('dialog section').hidden);
+ assert.equal(await ranges.nth(0).inputValue(),'1');
+});
