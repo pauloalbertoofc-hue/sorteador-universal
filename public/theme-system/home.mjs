@@ -220,7 +220,7 @@ function mount(){
   });
   new MutationObserver(loadPersonal).observe(account.querySelector('#accountMember'),{attributes:true,attributeFilter:['hidden'],childList:true,subtree:true,characterData:true});loadPersonal();
   // Avatar state follows the authenticated identity, never local storage.
-  const photoButton=document.createElement('button');photoButton.type='button';photoButton.className='su-edit-personal';photoButton.textContent='Alterar fotografia';photoButton.disabled=true;card.append(photoButton);
+  const photoButton=document.createElement('button');photoButton.type='button';photoButton.className='su-edit-personal';photoButton.innerHTML=svgIcon('<path d="M4 7h4l2-3h4l2 3h4a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z"/><circle cx="12" cy="13" r="3"/>')+'<span>Alterar fotografia</span>';photoButton.setAttribute('aria-label','Alterar fotografia de perfil');photoButton.style.cssText='display:inline-flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;max-width:100%';photoButton.disabled=true;card.append(photoButton);
   const photoDialog=document.createElement('dialog');photoDialog.className='su-personal-editor';photoDialog.setAttribute('aria-label','Fotografia de perfil');
   photoDialog.innerHTML='<form><h2>Fotografia de perfil</h2><img alt="Prévia da fotografia" hidden style="width:96px;height:96px;border-radius:50%;object-fit:cover"><label>Selecionar imagem<input type="file" accept="image/jpeg,image/png,image/webp"></label><p role="status" aria-live="polite"></p><button type="submit" disabled>Salvar fotografia</button> <button type="button" data-remove>Remover fotografia</button> <button type="button" data-close>Cancelar</button></form>';
   document.body.append(photoDialog);
@@ -231,22 +231,22 @@ function mount(){
    if(!avatarKey||avatarKey!==identityKey())return;
    for(const el of [profile,card.querySelector('.su-personal-avatar'),pop.querySelector('.su-personal-avatar')]){
     if(!el)continue;
-    if(!avatarUrl){el.querySelector('img[data-account-avatar]')?.remove();continue;}
+    if(!avatarUrl){if(el.querySelector('img[data-account-avatar]'))el.textContent=(avatarKey.match(/[\\p{L}\\p{N}]/u)?.[0]||'U').toUpperCase();continue;}
     let img=el.querySelector('img[data-account-avatar]');if(!img){img=document.createElement('img');img.dataset.accountAvatar='';img.alt='';img.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:50%;display:block';el.replaceChildren(img);}img.src=avatarUrl;
    }
   }
   function setAvatar(blob){if(avatarUrl)URL.revokeObjectURL(avatarUrl);avatarUrl=blob?URL.createObjectURL(blob):'';paintPersonal();paintAvatar();}
   async function loadAvatar(){
-   const key=identityKey();if(key===avatarKey){paintAvatar();return;}
+   const key=identityKey();if(key===avatarKey){if(!key){photoButton.disabled=true;return;}paintPersonal();paintAvatar();return;}
    avatarKey=key;const epoch=++avatarEpoch;avatarBusy=false;photoInput.disabled=false;photoButton.disabled=true;clearPending();if(photoDialog.open)photoDialog.close();setAvatar(null);
    if(!key)return;
    try{const response=await fetch('/api/profile/avatar',{credentials:'same-origin',cache:'no-store'});if(!response.ok&&response.status!==404)throw Error();const blob=response.ok?await response.blob():null;if(epoch!==avatarEpoch||key!==identityKey())return;setAvatar(blob);}
    catch{if(epoch===avatarEpoch)avatarKey='';}
-   finally{if(epoch===avatarEpoch)photoButton.disabled=false;}
+   finally{if(epoch===avatarEpoch)photoButton.disabled=!identityKey();}
   }
   photoButton.addEventListener('click',()=>{if(!identityKey()||avatarBusy)return;if(avatarKey!==identityKey()){loadAvatar();return;}clearPending();photoStatus.textContent='';photoRemove.disabled=!avatarUrl;if(avatarUrl){photoPreview.src=avatarUrl;photoPreview.hidden=false;}photoDialog.showModal();});
   photoDialog.querySelector('[data-close]').addEventListener('click',()=>photoDialog.close());
-  photoDialog.addEventListener('close',clearPending);
+  photoDialog.addEventListener('close',()=>{if(!photoDialog.open)clearPending();});
   photoInput.addEventListener('change',async()=>{
    const file=photoInput.files?.[0];clearPending();const seq=selectionEpoch,epoch=avatarEpoch;if(!file)return;
    if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>10485760){photoStatus.textContent='Escolha JPEG, PNG ou WebP de até 10 MB.';return;}
