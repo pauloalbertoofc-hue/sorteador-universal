@@ -148,6 +148,33 @@ test('password reset: expiry, one-time consumption, concurrent submissions and s
  assert.equal(await db.prepare('SELECT token_hash FROM password_resets WHERE user_id=?').bind(changeUser.id).first(),null);
  assert.equal((await post('/api/login',{email:changeEmail,password:oldPassword})).status,401);
  assert.equal((await post('/api/login',{email:changeEmail,password:newPassword})).status,200);
+ const sessionEmail='session-management@example.test';
+ const sessionReg=await post('/api/register',{email:sessionEmail,password:oldPassword});
+ assert.equal(sessionReg.status,201);
+ const sessionCookie=sessionReg.headers.get('set-cookie').split(';')[0];
+ async function extraSession(){const response=await post('/api/login',{email:sessionEmail,password:oldPassword});assert.equal(response.status,200);return response.headers.get('set-cookie').split(';')[0];}
+ const extra1=await extraSession(),extra2=await extraSession();
+ const sessionsRequest=(method='GET',body,session=sessionCookie,origin=base)=>worker.fetch(new Request(base+'/api/sessions',{method,headers:{cookie:session,origin,'content-type':'application/json'},...(body?{body:JSON.stringify(body)}:{})}),env);
+ assert.equal((await sessionsRequest('GET',null,'')).status,401);
+ assert.equal((await sessionsRequest('DELETE',{others:true},'')).status,401);
+ assert.equal((await sessionsRequest('DELETE',{others:true},sessionCookie,'https://wrong.example')).status,403);
+ const response=await sessionsRequest();assert.equal(response.status,200);assert.match(response.headers.get('cache-control'),/no-store/);
+ const {sessions}=await response.json();assert.equal(sessions.length,3);assert.equal(sessions.filter(s=>s.current).length,1);
+ const current=sessions.find(s=>s.current);
+ const extraList=await (await sessionsRequest('GET',null,extra1)).json();
+ const target=extraList.sessions.find(s=>s.current);
+ assert.equal(target.id,digest('session-management:'+digest(extra1.split('=')[1])));
+ for(const s of sessions){assert.deepEqual(Object.keys(s).sort(),['current','expires_at','id']);assert.ok(s.expires_at>Date.now());}
+ assert.equal((await sessionsRequest('DELETE',{id:target.id},changeCookie)).status,404);
+ assert.equal((await sessionsRequest('DELETE',{id:current.id})).status,404);
+ assert.equal((await sessionsRequest('DELETE',{id:'invalid'})).status,400);
+ assert.equal((await sessionsRequest('DELETE',{id:target.id})).status,200);
+ assert.equal((await sessionsRequest('GET',null,extra1)).status,401);
+ assert.equal((await sessionsRequest('GET',null,extra2)).status,200);
+ assert.equal((await sessionsRequest('DELETE',{others:true})).status,200);
+ assert.equal((await sessionsRequest('GET',null,extra2)).status,401);
+ assert.deepEqual((await (await sessionsRequest()).json()).sessions,[current]);
+ assert.equal((await sessionsRequest('GET',null,changeCookie)).status,200);
  const asyncEmail='async-reset@example.test';
  assert.equal((await post('/api/register',{email:asyncEmail,password:oldPassword})).status,201);
  let release,entered;
