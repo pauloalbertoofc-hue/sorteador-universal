@@ -224,7 +224,29 @@ function mount(){
   const photoAnchor=document.createElement('span');photoAnchor.style.cssText='position:relative;display:inline-flex;flex:none;align-self:center';const cardAvatar=card.querySelector('.su-personal-avatar');cardAvatar.before(photoAnchor);photoAnchor.append(cardAvatar,photoButton);edit.textContent='Editar perfil';
   const photoDialog=document.createElement('dialog');photoDialog.className='su-personal-editor su-avatar-sheet';photoDialog.setAttribute('aria-label','Fotografia de perfil');
   photoDialog.innerHTML='<form><span class="su-avatar-handle" aria-hidden="true"></span><h2>Fotografia de perfil</h2><img alt="Prévia da fotografia" hidden style="width:96px;height:96px;border-radius:50%;object-fit:cover;margin:auto"><input hidden type="file" accept="image/jpeg,image/png,image/webp"><input hidden type="file" accept="image/*" capture="user" data-camera><button type="button" data-gallery>'+svgIcon('<rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="2"/><path d="m3 17 6-6 4 4 3-3 5 5"/>')+'Escolher imagem</button><button type="button" data-take>'+svgIcon('<path d="M4 7h4l2-3h4l2 3h4v13H4z"/><circle cx="12" cy="13" r="3"/>')+'Tirar fotografia</button><button type="button" data-remove>'+svgIcon('<path d="M3 6h18M9 6V3h6v3M5 6l1 14h12l1-14M10 10v6m4-6v6"/>')+'Remover fotografia atual</button><p role="status" aria-live="polite"></p><button type="submit" disabled>Salvar fotografia</button><button type="button" data-close>Cancelar</button></form>';
-  const avatarStyle=document.createElement('style');avatarStyle.textContent='.su-avatar-sheet form{gap:12px}.su-avatar-sheet form>button[data-gallery],.su-avatar-sheet form>button[data-take],.su-avatar-sheet form>button[data-remove]{display:flex;align-items:center;gap:14px;text-align:left;background:transparent;color:inherit;border:0;box-shadow:none;min-height:48px;padding:12px}.su-avatar-sheet form>button[data-remove]{color:#c93040}.su-avatar-sheet button svg{width:22px;height:22px;flex:none}.su-avatar-sheet button:disabled{opacity:.45}.su-avatar-sheet input[hidden],.su-avatar-sheet img[hidden]{display:none!important}.su-avatar-handle{display:none}@media(max-width:640px){dialog.su-avatar-sheet{position:fixed;inset:auto 0 0;margin:0;width:100%;max-width:100%;max-height:90dvh;border-radius:24px 24px 0 0;padding:20px 20px calc(16px + env(safe-area-inset-bottom));box-sizing:border-box;overflow:auto}.su-avatar-handle{display:block;width:36px;height:4px;border-radius:4px;background:currentColor;opacity:.35;margin:0 auto 8px}}';document.head.append(avatarStyle);
+  const avatarStyle=document.createElement('style');avatarStyle.textContent='.su-avatar-sheet form{gap:12px}.su-avatar-sheet form>button[data-gallery],.su-avatar-sheet form>button[data-take],.su-avatar-sheet form>button[data-remove]{display:flex;align-items:center;gap:14px;text-align:left;background:transparent;color:inherit;border:0;box-shadow:none;min-height:48px;padding:12px}.su-avatar-sheet form>button[data-remove]{color:#c93040}.su-avatar-sheet button svg{width:22px;height:22px;flex:none}.su-avatar-sheet button:disabled{opacity:.45}.su-avatar-sheet input[hidden],.su-avatar-sheet img[hidden]{display:none!important}.su-avatar-handle{display:none}@media(max-width:640px){dialog.su-avatar-sheet{position:fixed;inset:auto 0 0;margin:0;width:100%;max-width:100%;max-height:90dvh;border-radius:24px 24px 0 0;padding:20px 20px calc(16px + env(safe-area-inset-bottom));box-sizing:border-box;overflow:auto}.su-avatar-handle{display:block;width:36px;height:4px;border-radius:4px;background:currentColor;opacity:.35;margin:0 auto 8px}}';avatarStyle.textContent+=`
+.su-avatar-sheet{max-width:min(440px,calc(100% - 32px));max-height:90dvh;overflow:auto}
+.su-avatar-sheet[open]{animation:su-avatar-enter .2s ease-out}
+.su-avatar-sheet form h2{margin:0 0 8px;text-align:center;font-size:1.2rem}
+.su-avatar-sheet form>img{display:block;margin:4px auto 12px!important}
+.su-avatar-sheet form>button[data-gallery],.su-avatar-sheet form>button[data-take],.su-avatar-sheet form>button[data-remove]{border-radius:12px;font-weight:500}
+.su-avatar-sheet form>button:not(:disabled):focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.su-avatar-sheet form>button[data-gallery]:hover,.su-avatar-sheet form>button[data-take]:hover{background:color-mix(in srgb,currentColor 7%,transparent)}
+.su-avatar-sheet form>button[data-remove]:hover{background:color-mix(in srgb,#c93040 8%,transparent)}
+.su-avatar-sheet form>p[role=status]{margin:4px 0;font-size:.85rem;line-height:1.45}
+.su-avatar-sheet form>p[role=status]:empty{display:none}
+.su-avatar-sheet form>button[type=submit]:disabled{display:none}
+.su-avatar-sheet form>button[data-close]{background:transparent;color:inherit;border:1px solid color-mix(in srgb,currentColor 18%,transparent);box-shadow:none}
+.su-avatar-sheet section label{display:grid;gap:4px;font-size:.85rem;font-weight:500}
+.su-avatar-sheet section input[type=range]{width:100%;padding:0;min-height:28px;accent-color:currentColor}
+.su-avatar-sheet section canvas{cursor:grab;box-shadow:0 0 0 2px color-mix(in srgb,currentColor 15%,transparent)}
+.su-avatar-sheet section canvas:active{cursor:grabbing}
+.su-avatar-sheet section button[data-rotate]{background:transparent;color:inherit;border:1px solid color-mix(in srgb,currentColor 18%,transparent);box-shadow:none}
+@keyframes su-avatar-enter{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:640px){dialog.su-avatar-sheet{max-width:100%;max-height:92dvh}.su-avatar-sheet[open]{animation:su-avatar-mobile-enter .23s ease-out}}
+@keyframes su-avatar-mobile-enter{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.su-avatar-sheet[open]{animation:none}}
+`;document.head.append(avatarStyle);
   document.body.append(photoDialog);
   const photoForm=photoDialog.querySelector('form'),photoInput=photoDialog.querySelector('input'),photoPreview=photoDialog.querySelector('img'),photoStatus=photoDialog.querySelector('[role=status]'),photoSave=photoDialog.querySelector('[type=submit]'),photoRemove=photoDialog.querySelector('[data-remove]');
   let avatarKey='',avatarEpoch=0,avatarUrl='',pendingPhoto=null,pendingUrl='',selectionEpoch=0,avatarBusy=false;
@@ -247,7 +269,7 @@ function mount(){
    finally{if(epoch===avatarEpoch)photoButton.disabled=!identityKey();}
   }
   photoButton.addEventListener('click',()=>{if(!identityKey()||avatarBusy)return;if(avatarKey!==identityKey()){loadAvatar();return;}clearPending();photoStatus.textContent='';photoRemove.disabled=!avatarUrl;if(avatarUrl){photoPreview.src=avatarUrl;photoPreview.hidden=false;}photoDialog.showModal();});
-  photoDialog.querySelector('[data-close]').addEventListener('click',()=>photoDialog.close());
+  photoDialog.querySelector('[data-close]').addEventListener('click',()=>{if(!avatarBusy)photoDialog.close();});photoDialog.addEventListener('cancel',e=>{if(avatarBusy)e.preventDefault();});
   photoDialog.addEventListener('close',()=>{if(!photoDialog.open)clearPending();});
   const cameraInput=photoDialog.querySelector('[data-camera]');const galleryButton=photoDialog.querySelector('[data-gallery]'),takeButton=photoDialog.querySelector('[data-take]');galleryButton.addEventListener('click',()=>{if(!avatarBusy)photoInput.click();});takeButton.addEventListener('click',()=>{if(!avatarBusy)cameraInput.click();});
   const crop=document.createElement('section');crop.hidden=true;crop.style.cssText='display:grid;gap:10px';crop.innerHTML='<canvas width="256" height="256" aria-label="Prévia circular do enquadramento" style="width:min(100%,256px);aspect-ratio:1;border-radius:50%;margin:auto;touch-action:none"></canvas><label>Zoom<input type="range" min="1" max="3" step=".05" value="1"></label><label>Posição horizontal<input type="range" min="-100" max="100" value="0"></label><label>Posição vertical<input type="range" min="-100" max="100" value="0"></label><button type="button" data-rotate>Girar 90°</button>';photoPreview.after(crop);crop.style.display='none';
@@ -266,7 +288,7 @@ function mount(){
   async function selectPhoto(event){
    const file=event.currentTarget.files?.[0];event.currentTarget.value='';if(!file||avatarBusy)return;clearPending();resetCrop();const seq=selectionEpoch,epoch=avatarEpoch;
    if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>10485760){photoStatus.textContent='Escolha JPEG, PNG ou WebP de até 10 MB.';return;}
-   try{const bitmap=await createImageBitmap(file);if(seq!==selectionEpoch||epoch!==avatarEpoch||!photoDialog.open){bitmap.close();return;}cropBitmap=bitmap;crop.hidden=false;crop.style.display='grid';await renderCrop();}
+   try{const bitmap=await createImageBitmap(file);if(seq!==selectionEpoch||epoch!==avatarEpoch||!photoDialog.open){bitmap.close();return;}cropBitmap=bitmap;photoPreview.hidden=true;crop.hidden=false;crop.style.display='grid';await renderCrop();}
    catch{if(seq===selectionEpoch&&epoch===avatarEpoch)photoStatus.textContent='Não foi possível preparar a imagem.';}
   }
   photoInput.addEventListener('change',selectPhoto);cameraInput.addEventListener('change',selectPhoto);
