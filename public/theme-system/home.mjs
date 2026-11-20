@@ -213,6 +213,43 @@ function mount(){
    catch(error){if(epoch===passwordEpoch&&passwordDialog.open)passwordStatus.textContent=error.message||'Não foi possível alterar a senha.';}
    finally{if(epoch===passwordEpoch){passwordBusy=false;passwordSubmit.disabled=success;passwordClose.disabled=false;}}
   });
+  const sessionRow=details.querySelectorAll('.su-personal-row')[7];
+  const sessionButton=document.createElement('button');sessionButton.type='button';sessionButton.className='su-edit-personal';sessionButton.textContent='Gerenciar sessões';sessionRow.querySelector('small').textContent='Consulte e encerre outros acessos.';sessionRow.append(sessionButton);
+  const sessionDialog=document.createElement('dialog');sessionDialog.className='su-personal-editor';sessionDialog.setAttribute('aria-labelledby','su-session-title');
+  sessionDialog.innerHTML='<form><h2 id="su-session-title">Sessões ativas</h2><p>Gerencie os acessos à sua conta.</p><div data-session-list></div><p role="status" aria-live="polite"></p><button type="button" data-session-all>Encerrar todas as outras sessões</button><button type="button" class="secondary">Concluir</button></form>';
+  document.body.append(sessionDialog);
+  const sessionList=sessionDialog.querySelector('[data-session-list]'),sessionStatus=sessionDialog.querySelector('[role=status]'),sessionAll=sessionDialog.querySelector('[data-session-all]');
+  let sessionEpoch=0,sessionIdentity='',sessionBusy=false;
+  const sessionValid=e=>e===sessionEpoch&&sessionDialog.open&&identityKey()===sessionIdentity;
+  async function loadSessions(e){
+   sessionList.replaceChildren();sessionAll.disabled=true;sessionStatus.textContent='Carregando sessões…';
+   try{
+    const response=await fetch('/api/sessions',{credentials:'same-origin',cache:'no-store'}),data=await response.json();
+    if(!sessionValid(e))return;if(!response.ok||!Array.isArray(data.sessions))throw Error('Não foi possível consultar as sessões.');
+    const sessions=data.sessions.slice().sort((a,b)=>Number(b.current)-Number(a.current));
+    for(const s of sessions){
+     const item=document.createElement('div');item.className='su-personal-row';
+     const info=document.createElement('div'),name=document.createElement('strong'),date=document.createElement('small');
+     name.textContent=s.current?'Sessão atual':'Outra sessão';date.textContent='Expira em '+new Intl.DateTimeFormat('pt-BR',{dateStyle:'medium',timeStyle:'short'}).format(new Date(s.expires_at));info.append(name,date);item.append(info);
+     if(!s.current){const end=document.createElement('button');end.type='button';end.className='secondary';end.textContent='Encerrar';end.addEventListener('click',()=>revokeSessions({id:s.id}));item.append(end);}
+     sessionList.append(item);
+    }
+    sessionAll.disabled=!sessions.some(s=>!s.current);sessionStatus.textContent=sessions.some(s=>!s.current)?'':'Nenhuma outra sessão ativa.';
+   }catch(error){if(sessionValid(e))sessionStatus.textContent='Não foi possível consultar as sessões.';}
+  }
+  async function revokeSessions(body){
+   if(sessionBusy||!sessionValid(sessionEpoch)||!window.confirm(body.others?'Encerrar todas as outras sessões?':'Encerrar esta sessão?'))return;
+   const e=sessionEpoch;sessionBusy=true;sessionAll.disabled=true;sessionList.querySelectorAll('button').forEach(b=>b.disabled=true);
+   try{const response=await fetch('/api/sessions',{method:'DELETE',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify(body)});if(!sessionValid(e))return;if(!response.ok)throw Error();await loadSessions(e);}
+   catch{if(sessionValid(e)){await loadSessions(e);if(sessionValid(e))sessionStatus.textContent='Não foi possível encerrar a sessão.';}}
+   finally{if(sessionValid(e))sessionBusy=false;}
+  }
+  sessionDialog.querySelector('form').addEventListener('submit',e=>e.preventDefault());
+  sessionButton.addEventListener('click',()=>{if(!identityKey())return;sessionIdentity=identityKey();sessionBusy=false;sessionDialog.showModal();loadSessions(++sessionEpoch);});
+  sessionAll.addEventListener('click',()=>revokeSessions({others:true}));
+  sessionDialog.querySelector('.secondary').addEventListener('click',()=>sessionDialog.close());
+  sessionDialog.addEventListener('close',()=>{if(!sessionDialog.open){sessionEpoch++;sessionList.replaceChildren();sessionStatus.textContent='';sessionBusy=false;}});
+  new MutationObserver(()=>{if(sessionDialog.open&&identityKey()!==sessionIdentity){sessionEpoch++;sessionDialog.close();sessionList.replaceChildren();}}).observe(account.querySelector('#accountMember'),{attributes:true,attributeFilter:['hidden'],childList:true,subtree:true,characterData:true});
   function paintPersonal(){
    if(!personal||!identityKey())return;
    const fields=details.querySelectorAll('.su-personal-row small');
