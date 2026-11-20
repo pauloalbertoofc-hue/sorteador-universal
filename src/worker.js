@@ -156,6 +156,28 @@ async function api(req,env,url,ctx){const path=url.pathname,method=req.method;
  }
  if(path==='/api/logout'&&method==='POST'){const user=await auth(req,env);if(user)await env.DB.prepare('DELETE FROM sessions WHERE token_hash=?').bind(user.token_hash).run();return json({ok:true},200,{'set-cookie':sessionCookie('',0)})}
  const user=await auth(req,env);
+ if(path==='/api/sessions'&&(method==='GET'||method==='DELETE')){
+  if(!user)return fail('Não autenticado',401);
+  if(method==='GET'){
+   const result=await env.DB.prepare('SELECT token_hash,expires_at FROM sessions WHERE user_id=? AND expires_at>? ORDER BY expires_at DESC').bind(user.id,Date.now()).all();
+   const sessions=await Promise.all(result.results.map(async s=>({id:await sha('session-management:'+s.token_hash),current:s.token_hash===user.token_hash,expires_at:s.expires_at})));
+   return json({sessions},200,{'cache-control':'private, no-store'});
+  }
+  const body=await readBody(req);
+  if(body?.others===true){
+   await env.DB.prepare('DELETE FROM sessions WHERE user_id=? AND token_hash<>?').bind(user.id,user.token_hash).run();
+   return json({ok:true});
+  }
+  if(typeof body?.id!=='string'||!/^[a-f0-9]{64}$/.test(body.id))return fail('Sessão inválida.');
+  const result=await env.DB.prepare('SELECT token_hash FROM sessions WHERE user_id=? AND expires_at>?').bind(user.id,Date.now()).all();
+  for(const s of result.results){
+   if(s.token_hash!==user.token_hash&&await sha('session-management:'+s.token_hash)===body.id){
+    await env.DB.prepare('DELETE FROM sessions WHERE user_id=? AND token_hash=?').bind(user.id,s.token_hash).run();
+    return json({ok:true});
+   }
+  }
+  return fail('Sessão não encontrada ou sessão atual.',404);
+ }
  if(path==='/api/password/change'&&method==='POST'){
   if(!user)return fail('Não autenticado',401);
   if(!await roomRateLimit('password-change-user',user.id,5,900000)||!await roomRateLimit('password-change-ip',requester,20,900000))return fail('Muitas tentativas. Tente mais tarde.',429);
