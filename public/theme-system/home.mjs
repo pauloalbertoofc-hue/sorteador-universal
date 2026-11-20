@@ -255,14 +255,14 @@ function mount(){
    if(!avatarKey||avatarKey!==identityKey())return;
    for(const el of [profile,card.querySelector('.su-personal-avatar'),pop.querySelector('.su-personal-avatar')]){
     if(!el)continue;
-    if(!avatarUrl){if(el.querySelector('img[data-account-avatar]'))el.textContent=(avatarKey.match(/[\\p{L}\\p{N}]/u)?.[0]||'U').toUpperCase();continue;}
+    if(!avatarUrl){if(el.querySelector('img[data-account-avatar]'))el.textContent=(avatarKey.match(/[\p{L}\p{N}]/u)?.[0]||'U').toUpperCase();continue;}
     let img=el.querySelector('img[data-account-avatar]');if(!img){img=document.createElement('img');img.dataset.accountAvatar='';img.alt='';img.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:50%;display:block';el.replaceChildren(img);}img.src=avatarUrl;
    }
   }
   function setAvatar(blob){if(avatarUrl)URL.revokeObjectURL(avatarUrl);avatarUrl=blob?URL.createObjectURL(blob):'';paintPersonal();paintAvatar();}
   async function loadAvatar(){
    const key=identityKey();if(key===avatarKey){if(!key){photoButton.disabled=true;return;}paintPersonal();paintAvatar();return;}
-   avatarKey=key;const epoch=++avatarEpoch;avatarBusy=false;photoInput.disabled=false;photoButton.disabled=true;clearPending();if(photoDialog.open)photoDialog.close();setAvatar(null);
+   avatarKey=key;const epoch=++avatarEpoch;avatarBusy=false;setPhotoBusy(false);resetCrop();photoButton.disabled=true;clearPending();if(photoDialog.open)photoDialog.close();setAvatar(null);
    if(!key)return;
    try{const response=await fetch('/api/profile/avatar',{credentials:'same-origin',cache:'no-store'});if(!response.ok&&response.status!==404)throw Error();const blob=response.ok?await response.blob():null;if(epoch!==avatarEpoch||key!==identityKey())return;setAvatar(blob);}
    catch{if(epoch===avatarEpoch)avatarKey='';}
@@ -275,7 +275,7 @@ function mount(){
   const crop=document.createElement('section');crop.hidden=true;crop.style.cssText='display:grid;gap:10px';crop.innerHTML='<canvas width="256" height="256" aria-label="Prévia circular do enquadramento" style="width:min(100%,256px);aspect-ratio:1;border-radius:50%;margin:auto;touch-action:none"></canvas><label>Zoom<input type="range" min="1" max="3" step=".05" value="1"></label><label>Posição horizontal<input type="range" min="-100" max="100" value="0"></label><label>Posição vertical<input type="range" min="-100" max="100" value="0"></label><button type="button" data-rotate>Girar 90°</button>';photoPreview.after(crop);crop.style.display='none';
   const cropCanvas=crop.querySelector('canvas'),cropCtx=cropCanvas.getContext('2d'),[zoom,panX,panY]=crop.querySelectorAll('input');let cropBitmap=null,angle=0,renderEpoch=0;
   function resetCrop(){pointers.clear();gesture=null;renderEpoch++;cropBitmap?.close();cropBitmap=null;crop.hidden=true;crop.style.display='none';zoom.value='1';panX.value=panY.value='0';angle=0;}
-  async function renderCrop(){if(!cropBitmap||!photoDialog.open)return;const seq=++renderEpoch,epoch=selectionEpoch;pendingPhoto=null;photoSave.disabled=true;const w=cropBitmap.width,h=cropBitmap.height,turned=angle%180!==0,rw=turned?h:w,rh=turned?w:h,scale=256/Math.min(w,h)*Number(zoom.value),dx=(rw*scale-256)*Number(panX.value)/200,dy=(rh*scale-256)*Number(panY.value)/200;cropCtx.setTransform(1,0,0,1,0,0);cropCtx.fillStyle='#fff';cropCtx.fillRect(0,0,256,256);cropCtx.translate(128+dx,128+dy);cropCtx.rotate(angle*Math.PI/180);cropCtx.drawImage(cropBitmap,-w*scale/2,-h*scale/2,w*scale,h*scale);cropCtx.setTransform(1,0,0,1,0,0);let blob;for(const q of [.85,.7,.5,.3]){blob=await new Promise(resolve=>cropCanvas.toBlob(resolve,'image/jpeg',q));if(seq!==renderEpoch||epoch!==selectionEpoch||!photoDialog.open)return;if(blob&&blob.size<=65536)break;}if(!blob||blob.size>65536){photoStatus.textContent='Não foi possível preparar a imagem.';return;}pendingPhoto=blob;photoSave.disabled=avatarBusy;photoStatus.textContent='Arraste a imagem ou use dois dedos para ampliar. Depois, salve.';}
+  async function renderCrop(){if(!cropBitmap||!photoDialog.open||avatarBusy)return;const seq=++renderEpoch,epoch=selectionEpoch;pendingPhoto=null;photoSave.disabled=true;const w=cropBitmap.width,h=cropBitmap.height,turned=angle%180!==0,rw=turned?h:w,rh=turned?w:h,scale=256/Math.min(w,h)*Number(zoom.value),dx=(rw*scale-256)*Number(panX.value)/200,dy=(rh*scale-256)*Number(panY.value)/200;cropCtx.setTransform(1,0,0,1,0,0);cropCtx.fillStyle='#fff';cropCtx.fillRect(0,0,256,256);cropCtx.translate(128+dx,128+dy);cropCtx.rotate(angle*Math.PI/180);cropCtx.drawImage(cropBitmap,-w*scale/2,-h*scale/2,w*scale,h*scale);cropCtx.setTransform(1,0,0,1,0,0);await new Promise(resolve=>setTimeout(resolve,100));if(seq!==renderEpoch||epoch!==selectionEpoch||!photoDialog.open||avatarBusy)return;let blob;for(const q of [.85,.7,.5,.3]){blob=await new Promise(resolve=>cropCanvas.toBlob(resolve,'image/jpeg',q));if(seq!==renderEpoch||epoch!==selectionEpoch||!photoDialog.open)return;if(blob&&blob.size<=65536)break;}if(!blob||blob.size>65536){photoStatus.textContent='Não foi possível preparar a imagem.';return;}pendingPhoto=blob;photoSave.disabled=avatarBusy;photoStatus.textContent='Arraste a imagem ou use dois dedos para ampliar. Depois, salve.';}
   for(const field of [zoom,panX,panY])field.addEventListener('input',renderCrop);crop.querySelector('[data-rotate]').addEventListener('click',()=>{angle=(angle+90)%360;panX.value=panY.value='0';renderCrop();});
   const pointers=new Map();let gesture=null;
   function gestureState(){const pts=[...pointers.values()];if(!pts.length)return null;const a=pts[0],b=pts[1]||a;return {x:(a.x+b.x)/2,y:(a.y+b.y)/2,d:pts.length>1?Math.max(1,Math.hypot(a.x-b.x,a.y-b.y)):0};}
@@ -292,12 +292,13 @@ function mount(){
    catch{if(seq===selectionEpoch&&epoch===avatarEpoch)photoStatus.textContent='Não foi possível preparar a imagem.';}
   }
   photoInput.addEventListener('change',selectPhoto);cameraInput.addEventListener('change',selectPhoto);
+  function setPhotoBusy(busy){for(const el of crop.querySelectorAll('input,button'))el.disabled=busy;photoInput.disabled=cameraInput.disabled=galleryButton.disabled=takeButton.disabled=photoDialog.querySelector('[data-close]').disabled=busy;}
   async function writeAvatar(remove){
    if(avatarBusy||!avatarKey||avatarKey!==identityKey()||(!remove&&!pendingPhoto))return;
-   const epoch=avatarEpoch,key=avatarKey,blob=pendingPhoto;avatarBusy=true;for(const el of crop.querySelectorAll('input,button'))el.disabled=true;photoSave.disabled=photoRemove.disabled=photoInput.disabled=true;photoStatus.textContent='Salvando…';
+   const epoch=avatarEpoch,key=avatarKey,blob=pendingPhoto;avatarBusy=true;setPhotoBusy(true);photoSave.disabled=photoRemove.disabled=true;photoStatus.textContent='Salvando…';
    try{const response=await fetch('/api/profile/avatar',{method:remove?'DELETE':'POST',credentials:'same-origin',...(remove?{}:{headers:{'content-type':'image/jpeg'},body:blob})});if(!response.ok)throw Error();if(epoch!==avatarEpoch||key!==identityKey())return;setAvatar(remove?null:blob);clearPending();resetCrop();if(avatarUrl){photoPreview.src=avatarUrl;photoPreview.hidden=false;}photoStatus.textContent=remove?'Fotografia removida.':'Fotografia salva.';}
    catch{if(epoch===avatarEpoch)photoStatus.textContent='Não foi possível concluir. Tente novamente.';}
-   finally{if(epoch===avatarEpoch){avatarBusy=false;for(const el of crop.querySelectorAll('input,button'))el.disabled=false;photoInput.disabled=false;photoRemove.disabled=!avatarUrl;photoSave.disabled=!pendingPhoto;}}
+   finally{if(epoch===avatarEpoch){avatarBusy=false;setPhotoBusy(false);photoRemove.disabled=!avatarUrl;photoSave.disabled=!pendingPhoto;}}
   }
   photoForm.addEventListener('submit',e=>{e.preventDefault();writeAvatar(false);});photoRemove.addEventListener('click',()=>writeAvatar(true));
   new MutationObserver(loadAvatar).observe(account.querySelector('#accountMember'),{attributes:true,attributeFilter:['hidden'],childList:true,subtree:true,characterData:true});loadAvatar();
