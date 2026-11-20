@@ -175,6 +175,38 @@ test('password reset: expiry, one-time consumption, concurrent submissions and s
  assert.equal((await sessionsRequest('GET',null,extra2)).status,401);
  assert.deepEqual((await (await sessionsRequest()).json()).sessions,[current]);
  assert.equal((await sessionsRequest('GET',null,changeCookie)).status,200);
+ // Email verification uses single-use challenges, never stored in plaintext.
+ const verifyEmail='verify-address@example.test';
+ const verifyReg=await post('/api/register',{email:verifyEmail,password:oldPassword});
+ assert.equal(verifyReg.status,201);
+ const verifyCookie=verifyReg.headers.get('set-cookie').split(';')[0];
+ const verification=(suffix='',method='GET',body,session=verifyCookie,origin=base)=>worker.fetch(new Request(base+'/api/email/verification'+suffix,{method,headers:{cookie:session,origin,'content-type':'application/json','cf-connecting-ip':'203.0.113.51'},...(body?{body:JSON.stringify(body)}:{})}),env);
+ const originalFetch=globalThis.fetch,previousConfig={RESET_EMAIL_API_KEY:env.RESET_EMAIL_API_KEY,RESET_EMAIL_FROM:env.RESET_EMAIL_FROM,RESET_SITE_URL:env.RESET_SITE_URL};
+ const deliveries=[];
+ try{
+  Object.assign(env,{RESET_EMAIL_API_KEY:'test-key',RESET_EMAIL_FROM:'Sorteador <test@example.test>',RESET_SITE_URL:base});
+  globalThis.fetch=async(url,options)=>{assert.equal(url,'https://api.resend.com/emails');deliveries.push(JSON.parse(options.body));return new Response('{}',{status:200});};
+  assert.equal((await verification('','GET',null,'')).status,401);
+  assert.deepEqual(await (await verification()).json(),{verified:false});
+  assert.equal((await verification('/request','POST',{},verifyCookie,'https://wrong.example')).status,403);
+  assert.equal((await verification('/request','POST',{})).status,200);
+  assert.deepEqual(deliveries[0].to,[verifyEmail]);
+  const firstToken=deliveries[0].text.match(/#su-verify=([a-f0-9]{64})/)[1];
+  const stored=await db.prepare('SELECT token_hash,expires_at FROM email_verifications WHERE email=?').bind(verifyEmail).first();
+  assert.equal(stored.token_hash,digest(firstToken));assert.ok(stored.expires_at>Date.now());
+  await db.prepare('UPDATE email_verifications SET expires_at=? WHERE email=?').bind(Date.now()-1,verifyEmail).run();
+  assert.equal((await verification('/confirm','POST',{token:firstToken},'')).status,400);
+  assert.equal((await verification('/request','POST',{})).status,200);
+  const secondToken=deliveries[1].text.match(/#su-verify=([a-f0-9]{64})/)[1];
+  assert.notEqual(firstToken,secondToken);
+  assert.equal((await verification('/confirm','POST',{token:firstToken},'')).status,400);
+  assert.equal((await verification('/confirm','POST',{token:secondToken},'')).status,200);
+  assert.equal((await verification('/confirm','POST',{token:secondToken},'')).status,400);
+  assert.deepEqual(await (await verification()).json(),{verified:true});
+  assert.deepEqual(await (await verification('','GET',null,otherCookie)).json(),{verified:false});
+  assert.deepEqual(await (await verification('/request','POST',{})).json(),{ok:true,verified:true});
+  assert.equal(deliveries.length,2);
+ }finally{globalThis.fetch=originalFetch;Object.assign(env,previousConfig);}
  const asyncEmail='async-reset@example.test';
  assert.equal((await post('/api/register',{email:asyncEmail,password:oldPassword})).status,201);
  let release,entered;
