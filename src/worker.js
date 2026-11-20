@@ -14,7 +14,7 @@ async function auth(req,env){const token=req.headers.get('cookie')?.match(/(?:^|
 // Session expiry is Unix time in milliseconds, matching Date.now() in auth().
 async function createSession(env,id){const token=random(32);await env.DB.prepare('INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(?,?,?)').bind(await sha(token),id,Date.now()+30*86400000).run();return sessionCookie(token,30*86400)}
 function originOk(req){const origin=req.headers.get('origin');return !!origin&&origin===new URL(req.url).origin}
-async function api(req,env,url){const path=url.pathname,method=req.method;
+async function api(req,env,url,ctx){const path=url.pathname,method=req.method;
  if(!env.DB)return fail('Banco D1 não conectado.',503);
  if(!['GET','POST','DELETE'].includes(method))return fail('Método não permitido',405);
  if(method!=='GET'&&!originOk(req)&&path!=='/api/webhooks/mercadopago')return fail('Origem inválida',403);
@@ -98,6 +98,46 @@ async function api(req,env,url){const path=url.pathname,method=req.method;
   return json({round:event.round_number,winner:event.winner_name,at:event.drawn_at},201);
  }
  if(path==='/api/health'&&method==='GET')return json({ok:true,version:'2.0.4'});
+ if(path==='/api/password/request'&&method==='POST'){
+  const resetUnavailable=reason=>{console.warn('password-reset-config',reason);const codes={'missing-api-key':'R01','missing-sender':'R02','missing-site-url':'R03','invalid-site-url':'R04','invalid-site-url-policy':'R05','origin-mismatch':'R06'};return fail('Recuperação temporariamente indisponível.'+(url.hostname==='design-unified-themes-and-seo-routes-sorteador-universal.paulo-alberto-ofc.workers.dev'?' ['+codes[reason]+']':''),503);};
+  if(!env.RESET_EMAIL_API_KEY)return resetUnavailable('missing-api-key');
+  if(!env.RESET_EMAIL_FROM)return resetUnavailable('missing-sender');
+  if(!env.RESET_SITE_URL)return resetUnavailable('missing-site-url');
+  let link;try{link=new URL(env.RESET_SITE_URL);}catch{return resetUnavailable('invalid-site-url');}
+  if(link.protocol!=='https:'||link.username||link.password||link.pathname!=='/'||link.search||link.hash)return resetUnavailable('invalid-site-url-policy');
+  if(link.origin!==url.origin)return resetUnavailable('origin-mismatch');
+  const {email}=await readBody(req);const e=String(email||'').trim().toLowerCase();
+  const generic=()=>json({ok:true,message:'Se houver uma conta elegível, enviaremos instruções por e-mail.'});
+  if(e.length>254||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e))return generic();
+  if(!await roomRateLimit('reset-ip',requester,10,3600000)||!await roomRateLimit('reset-email',e,3,3600000))return generic();
+  const deliver=async()=>{
+  const user=await env.DB.prepare('SELECT id,email FROM users WHERE email=?').bind(e).first();
+  if(!user)return;
+  const token=random(32),digest=await sha(token),now=Date.now();
+
+  link.hash='su-reset='+token;
+  await env.DB.prepare('INSERT INTO password_resets(user_id,token_hash,expires_at) VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET token_hash=excluded.token_hash,expires_at=excluded.expires_at').bind(user.id,digest,now+900000).run();
+  try{
+   const response=await fetch('https://api.resend.com/emails',{method:'POST',headers:{authorization:'Bearer '+env.RESET_EMAIL_API_KEY,'content-type':'application/json'},body:JSON.stringify({from:env.RESET_EMAIL_FROM,to:[user.email],subject:'Redefinição de senha — Sorteador Universal',text:'Use este link em até 15 minutos: '+link.href+'\nSe não solicitou, ignore este e-mail.'})});
+   if(!response.ok)throw Error('delivery');
+  }catch{await env.DB.prepare('DELETE FROM password_resets WHERE token_hash=?').bind(digest).run();}
+  };
+  if(ctx?.waitUntil)ctx.waitUntil(deliver().catch(()=>{}));else await deliver();
+  return generic();
+ }
+ if(path==='/api/password/reset'&&method==='POST'){
+  if(!await roomRateLimit('reset-submit',requester,15,3600000))return fail('Tente mais tarde.',429);
+  const {token,password}=await readBody(req);
+  if(typeof token!=='string'||!/^[a-f0-9]{64}$/.test(token)||typeof password!=='string'||password.length<10||password.length>128)return fail('Link ou senha inválidos.');
+  const digest=await sha(token),salt=random(16),hash=await pbkdf(password,salt),now=Date.now();
+  const results=await env.DB.batch([
+   env.DB.prepare('DELETE FROM sessions WHERE user_id IN (SELECT user_id FROM password_resets WHERE token_hash=? AND expires_at>?)').bind(digest,now),
+   env.DB.prepare('UPDATE users SET password_hash=? WHERE id IN (SELECT user_id FROM password_resets WHERE token_hash=? AND expires_at>?)').bind('pbkdf2$'+salt+'$'+hash,digest,now),
+   env.DB.prepare('DELETE FROM password_resets WHERE token_hash=?').bind(digest)
+  ]);
+  if(!results[1].meta?.changes)return fail('Link inválido ou expirado.');
+  return json({ok:true},200,{'set-cookie':sessionCookie('',0)});
+ }
  if(path==='/api/register'&&method==='POST'){
   const {email,password}=await readBody(req);const e=String(email||'').trim().toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)||e.length>254||typeof password!=='string'||password.length<10||password.length>128)return fail('E-mail ou senha inválidos (mínimo 10 caracteres).');
   const salt=random(16),hash=await pbkdf(password,salt),id=crypto.randomUUID();try{
@@ -112,10 +152,142 @@ async function api(req,env,url){const path=url.pathname,method=req.method;
   return json({ok:true},201,{'set-cookie':await createSession(env,id)});
  }
  if(path==='/api/login'&&method==='POST'){
-  const {email,password}=await readBody(req);if(typeof password!=='string'||password.length>128)return fail('Credenciais inválidas',401);const user=await env.DB.prepare('SELECT id,password_hash FROM users WHERE email=?').bind(String(email||'').trim().toLowerCase()).first();if(!user||!user.password_hash?.startsWith('pbkdf2$'))return fail('Credenciais inválidas',401);const [,salt,hash]=user.password_hash.split('$');if(!equal(await pbkdf(password,salt),hash))return fail('Credenciais inválidas',401);return json({ok:true},200,{'set-cookie':await createSession(env,user.id)});
+  const {email,password}=await readBody(req);if(typeof password!=='string'||password.length>128)return fail('Credenciais inválidas',401);const user=await env.DB.prepare('SELECT id,password_hash FROM users WHERE email=?').bind(String(email||'').trim().toLowerCase()).first();if(!user||!user.password_hash?.startsWith('pbkdf2$'))return fail('Credenciais inválidas',401);const [,salt,hash]=user.password_hash.split('$');if(!equal(await pbkdf(password,salt),hash))return fail('Credenciais inválidas',401);const token=random(32);const inserted=await env.DB.prepare('INSERT INTO sessions(token_hash,user_id,expires_at) SELECT ?,id,? FROM users WHERE id=? AND password_hash=?').bind(await sha(token),Date.now()+30*86400000,user.id,user.password_hash).run();if(!inserted.meta?.changes)return fail('Credenciais inválidas',401);return json({ok:true},200,{'set-cookie':sessionCookie(token,30*86400)});
  }
  if(path==='/api/logout'&&method==='POST'){const user=await auth(req,env);if(user)await env.DB.prepare('DELETE FROM sessions WHERE token_hash=?').bind(user.token_hash).run();return json({ok:true},200,{'set-cookie':sessionCookie('',0)})}
  const user=await auth(req,env);
+ if(path==='/api/email/verification'&&method==='GET'){
+  if(!user)return fail('Não autenticado',401);
+  const record=await env.DB.prepare('SELECT verified_at FROM email_verifications WHERE user_id=? AND email=?').bind(user.id,user.email).first();
+  return json({verified:Boolean(record?.verified_at)},200,{'cache-control':'private, no-store'});
+ }
+ if(path==='/api/email/verification/request'&&method==='POST'){
+  if(!user)return fail('Não autenticado',401);
+  const verifyUnavailable=code=>fail('Verificação temporariamente indisponível.'+(url.hostname==='design-unified-themes-and-seo-routes-sorteador-universal.paulo-alberto-ofc.workers.dev'?' ['+code+']':''),503);
+  if(!env.RESET_EMAIL_API_KEY)return verifyUnavailable('V01');
+  if(!env.RESET_EMAIL_FROM)return verifyUnavailable('V02');
+  if(!env.RESET_SITE_URL)return verifyUnavailable('V03');
+  let link;try{link=new URL(env.RESET_SITE_URL);}catch{return verifyUnavailable('V04');}
+  if(link.protocol!=='https:'||link.username||link.password||link.pathname!=='/'||link.search||link.hash)return verifyUnavailable('V05');
+  if(link.origin!==url.origin)return verifyUnavailable('V06');
+  const existing=await env.DB.prepare('SELECT verified_at FROM email_verifications WHERE user_id=? AND email=?').bind(user.id,user.email).first();
+  if(existing?.verified_at)return json({ok:true,verified:true});
+  if(!await roomRateLimit('verify-email-user',user.id,3,3600000)||!await roomRateLimit('verify-email-ip',requester,15,3600000))return fail('Tente mais tarde.',429);
+  const token=random(32),digest=await sha(token);
+  const result=await env.DB.prepare('INSERT INTO email_verifications(user_id,email,token_hash,expires_at,verified_at) VALUES(?,?,?,?,NULL) ON CONFLICT(user_id) DO UPDATE SET email=excluded.email,token_hash=excluded.token_hash,expires_at=excluded.expires_at,verified_at=NULL WHERE email_verifications.verified_at IS NULL OR email_verifications.email<>excluded.email').bind(user.id,user.email,digest,Date.now()+1800000).run();
+  if(!result.meta?.changes)return json({ok:true,verified:true});
+  link.hash='su-verify='+token;
+  const safeLink=link.href.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const verificationHtml='<html lang="pt-BR"><body style="margin:0;background:#f4f3f8;font-family:Arial,sans-serif;color:#25213b"><table role="presentation" width="100%" cellspacing="0" cellpadding="16"><tr><td align="center"><table role="presentation" width="100%" cellspacing="0" cellpadding="24" style="max-width:560px;background:#ffffff;border-radius:16px"><tr><td style="background:#6543df;color:#ffffff;border-radius:16px 16px 0 0;font-size:22px;font-weight:bold">Sorteador Universal</td></tr><tr><td style="line-height:1.6"><h1 style="font-size:24px;margin:0 0 16px">Confirme seu e-mail</h1><p>Confirme seu endereço de e-mail para validar sua conta no Sorteador Universal.</p><p style="margin:28px 0"><a href="'+safeLink+'" style="display:inline-block;background:#6543df;color:#ffffff;text-decoration:none;padding:14px 22px;border-radius:8px;font-weight:bold">Confirmar meu e-mail</a></p><p>Este link é válido por 30 minutos e só pode ser utilizado uma vez.</p><p>Se você não solicitou esta verificação, ignore este e-mail.</p><p style="font-size:13px;color:#59566a;overflow-wrap:anywhere">Se o botão não funcionar, copie este endereço:<br><a href="'+safeLink+'" style="color:#6543df;word-break:break-all">'+safeLink+'</a></p></td></tr><tr><td style="border-top:1px solid #e7e4ef;color:#59566a;font-size:12px">Sorteador Universal · Shadow&amp;Ink<br>Mensagem automática de segurança.</td></tr></table></td></tr></table></body></html>';
+
+  try{
+   const response=await fetch('https://api.resend.com/emails',{method:'POST',headers:{authorization:'Bearer '+env.RESET_EMAIL_API_KEY,'content-type':'application/json'},body:JSON.stringify({from:env.RESET_EMAIL_FROM,to:[user.email],subject:'Confirme seu e-mail — Sorteador Universal',html:verificationHtml,text:'Confirme seu endereço em até 30 minutos: '+link.href+' Se não solicitou, ignore este e-mail.'})});
+   if(!response.ok)throw Error('delivery');
+  }catch{await env.DB.prepare('UPDATE email_verifications SET token_hash=NULL,expires_at=NULL WHERE user_id=? AND token_hash=?').bind(user.id,digest).run();return fail('Não foi possível enviar o e-mail.',503);}
+  return json({ok:true,verified:false});
+ }
+ if(path==='/api/email/verification/confirm'&&method==='POST'){
+  if(!await roomRateLimit('verify-email-confirm',requester,15,3600000))return fail('Tente mais tarde.',429);
+  const {token}=await readBody(req);
+  if(typeof token!=='string'||!/^[a-f0-9]{64}$/.test(token))return fail('Link inválido ou expirado.');
+  const result=await env.DB.prepare('UPDATE email_verifications SET verified_at=?,token_hash=NULL,expires_at=NULL WHERE token_hash=? AND expires_at>? AND verified_at IS NULL AND EXISTS (SELECT 1 FROM users WHERE users.id=email_verifications.user_id AND users.email=email_verifications.email)').bind(Date.now(),await sha(token),Date.now()).run();
+  if(!result.meta?.changes)return fail('Link inválido ou expirado.');
+  return json({ok:true});
+ }
+ if(path==='/api/sessions'&&(method==='GET'||method==='DELETE')){
+  if(!user)return fail('Não autenticado',401);
+  if(method==='GET'){
+   const result=await env.DB.prepare('SELECT token_hash,expires_at FROM sessions WHERE user_id=? AND expires_at>? ORDER BY expires_at DESC').bind(user.id,Date.now()).all();
+   const sessions=await Promise.all(result.results.map(async s=>({id:await sha('session-management:'+s.token_hash),current:s.token_hash===user.token_hash,expires_at:s.expires_at})));
+   return json({sessions},200,{'cache-control':'private, no-store'});
+  }
+  const body=await readBody(req);
+  if(body?.others===true){
+   await env.DB.prepare('DELETE FROM sessions WHERE user_id=? AND token_hash<>?').bind(user.id,user.token_hash).run();
+   return json({ok:true});
+  }
+  if(typeof body?.id!=='string'||!/^[a-f0-9]{64}$/.test(body.id))return fail('Sessão inválida.');
+  const result=await env.DB.prepare('SELECT token_hash FROM sessions WHERE user_id=? AND expires_at>?').bind(user.id,Date.now()).all();
+  for(const s of result.results){
+   if(s.token_hash!==user.token_hash&&await sha('session-management:'+s.token_hash)===body.id){
+    await env.DB.prepare('DELETE FROM sessions WHERE user_id=? AND token_hash=?').bind(user.id,s.token_hash).run();
+    return json({ok:true});
+   }
+  }
+  return fail('Sessão não encontrada ou sessão atual.',404);
+ }
+ if(path==='/api/password/change'&&method==='POST'){
+  if(!user)return fail('Não autenticado',401);
+  if(!await roomRateLimit('password-change-user',user.id,5,900000)||!await roomRateLimit('password-change-ip',requester,20,900000))return fail('Muitas tentativas. Tente mais tarde.',429);
+  const {currentPassword,newPassword}=await readBody(req);
+  if(typeof currentPassword!=='string'||currentPassword.length>128||typeof newPassword!=='string'||newPassword.length<10||newPassword.length>128||currentPassword===newPassword)return fail('Informe uma nova senha diferente, de 10 a 128 caracteres.');
+  const record=await env.DB.prepare('SELECT password_hash FROM users WHERE id=?').bind(user.id).first();
+  if(!record?.password_hash?.startsWith('pbkdf2$'))return fail('Senha atual incorreta.',403);
+  const [,salt,hash]=record.password_hash.split('$');
+  if(!equal(await pbkdf(currentPassword,salt),hash))return fail('Senha atual incorreta.',403);
+  const nextSalt=random(16),nextHash='pbkdf2$'+nextSalt+'$'+await pbkdf(newPassword,nextSalt);
+  const results=await env.DB.batch([
+   env.DB.prepare('UPDATE users SET password_hash=? WHERE id=? AND password_hash=? AND EXISTS (SELECT 1 FROM sessions WHERE user_id=? AND token_hash=? AND expires_at>?)').bind(nextHash,user.id,record.password_hash,user.id,user.token_hash,Date.now()),
+   env.DB.prepare('DELETE FROM sessions WHERE user_id=? AND token_hash<>? AND EXISTS (SELECT 1 FROM users WHERE id=? AND password_hash=?)').bind(user.id,user.token_hash,user.id,nextHash),
+   env.DB.prepare('DELETE FROM password_resets WHERE user_id=? AND EXISTS (SELECT 1 FROM users WHERE id=? AND password_hash=?)').bind(user.id,user.id,nextHash)
+  ]);
+  if(!results[0].meta?.changes)return fail('Sessão ou senha alterada. Entre novamente.',409);
+  return json({ok:true});
+ }
+ if(path==='/api/profile/avatar'){
+  if(!user)return fail('Não autenticado',401);
+  if(method==='GET'){
+   const row=await env.DB.prepare('SELECT jpeg FROM user_avatars WHERE user_id=?').bind(user.id).first();
+   if(!row)return fail('Fotografia não cadastrada',404);
+   return new Response(new Uint8Array(row.jpeg),{headers:{'content-type':'image/jpeg','cache-control':'private, no-store','x-content-type-options':'nosniff'}});
+  }
+  if(method==='DELETE'){
+   await env.DB.prepare('DELETE FROM user_avatars WHERE user_id=?').bind(user.id).run();
+   return json({ok:true});
+  }
+  if(req.headers.get('content-type')!=='image/jpeg')return fail('Formato inválido',415);
+  const limit=65536;
+  if(Number(req.headers.get('content-length'))>limit)return fail('Fotografia muito grande',413);
+  if(!req.body)return fail('Fotografia inválida');
+  const reader=req.body.getReader(), bytes=new Uint8Array(limit);let length=0;
+  while(true){const {done,value}=await reader.read();if(done)break;if(length+value.length>limit){await reader.cancel();return fail('Fotografia muito grande',413);}bytes.set(value,length);length+=value.length;}
+  const photo=bytes.slice(0,length);
+  if(length<4||photo[0]!==255||photo[1]!==216||photo[length-2]!==255||photo[length-1]!==217)return fail('Fotografia inválida');
+  // Inspect JPEG frame dimensions before accepting the bounded payload.
+  let dimensions=false;
+  for(let i=2;i+4<length;){
+   if(photo[i++]!==255)break;
+   while(photo[i]===255)i++;
+   const marker=photo[i++];if(marker===218||marker===217)break;
+   const size=photo[i]*256+photo[i+1];if(size<2||i+size>length)break;
+   if(marker===192||marker===194){
+    if(size<8)break;
+    const h=photo[i+3]*256+photo[i+4],w=photo[i+5]*256+photo[i+6];
+    dimensions=w>0&&h>0&&w<=256&&h<=256;break;
+   }
+   i+=size;
+  }
+  if(!dimensions)return fail('Resolução inválida');
+  await env.DB.prepare('INSERT INTO user_avatars(user_id,jpeg) VALUES(?,?) ON CONFLICT(user_id) DO UPDATE SET jpeg=excluded.jpeg').bind(user.id,photo.buffer).run();
+  return json({ok:true});
+ }
+ if(path==='/api/profile'&&(method==='GET'||method==='POST')){
+  if(!user)return fail('Não autenticado',401);
+  if(method==='GET'){
+   const profile=await env.DB.prepare('SELECT full_name,display_name,username FROM user_profiles WHERE user_id=?').bind(user.id).first();
+   const account=await env.DB.prepare('SELECT created_at FROM users WHERE id=?').bind(user.id).first();
+   return json({profile:{...(profile||{full_name:'',display_name:'',username:null}),created_at:account?.created_at??null}});
+  }
+  const b=await readBody(req);
+  if(!b||typeof b.full_name!=='string'||typeof b.display_name!=='string'||typeof b.username!=='string')return fail('Dados inválidos');
+  const full=b.full_name.trim(),display=b.display_name.trim(),username=b.username.trim().toLowerCase();
+  if(full.length>100||display.length>60||/[\x00-\x1f\x7f]/.test(full+display)||(username&&!/^[a-z0-9_]{3,30}$/.test(username)))return fail('Nome ou usuário inválido. Use 3 a 30 letras, números ou sublinhados no usuário.');
+  try{
+   await env.DB.prepare('INSERT INTO user_profiles(user_id,full_name,display_name,username) VALUES(?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET full_name=excluded.full_name,display_name=excluded.display_name,username=excluded.username').bind(user.id,full,display,username||null).run();
+  }catch(e){if(/UNIQUE constraint failed: user_profiles.username/i.test(String(e)))return fail('Nome de usuário indisponível',409);throw e;}
+  const account=await env.DB.prepare('SELECT created_at FROM users WHERE id=?').bind(user.id).first();
+  return json({profile:{full_name:full,display_name:display,username:username||null,created_at:account?.created_at??null}});
+ }
  if(path==='/api/me'&&method==='GET'){
   if(!user)return json({user:null,subscription:{active:false}});
   const subscription=await subscriptionState(env,user),billing=await billingInfo(env,user),now=Date.now();
@@ -149,7 +321,8 @@ export default {async scheduled(_event,env){
   await env.DB.prepare('DELETE FROM draw_room_entries WHERE room_id IN (SELECT id FROM draw_rooms WHERE expires_at<=?)').bind(now).run();
   await env.DB.prepare('DELETE FROM draw_rooms WHERE expires_at<=?').bind(now).run();
   await env.DB.prepare('DELETE FROM draw_room_rate_limits WHERE expires_at<=?').bind(now).run();
-},async fetch(req,env){const url=new URL(req.url);if(env.PREVIEW_ROOMS_ONLY==='true'&&url.pathname.startsWith('/api/')&&url.pathname!=='/api/rooms'&&!/^\/api\/rooms\/[a-f0-9]{32}(?:\/(?:join|close|draw))?$/.test(url.pathname))return fail('Rota indisponível no ambiente de prévia',404);if(url.pathname.startsWith('/api/')){try{return await api(req,env,url)}catch(e){
+  await env.DB.prepare('DELETE FROM password_resets WHERE expires_at<=?').bind(now).run();
+},async fetch(req,env,ctx){const url=new URL(req.url);if(env.PREVIEW_ROOMS_ONLY==='true'&&url.pathname.startsWith('/api/')&&url.pathname!=='/api/rooms'&&!/^\/api\/rooms\/[a-f0-9]{32}(?:\/(?:join|close|draw))?$/.test(url.pathname))return fail('Rota indisponível no ambiente de prévia',404);if(url.pathname.startsWith('/api/')){try{return await api(req,env,url,ctx)}catch(e){
    if(e instanceof BillingError){
      if(url.pathname==='/api/webhooks/mercadopago' && e.message==='Webhook indisponível.'){
        // Diagnostics expose only validation outcomes, never secret values or request data.

@@ -1,0 +1,22 @@
+/* Pilot-only shared navigation and theme styling; no tool logic changes. */
+body.su-integrated:not([data-su-theme="original"]){background:var(--su-bg);color:var(--su-text)}
+body.su-integrated:not([data-su-theme="original"]) main{max-width:960px}
+body.su-integrated:not([data-su-theme="original"]) a{color:var(--su-accent)}
+body.su-integrated .su-nav{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:30px;padding:12px 16px;background:var(--su-surface);border:1px solid var(--su-border);border-radius:16px}
+body.su-integrated .su-nav a{font-weight:750;text-decoration:none}
+body.su-integrated .su-nav label{font-size:.85rem;color:var(--su-muted)}
+body.su-integrated .su-nav select{margin-left:8px;max-width:160px;padding:9px;background:var(--su-surface);color:var(--su-text);border:1px solid var(--su-border);border-radius:10px}
+body.su-integrated .su-nav select:focus-visible,body.su-integrated a:focus-visible{outline:3px solid var(--su-focus);outline-offset:3px}
+body.su-integrated:not([data-su-theme="original"]) h1,body.su-integrated:not([data-su-theme="original"]) h2,body.su-integrated:not([data-su-theme="original"]) h3{color:var(--su-text)}
+body.su-integrated:not([data-su-theme="original"]) .muted,body.su-integrated:not([data-su-theme="original"]) footer{color:var(--su-muted)}
+body.su-integrated .inline-tool{background:var(--su-surface);border:1px solid var(--su-border);border-radius:20px;padding:clamp(14px,3vw,28px)}
+body.su-integrated .skip-tool,body.su-integrated .cta{background:var(--su-accent);color:var(--su-on-accent)}
+body.su-integrated footer{border-color:var(--su-border)}
+
+@media(max-width:540px){body.su-integrated .su-nav{align-items:flex-start}body.su-integrated .su-nav label{display:flex;flex-direction:column;gap:5px}body.su-integrated .su-nav select{margin:0}}
+
+/* Original leaves existing landing-page typography, colors and layout untouched. */
+body.su-integrated[data-su-theme="original"]{--su-surface:#151d28;--su-text:#edf2f9;--su-muted:#b2c0d0;--su-border:#344153;--su-accent:#bedcff;--su-on-accent:#111924;--su-focus:#8bbaff}
+
+/* Prevent legacy viewport-based resize observers from inflating the frame. */
+body.su-integrated #sorteador-embed{height:var(--su-embed-height,640px)!important;box-sizing:border-box}

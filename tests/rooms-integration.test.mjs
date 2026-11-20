@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
+import {readFile,readdir} from 'node:fs/promises';
 import {Miniflare,convertV4MiniflareOptions} from 'miniflare';
 
 // Real workerd + isolated in-memory D1. No production credentials or network.
@@ -11,7 +11,7 @@ test('public rooms: create, duplicate/capacity, close, expiry cleanup and rate l
  }));
  t.after(()=>mf.dispose());await mf.ready;
  const db=await mf.getD1Database('DB');
- for(const file of ['migrations/0003_public_rooms.sql','migrations/0004_room_rate_limits.sql','migrations/0005_room_live_draw.sql','migrations/0006_room_draw_mode.sql']){
+ for(const file of (await readdir('migrations/preview')).filter(name=>name.endsWith('.sql')).sort().map(name=>'migrations/preview/'+name)){
   const sql=(await readFile(file,'utf8')).replace(/^--.*$/gm,'');
   for(const statement of sql.split(';').filter(s=>s.trim()))await db.prepare(statement).run();
  }
