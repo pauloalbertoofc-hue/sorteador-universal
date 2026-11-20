@@ -156,6 +156,37 @@ async function api(req,env,url,ctx){const path=url.pathname,method=req.method;
  }
  if(path==='/api/logout'&&method==='POST'){const user=await auth(req,env);if(user)await env.DB.prepare('DELETE FROM sessions WHERE token_hash=?').bind(user.token_hash).run();return json({ok:true},200,{'set-cookie':sessionCookie('',0)})}
  const user=await auth(req,env);
+ if(path==='/api/email/verification'&&method==='GET'){
+  if(!user)return fail('Não autenticado',401);
+  const record=await env.DB.prepare('SELECT verified_at FROM email_verifications WHERE user_id=? AND email=?').bind(user.id,user.email).first();
+  return json({verified:Boolean(record?.verified_at)},200,{'cache-control':'private, no-store'});
+ }
+ if(path==='/api/email/verification/request'&&method==='POST'){
+  if(!user)return fail('Não autenticado',401);
+  if(!env.RESET_EMAIL_API_KEY||!env.RESET_EMAIL_FROM||!env.RESET_SITE_URL)return fail('Verificação temporariamente indisponível.',503);
+  let link;try{link=new URL(env.RESET_SITE_URL);}catch{return fail('Verificação temporariamente indisponível.',503);}
+  if(link.protocol!=='https:'||link.origin!==url.origin||link.username||link.password||link.pathname!=='/'||link.search||link.hash)return fail('Verificação temporariamente indisponível.',503);
+  const existing=await env.DB.prepare('SELECT verified_at FROM email_verifications WHERE user_id=? AND email=?').bind(user.id,user.email).first();
+  if(existing?.verified_at)return json({ok:true,verified:true});
+  if(!await roomRateLimit('verify-email-user',user.id,3,3600000)||!await roomRateLimit('verify-email-ip',requester,15,3600000))return fail('Tente mais tarde.',429);
+  const token=random(32),digest=await sha(token);
+  const result=await env.DB.prepare('INSERT INTO email_verifications(user_id,email,token_hash,expires_at,verified_at) VALUES(?,?,?,?,NULL) ON CONFLICT(user_id) DO UPDATE SET email=excluded.email,token_hash=excluded.token_hash,expires_at=excluded.expires_at,verified_at=NULL WHERE email_verifications.verified_at IS NULL OR email_verifications.email<>excluded.email').bind(user.id,user.email,digest,Date.now()+1800000).run();
+  if(!result.meta?.changes)return json({ok:true,verified:true});
+  link.hash='su-verify='+token;
+  try{
+   const response=await fetch('https://api.resend.com/emails',{method:'POST',headers:{authorization:'Bearer '+env.RESET_EMAIL_API_KEY,'content-type':'application/json'},body:JSON.stringify({from:env.RESET_EMAIL_FROM,to:[user.email],subject:'Confirme seu e-mail — Sorteador Universal',text:'Confirme seu endereço em até 30 minutos: '+link.href+' Se não solicitou, ignore este e-mail.'})});
+   if(!response.ok)throw Error('delivery');
+  }catch{await env.DB.prepare('UPDATE email_verifications SET token_hash=NULL,expires_at=NULL WHERE user_id=? AND token_hash=?').bind(user.id,digest).run();return fail('Não foi possível enviar o e-mail.',503);}
+  return json({ok:true,verified:false});
+ }
+ if(path==='/api/email/verification/confirm'&&method==='POST'){
+  if(!await roomRateLimit('verify-email-confirm',requester,15,3600000))return fail('Tente mais tarde.',429);
+  const {token}=await readBody(req);
+  if(typeof token!=='string'||!/^[a-f0-9]{64}$/.test(token))return fail('Link inválido ou expirado.');
+  const result=await env.DB.prepare('UPDATE email_verifications SET verified_at=?,token_hash=NULL,expires_at=NULL WHERE token_hash=? AND expires_at>? AND verified_at IS NULL AND EXISTS (SELECT 1 FROM users WHERE users.id=email_verifications.user_id AND users.email=email_verifications.email)').bind(Date.now(),await sha(token),Date.now()).run();
+  if(!result.meta?.changes)return fail('Link inválido ou expirado.');
+  return json({ok:true});
+ }
  if(path==='/api/sessions'&&(method==='GET'||method==='DELETE')){
   if(!user)return fail('Não autenticado',401);
   if(method==='GET'){
