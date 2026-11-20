@@ -163,9 +163,13 @@ async function api(req,env,url,ctx){const path=url.pathname,method=req.method;
  }
  if(path==='/api/email/verification/request'&&method==='POST'){
   if(!user)return fail('Não autenticado',401);
-  if(!env.RESET_EMAIL_API_KEY||!env.RESET_EMAIL_FROM||!env.RESET_SITE_URL)return fail('Verificação temporariamente indisponível.',503);
-  let link;try{link=new URL(env.RESET_SITE_URL);}catch{return fail('Verificação temporariamente indisponível.',503);}
-  if(link.protocol!=='https:'||link.origin!==url.origin||link.username||link.password||link.pathname!=='/'||link.search||link.hash)return fail('Verificação temporariamente indisponível.',503);
+  const verifyUnavailable=code=>fail('Verificação temporariamente indisponível.'+(url.hostname==='design-unified-themes-and-seo-routes-sorteador-universal.paulo-alberto-ofc.workers.dev'?' ['+code+']':''),503);
+  if(!env.RESET_EMAIL_API_KEY)return verifyUnavailable('V01');
+  if(!env.RESET_EMAIL_FROM)return verifyUnavailable('V02');
+  if(!env.RESET_SITE_URL)return verifyUnavailable('V03');
+  let link;try{link=new URL(env.RESET_SITE_URL);}catch{return verifyUnavailable('V04');}
+  if(link.protocol!=='https:'||link.username||link.password||link.pathname!=='/'||link.search||link.hash)return verifyUnavailable('V05');
+  if(link.origin!==url.origin)return verifyUnavailable('V06');
   const existing=await env.DB.prepare('SELECT verified_at FROM email_verifications WHERE user_id=? AND email=?').bind(user.id,user.email).first();
   if(existing?.verified_at)return json({ok:true,verified:true});
   if(!await roomRateLimit('verify-email-user',user.id,3,3600000)||!await roomRateLimit('verify-email-ip',requester,15,3600000))return fail('Tente mais tarde.',429);
