@@ -160,9 +160,9 @@ test('avatar editor browser crop: zoom, rotation, drag, pinch and reset',async t
  const start=source.indexOf('  const crop=document.createElement');
  const end=source.indexOf("  photoInput.addEventListener('change',selectPhoto)",start);
  assert.ok(start>=0&&end>start);
- await page.setContent('<dialog><img><p></p><button>Salvar</button></dialog>');
+ await page.setContent('<dialog><div class="su-crop-toolbar" hidden><button data-crop-back>Voltar</button><button data-crop-save>Salvar</button></div><img><p></p></dialog>');
  await page.evaluate(code=>{
-  const photoDialog=document.querySelector('dialog'),photoPreview=photoDialog.querySelector('img'),photoStatus=photoDialog.querySelector('p'),photoSave=photoDialog.querySelector('button');
+  const photoDialog=document.querySelector('dialog'),photoPreview=photoDialog.querySelector('img'),photoStatus=photoDialog.querySelector('p'),photoSave=photoDialog.querySelector('[data-crop-save]');
   let pendingPhoto=null,selectionEpoch=0,avatarEpoch=0,avatarBusy=false;
   function clearPending(){selectionEpoch++;pendingPhoto=null;}
   photoDialog.showModal();
@@ -177,6 +177,7 @@ test('avatar editor browser crop: zoom, rotation, drag, pinch and reset',async t
   await window.editor.selectPhoto({currentTarget:{files:[new File([blob],'test.png',{type:'image/png'})],value:''}});
  });
  const ranges=page.locator('input[type=range]');
+ await page.locator('details summary').click();
  await page.waitForFunction(()=>window.editor.getBlob()?.size>0);
  assert.equal(await ranges.nth(0).inputValue(),'1');
  await ranges.nth(0).fill('2');
