@@ -189,6 +189,30 @@ function mount(){
   const form=editor.querySelector('form'),status=editor.querySelector('[role=status]'),save=editor.querySelector('[type=submit]');
   let personal=null,personalKey='',personalEpoch=0;
   const identityKey=()=>account.querySelector('#accountMember').hidden?'':account.querySelector('#accountIdentity').textContent.trim();
+  const passwordRow=details.querySelectorAll('.su-personal-row')[5];
+  const passwordButton=document.createElement('button');passwordButton.type='button';passwordButton.className='su-edit-personal';passwordButton.textContent='Alterar senha';passwordRow.querySelector('small').textContent='Atualize sua senha com segurança.';passwordRow.append(passwordButton);
+  const passwordDialog=document.createElement('dialog');passwordDialog.className='su-personal-editor';passwordDialog.setAttribute('aria-labelledby','su-password-title');
+  passwordDialog.innerHTML='<form><h2 id="su-password-title">Alterar senha</h2><p>Os demais dispositivos serão desconectados.</p><label>Senha atual<input required type="password" name="currentPassword" autocomplete="current-password" maxlength="128"></label><label>Nova senha<input required type="password" name="newPassword" autocomplete="new-password" minlength="10" maxlength="128"></label><label>Confirmar nova senha<input required type="password" name="confirmPassword" autocomplete="new-password" minlength="10" maxlength="128"></label><label><input type="checkbox" data-show-password> Mostrar senhas</label><p role="status" aria-live="polite"></p><button type="submit">Alterar senha</button><button type="button" class="secondary">Cancelar</button></form>';
+  document.body.append(passwordDialog);
+  const passwordForm=passwordDialog.querySelector('form'),passwordStatus=passwordDialog.querySelector('[role=status]'),passwordSubmit=passwordForm.querySelector('[type=submit]'),passwordClose=passwordForm.querySelector('.secondary'),passwordShow=passwordForm.querySelector('[data-show-password]');
+  let passwordBusy=false,passwordEpoch=0,passwordIdentity='';
+  function resetPasswordForm(){passwordForm.reset();for(const field of passwordForm.querySelectorAll('input[name]'))field.type='password';passwordStatus.textContent='';passwordSubmit.disabled=false;passwordClose.disabled=false;passwordClose.textContent='Cancelar';passwordBusy=false;}
+  passwordButton.addEventListener('click',()=>{if(!identityKey())return;passwordEpoch++;passwordIdentity=identityKey();resetPasswordForm();passwordDialog.showModal();});
+  passwordShow.addEventListener('change',()=>{for(const field of passwordForm.querySelectorAll('input[name]'))field.type=passwordShow.checked?'text':'password';});
+  passwordClose.addEventListener('click',()=>{if(!passwordBusy)passwordDialog.close();});
+  passwordDialog.addEventListener('cancel',e=>{if(passwordBusy)e.preventDefault();});
+  passwordDialog.addEventListener('close',()=>{if(!passwordDialog.open){passwordEpoch++;resetPasswordForm();}});
+  new MutationObserver(()=>{if(passwordDialog.open&&identityKey()!==passwordIdentity){passwordEpoch++;passwordDialog.close();resetPasswordForm();}}).observe(account.querySelector('#accountMember'),{attributes:true,attributeFilter:['hidden'],childList:true,subtree:true,characterData:true});
+  passwordForm.addEventListener('submit',async e=>{
+   e.preventDefault();if(passwordBusy||!identityKey()||identityKey()!==passwordIdentity)return;
+   const {currentPassword,newPassword,confirmPassword}=Object.fromEntries(new FormData(passwordForm));
+   if(newPassword!==confirmPassword){passwordStatus.textContent='As novas senhas não coincidem.';return;}
+   if(currentPassword===newPassword){passwordStatus.textContent='Escolha uma senha diferente da atual.';return;}
+   const epoch=++passwordEpoch;passwordBusy=true;passwordSubmit.disabled=passwordClose.disabled=true;passwordStatus.textContent='Alterando senha…';let success=false;
+   try{const response=await fetch('/api/password/change',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({currentPassword,newPassword})});const data=await response.json();if(epoch!==passwordEpoch||identityKey()!==passwordIdentity||!passwordDialog.open)return;if(!response.ok)throw Error(data.error||'Não foi possível alterar a senha.');resetPasswordForm();success=true;passwordStatus.textContent='Senha alterada com sucesso.';passwordClose.textContent='Concluir';}
+   catch(error){if(epoch===passwordEpoch&&passwordDialog.open)passwordStatus.textContent=error.message||'Não foi possível alterar a senha.';}
+   finally{if(epoch===passwordEpoch){passwordBusy=false;passwordSubmit.disabled=success;passwordClose.disabled=false;}}
+  });
   function paintPersonal(){
    if(!personal||!identityKey())return;
    const fields=details.querySelectorAll('.su-personal-row small');
