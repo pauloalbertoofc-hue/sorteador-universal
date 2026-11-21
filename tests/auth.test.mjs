@@ -48,7 +48,7 @@ before(async () => {
   }));
   await mf.ready;
   db = await mf.getD1Database('DB');
-  for (const file of ['migrations/preview/0001_initial.sql', 'migrations/preview/0002_billing_safety.sql']) {
+  for (const file of ['migrations/preview/0001_initial.sql', 'migrations/preview/0002_billing_safety.sql', 'migrations/preview/0014_email_mfa.sql']) {
     const sql = (await readFile(file, 'utf8')).replace(/^--.*$/gm, '');
     for (const statement of sql.split(';').filter(s => s.trim())) await db.prepare(statement).run();
   }
