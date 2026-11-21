@@ -410,6 +410,27 @@ function setBusy(value){
  for(const id of ['accountLogin','accountRegister','accountLogout'])$(id).disabled=value;
  billingButtons();
 }
+const mfaLoginDialog=document.createElement('dialog');
+mfaLoginDialog.setAttribute('aria-labelledby','su-mfa-login-title');
+mfaLoginDialog.innerHTML='<form method="dialog" style="padding:24px;max-width:380px"><h2 id="su-mfa-login-title">Confirme seu acesso</h2><p>Enviamos um código de seis dígitos para seu e-mail. Ele expira em cinco minutos.</p><label>Código de segurança<input required inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" style="display:block;width:100%;padding:12px;margin:12px 0"></label><p role="status" aria-live="polite"></p><button type="submit" value="confirm">Confirmar código</button> <button type="button" class="secondary">Cancelar</button></form>';
+document.body.append(mfaLoginDialog);
+const mfaLoginForm=mfaLoginDialog.querySelector('form'),mfaLoginInput=mfaLoginForm.querySelector('input'),mfaLoginMessage=mfaLoginForm.querySelector('[role=status]'),mfaLoginSubmit=mfaLoginForm.querySelector('[type=submit]');
+let mfaLoginChallenge='',mfaLoginBusy=false;
+mfaLoginDialog.querySelector('.secondary').addEventListener('click',()=>{if(!mfaLoginBusy)mfaLoginDialog.close()});
+mfaLoginDialog.addEventListener('cancel',e=>{if(mfaLoginBusy)e.preventDefault()});
+mfaLoginDialog.addEventListener('close',()=>{mfaLoginChallenge='';mfaLoginInput.value='';mfaLoginMessage.textContent=''});
+mfaLoginForm.addEventListener('submit',async event=>{
+ event.preventDefault();
+ if(mfaLoginBusy||!mfaLoginChallenge||!mfaLoginInput.checkValidity())return;
+ mfaLoginBusy=true;mfaLoginSubmit.disabled=true;mfaLoginMessage.textContent='Validando código…';
+ try{
+  await request('/mfa/email/confirm',{method:'POST',body:JSON.stringify({challenge:mfaLoginChallenge,code:mfaLoginInput.value})});
+  const data=await refresh();
+  if(!data.user)throw Error('Não foi possível confirmar a sessão.');
+  mfaLoginDialog.close();$('accountPassword').value='';msg('Login realizado com sucesso.');
+ }catch(error){mfaLoginMessage.textContent=error.message||'Não foi possível confirmar o código.';}
+ finally{mfaLoginBusy=false;mfaLoginSubmit.disabled=false;}
+});
 async function auth(path){
  if(busy)return;
  setBusy(true);
@@ -417,7 +438,8 @@ async function auth(path){
  msg('Confirmando sua conta…');
  try{
   const email=$('accountEmail').value.trim(),password=$('accountPassword').value;
-  await request(path,{method:'POST',body:JSON.stringify({email,password})});
+  const authResult=await request(path,{method:'POST',body:JSON.stringify({email,password})});
+  if(authResult.mfaRequired){$('accountPassword').value='';mfaLoginChallenge=authResult.challenge;mfaLoginInput.value='';mfaLoginMessage.textContent='';mfaLoginDialog.showModal();msg('Código de segurança enviado. Confirme para entrar.');return;}
   const data=await refresh();
   if(!data.user)throw Error('Não foi possível confirmar a sessão. Verifique se os cookies estão permitidos e tente entrar novamente.');
   $('accountPassword').value='';
