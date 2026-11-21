@@ -250,6 +250,34 @@ function mount(){
   sessionDialog.querySelector('.secondary').addEventListener('click',()=>sessionDialog.close());
   sessionDialog.addEventListener('close',()=>{if(!sessionDialog.open){sessionEpoch++;sessionList.replaceChildren();sessionStatus.textContent='';sessionBusy=false;}});
   new MutationObserver(()=>{if(sessionDialog.open&&identityKey()!==sessionIdentity){sessionEpoch++;sessionDialog.close();sessionList.replaceChildren();}}).observe(account.querySelector('#accountMember'),{attributes:true,attributeFilter:['hidden'],childList:true,subtree:true,characterData:true});
+  const mfaRow=details.querySelectorAll('.su-personal-row')[8];
+  const mfaStatus=mfaRow.querySelector('small'),mfaButton=document.createElement('button');
+  mfaButton.type='button';mfaButton.className='su-edit-personal';mfaButton.textContent='Configurar';mfaRow.append(mfaButton);
+  const mfaDialog=document.createElement('dialog');mfaDialog.className='su-personal-editor';mfaDialog.setAttribute('aria-labelledby','su-mfa-title');
+  mfaDialog.innerHTML='<form><h2 id="su-mfa-title">Autenticação por e-mail</h2><p>Ao entrar, confirme um código enviado ao e-mail cadastrado.</p><label>Senha atual<input type="password" required autocomplete="current-password" maxlength="128"></label><label hidden>Código de 6 dígitos<input inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6"></label><p role="status" aria-live="polite"></p><button type="submit">Continuar</button><button type="button" class="secondary">Cancelar</button></form>';
+  document.body.append(mfaDialog);
+  const mfaForm=mfaDialog.querySelector('form'),mfaPassword=mfaForm.querySelector('input[type=password]'),mfaCode=mfaForm.querySelector('input[inputmode=numeric]'),mfaCodeLabel=mfaCode.closest('label'),mfaNotice=mfaForm.querySelector('[role=status]'),mfaSubmit=mfaForm.querySelector('[type=submit]');
+  let mfaEnabled=false,mfaChallenge='',mfaBusy=false,mfaIdentity='';
+  async function refreshMfa(){
+   const key=identityKey();mfaButton.hidden=true;mfaStatus.textContent='Consultando…';if(!key)return;
+   try{const response=await fetch('/api/mfa/email',{credentials:'same-origin',cache:'no-store'}),data=await response.json();if(!response.ok||identityKey()!==key)return;mfaEnabled=Boolean(data.enabled);mfaStatus.textContent=mfaEnabled?'Ativada · código por e-mail':'Desativada';mfaButton.textContent=mfaEnabled?'Desativar':'Ativar';mfaButton.hidden=false;}catch{if(identityKey()===key)mfaStatus.textContent='Não foi possível consultar.';}
+  }
+  mfaButton.addEventListener('click',()=>{mfaIdentity=identityKey();if(!mfaIdentity)return;mfaChallenge='';mfaPassword.value='';mfaCode.value='';mfaCodeLabel.hidden=true;mfaPassword.closest('label').hidden=false;mfaNotice.textContent='Confirme sua senha para receber o código.';mfaSubmit.textContent='Enviar código';mfaDialog.showModal();});
+  mfaForm.addEventListener('submit',async e=>{
+   e.preventDefault();if(mfaBusy||identityKey()!==mfaIdentity)return;mfaBusy=true;mfaSubmit.disabled=true;
+   try{
+    const endpoint=mfaChallenge?'/api/mfa/email/confirm':'/api/mfa/email/request';
+    const body=mfaChallenge?{challenge:mfaChallenge,code:mfaCode.value}:{password:mfaPassword.value,action:mfaEnabled?'disable':'enable'};
+    const response=await fetch(endpoint,{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify(body)}),data=await response.json();
+    if(!response.ok)throw Error(data.error||'Não foi possível concluir.');
+    if(!mfaChallenge){mfaChallenge=data.challenge;mfaPassword.value='';mfaPassword.closest('label').hidden=true;mfaCodeLabel.hidden=false;mfaNotice.textContent='Confira o e-mail. O código expira em cinco minutos.';mfaSubmit.textContent='Confirmar código';}
+    else{mfaDialog.close();mfaChallenge='';refreshMfa();}
+   }catch(error){mfaNotice.textContent=error.message;}finally{mfaBusy=false;mfaSubmit.disabled=false;}
+  });
+  mfaDialog.querySelector('.secondary').addEventListener('click',()=>mfaDialog.close());
+  mfaDialog.addEventListener('close',()=>{mfaChallenge='';mfaPassword.value='';mfaCode.value='';});
+  new MutationObserver(()=>{if(!account.querySelector('#accountMember').hidden)refreshMfa();else{mfaButton.hidden=true;if(mfaDialog.open)mfaDialog.close();}}).observe(account.querySelector('#accountMember'),{attributes:true,attributeFilter:['hidden']});
+  refreshMfa();
   const verifyRow=details.querySelectorAll('.su-personal-row')[6];
   const verifyStatus=verifyRow.querySelector('small'),verifyButton=document.createElement('button');verifyButton.type='button';verifyButton.className='su-edit-personal';verifyButton.textContent='Verificar e-mail';verifyRow.append(verifyButton);
   let verifyEpoch=0,verifyIdentity='',verifyBusy=false;
