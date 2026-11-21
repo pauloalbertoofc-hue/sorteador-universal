@@ -52,6 +52,7 @@ before(async () => {
     const sql = (await readFile(file, 'utf8')).replace(/^--.*$/gm, '');
     for (const statement of sql.split(';').filter(s => s.trim())) await db.prepare(statement).run();
   }
+  await db.prepare('CREATE TABLE IF NOT EXISTS draw_room_rate_limits (key TEXT PRIMARY KEY, hits INTEGER NOT NULL, expires_at INTEGER NOT NULL)').run();
   // Static asset server plus API proxy: browser cookies and SW run unmocked.
   server = createServer(async (req, res) => {
     try {
