@@ -151,11 +151,75 @@ async function api(req,env,url,ctx){const path=url.pathname,method=req.method;
   }
   return json({ok:true},201,{'set-cookie':await createSession(env,id)});
  }
+ async function sendMfaCode(account,purpose,passwordSnapshot){
+  if(!env.RESET_EMAIL_API_KEY||!env.RESET_EMAIL_FROM)return null;
+  const token=random(32),code=String(crypto.getRandomValues(new Uint32Array(1))[0]%1000000).padStart(6,'0');
+  const now=Date.now(),digest=await sha(token),mac=await sha(token+':'+code);
+  await env.DB.prepare('DELETE FROM email_mfa_challenges WHERE user_id=? AND purpose=?').bind(account.id,purpose).run();
+  await env.DB.prepare('INSERT INTO email_mfa_challenges(challenge_hash,user_id,code_mac,password_hash_snapshot,expires_at,attempts,created_at,purpose) VALUES(?,?,?,?,?,0,?,?)').bind(digest,account.id,mac,passwordSnapshot,now+300000,now,purpose).run();
+  try{
+   const response=await fetch('https://api.resend.com/emails',{method:'POST',headers:{authorization:'Bearer '+env.RESET_EMAIL_API_KEY,'content-type':'application/json'},body:JSON.stringify({from:env.RESET_EMAIL_FROM,to:[account.email],subject:'Código de segurança — Sorteador Universal',text:'Seu código de segurança é '+code+'. Válido por 5 minutos. Se não solicitou, ignore esta mensagem.'})});
+   if(!response.ok)throw Error('delivery');
+  }catch{await env.DB.prepare('DELETE FROM email_mfa_challenges WHERE challenge_hash=?').bind(digest).run();return null;}
+  return token;
+ }
+ if(path==='/api/mfa/email/confirm'&&method==='POST'){
+  if(!await roomRateLimit('mfa-confirm-ip',requester,30,900000))return fail('Tente mais tarde.',429);
+  const {challenge,code}=await readBody(req);
+  if(typeof challenge!=='string'||!/^[a-f0-9]{64}$/.test(challenge)||typeof code!=='string'||!/^[0-9]{6}$/.test(code))return fail('Código inválido.',400);
+  const digest=await sha(challenge),record=await env.DB.prepare('SELECT c.*,u.password_hash FROM email_mfa_challenges c JOIN users u ON u.id=c.user_id WHERE c.challenge_hash=?').bind(digest).first();
+  if(!record||record.expires_at<=Date.now()||record.attempts>=5||record.password_hash!==record.password_hash_snapshot)return fail('Código expirado ou inválido.',403);
+  const attempt=await env.DB.prepare('UPDATE email_mfa_challenges SET attempts=attempts+1 WHERE challenge_hash=? AND attempts<5 AND expires_at>?').bind(digest,Date.now()).run();
+  if(!attempt.meta?.changes)return fail('Código expirado ou inválido.',403);
+  if(!equal(await sha(challenge+':'+code),record.code_mac))return fail('Código incorreto.',403);
+  const deleted=await env.DB.prepare('DELETE FROM email_mfa_challenges WHERE challenge_hash=? AND attempts<=5 AND expires_at>?').bind(digest,Date.now()).run();
+  if(!deleted.meta?.changes)return fail('Código expirado ou utilizado.',403);
+  if(record.purpose==='enable'){
+   const verified=await env.DB.prepare('SELECT 1 AS ok FROM email_verifications v JOIN users u ON u.id=v.user_id WHERE v.user_id=? AND v.email=u.email AND v.verified_at IS NOT NULL').bind(record.user_id).first();
+   if(!verified)return fail('Verifique seu endereço de e-mail antes.',403);
+   await env.DB.prepare('INSERT INTO user_email_mfa(user_id,enabled_at) VALUES(?,?) ON CONFLICT(user_id) DO NOTHING').bind(record.user_id,Date.now()).run();
+   return json({ok:true,enabled:true});
+  }
+  if(record.purpose==='disable'){
+   await env.DB.prepare('DELETE FROM user_email_mfa WHERE user_id=?').bind(record.user_id).run();
+   return json({ok:true,enabled:false});
+  }
+  const enabled=await env.DB.prepare('SELECT 1 AS ok FROM user_email_mfa WHERE user_id=?').bind(record.user_id).first();
+  if(!enabled)return fail('Autenticação alterada. Entre novamente.',409);
+  const token=random(32);
+  const inserted=await env.DB.prepare('INSERT INTO sessions(token_hash,user_id,expires_at) SELECT ?,id,? FROM users WHERE id=? AND password_hash=?').bind(await sha(token),Date.now()+30*86400000,record.user_id,record.password_hash_snapshot).run();
+  if(!inserted.meta?.changes)return fail('Credenciais alteradas. Entre novamente.',409);
+  return json({ok:true},200,{'set-cookie':sessionCookie(token,30*86400)});
+ }
  if(path==='/api/login'&&method==='POST'){
-  const {email,password}=await readBody(req);if(typeof password!=='string'||password.length>128)return fail('Credenciais inválidas',401);const user=await env.DB.prepare('SELECT id,password_hash FROM users WHERE email=?').bind(String(email||'').trim().toLowerCase()).first();if(!user||!user.password_hash?.startsWith('pbkdf2$'))return fail('Credenciais inválidas',401);const [,salt,hash]=user.password_hash.split('$');if(!equal(await pbkdf(password,salt),hash))return fail('Credenciais inválidas',401);const token=random(32);const inserted=await env.DB.prepare('INSERT INTO sessions(token_hash,user_id,expires_at) SELECT ?,id,? FROM users WHERE id=? AND password_hash=?').bind(await sha(token),Date.now()+30*86400000,user.id,user.password_hash).run();if(!inserted.meta?.changes)return fail('Credenciais inválidas',401);return json({ok:true},200,{'set-cookie':sessionCookie(token,30*86400)});
+  const {email,password}=await readBody(req);if(typeof password!=='string'||password.length>128)return fail('Credenciais inválidas',401);const user=await env.DB.prepare('SELECT id,password_hash FROM users WHERE email=?').bind(String(email||'').trim().toLowerCase()).first();if(!user||!user.password_hash?.startsWith('pbkdf2$'))return fail('Credenciais inválidas',401);const [,salt,hash]=user.password_hash.split('$');if(!equal(await pbkdf(password,salt),hash))return fail('Credenciais inválidas',401);const mfa=await env.DB.prepare('SELECT 1 AS ok FROM user_email_mfa WHERE user_id=?').bind(user.id).first();if(mfa){if(!await roomRateLimit('mfa-login-ip',requester,12,900000)||!await roomRateLimit('mfa-login-user',user.id,5,900000))return fail('Muitas tentativas. Tente mais tarde.',429);const challenge=await sendMfaCode({id:user.id,email:String(email).trim().toLowerCase()},'login',user.password_hash);if(!challenge)return fail('Não foi possível enviar o código. Tente novamente.',503);return json({mfaRequired:true,challenge});}const token=random(32);const inserted=await env.DB.prepare('INSERT INTO sessions(token_hash,user_id,expires_at) SELECT ?,id,? FROM users WHERE id=? AND password_hash=?').bind(await sha(token),Date.now()+30*86400000,user.id,user.password_hash).run();if(!inserted.meta?.changes)return fail('Credenciais inválidas',401);return json({ok:true},200,{'set-cookie':sessionCookie(token,30*86400)});
  }
  if(path==='/api/logout'&&method==='POST'){const user=await auth(req,env);if(user)await env.DB.prepare('DELETE FROM sessions WHERE token_hash=?').bind(user.token_hash).run();return json({ok:true},200,{'set-cookie':sessionCookie('',0)})}
  const user=await auth(req,env);
+ if(path==='/api/mfa/email'&&method==='GET'){
+  if(!user)return fail('Não autenticado',401);
+  const record=await env.DB.prepare('SELECT 1 AS ok FROM user_email_mfa WHERE user_id=?').bind(user.id).first();
+  return json({enabled:Boolean(record)});
+ }
+ if(path==='/api/mfa/email/request'&&method==='POST'){
+  if(!user)return fail('Não autenticado',401);
+  const {password,action}=await readBody(req);
+  if(typeof password!=='string'||password.length>128||!['enable','disable'].includes(action))return fail('Solicitação inválida.');
+  if(!await roomRateLimit('mfa-settings-user',user.id,4,3600000)||!await roomRateLimit('mfa-settings-ip',requester,20,3600000))return fail('Tente mais tarde.',429);
+  const record=await env.DB.prepare('SELECT password_hash FROM users WHERE id=?').bind(user.id).first();
+  if(!record?.password_hash?.startsWith('pbkdf2$'))return fail('Senha incorreta.',403);
+  const [,salt,hash]=record.password_hash.split('$');
+  if(!equal(await pbkdf(password,salt),hash))return fail('Senha incorreta.',403);
+  const existing=await env.DB.prepare('SELECT 1 AS ok FROM user_email_mfa WHERE user_id=?').bind(user.id).first();
+  if(Boolean(existing)!==(action==='disable'))return fail('Estado já atualizado.',409);
+  if(action==='enable'){
+   const verified=await env.DB.prepare('SELECT 1 AS ok FROM email_verifications WHERE user_id=? AND email=? AND verified_at IS NOT NULL').bind(user.id,user.email).first();
+   if(!verified)return fail('Verifique seu e-mail primeiro.',403);
+  }
+  const challenge=await sendMfaCode(user,action,record.password_hash);
+  if(!challenge)return fail('Não foi possível enviar o código.',503);
+  return json({challenge,expiresIn:300});
+ }
  if(path==='/api/email/verification'&&method==='GET'){
   if(!user)return fail('Não autenticado',401);
   const record=await env.DB.prepare('SELECT verified_at FROM email_verifications WHERE user_id=? AND email=?').bind(user.id,user.email).first();
