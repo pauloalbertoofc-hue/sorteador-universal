@@ -68,6 +68,7 @@ try{
    await expect(art.locator('svg')).toBeVisible();
   }
 
+  console.log('CLASSIC_FORM_DIAGNOSTIC',JSON.stringify(await page.locator('#form').evaluate(el=>({display:getComputedStyle(el).display,inline:el.style.display,hidden:el.hidden,bodyClass:document.body.className,theme:document.body.dataset.suTheme,mainView:document.querySelector('main.wrap')?.dataset.suView,mainClass:document.querySelector('main.wrap')?.className,css:[...document.styleSheets].filter(s=>s.href).map(s=>s.href)}))));
   await expect(page.locator('#form')).toBeHidden();
   await expect(page.locator('#privacidade')).toBeHidden();
   if(width===390){
