@@ -508,6 +508,11 @@ function mount(){
  const syncView=()=>{
   const view=views[location.hash]||'home';
   main.dataset.suView=view;main.dataset.suAccountRoute=location.hash.slice(1);closeProfile();
+  // Keep the quick-draw controls alive, but hide them on the classic catalogue.
+  // Explicit inline display avoids theme-specific CSS precedence issues in visual checks.
+  const quickForm=main.querySelector('#form');
+  if(quickForm)quickForm.style.display=(document.body.getAttribute('data-su-theme')==='classic'&&view==='home')?'none':'';
+
   side.querySelectorAll('a').forEach(a=>{if(a.hash===location.hash)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
   const control=({rooms:'.su-room-toggle',account:'.su-account-toggle',history:'.su-history-toggle'})[view];
   const toggle=control&&main.querySelector(control);
