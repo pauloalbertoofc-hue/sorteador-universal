@@ -27,7 +27,8 @@
       }
     ],
     "vars": {
-      "BILLING_ENABLED": "false"
+      "BILLING_ENABLED": "false",
+      "RESET_EMAIL_FROM": "Sorteador Universal <noreply@mail.shadownink.com>"
     }
   },
   "triggers": {"crons": ["17 3 * * *"]},
