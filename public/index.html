@@ -439,7 +439,14 @@ async function auth(path){
  try{
   const email=$('accountEmail').value.trim(),password=$('accountPassword').value;
   const authResult=await request(path,{method:'POST',body:JSON.stringify({email,password})});
-  if(authResult.mfaRequired){$('accountPassword').value='';mfaLoginChallenge=authResult.challenge;mfaLoginInput.value='';mfaLoginMessage.textContent='';mfaLoginDialog.showModal();msg('Código de segurança enviado. Confirme para entrar.');return;}
+  if(authResult.mfaRequired===true || (typeof authResult.challenge==='string' && /^[a-f0-9]{64}$/.test(authResult.challenge))){
+   if(typeof authResult.challenge!=='string'||!/^[a-f0-9]{64}$/.test(authResult.challenge))throw Error('O servidor solicitou a segunda etapa, mas não retornou um desafio válido. Atualize a página e tente novamente.');
+   $('accountPassword').value='';mfaLoginChallenge=authResult.challenge;mfaLoginInput.value='';mfaLoginMessage.textContent='';
+   if(!mfaLoginDialog.isConnected)document.body.append(mfaLoginDialog);
+   if(!mfaLoginDialog.open)mfaLoginDialog.showModal();
+   mfaLoginInput.focus();msg('Código de segurança enviado. Confirme para entrar.');return;
+  }
+  if(path==='/login'&&authResult.ok!==true)throw Error('Resposta de autenticação inesperada. Atualize a página e tente novamente.');
   const data=await refresh();
   if(!data.user)throw Error('Não foi possível confirmar a sessão. Verifique se os cookies estão permitidos e tente entrar novamente.');
   $('accountPassword').value='';
