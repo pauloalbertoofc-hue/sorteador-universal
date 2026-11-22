@@ -1,7 +1,9 @@
 import { chromium, expect } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 const base=process.env.SU_VISUAL_BASE||'http://127.0.0.1:8765';
-const themes=['classic','modern','amethyst','ruby','crystal','abyssal','original'];
+// Only publicly released themes are navigable; the other five remain in the internal catalog.
+import { SU_RELEASED_THEMES } from '../public/theme-system/themes.mjs';
+const themes=SU_RELEASED_THEMES;
 const browser=await chromium.launch({headless:true});
 await mkdir('artifacts/theme-review',{recursive:true});
 try{
