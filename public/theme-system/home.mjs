@@ -262,7 +262,7 @@ function mount(){
    const key=identityKey();mfaButton.hidden=true;mfaStatus.textContent='Consultando…';if(!key)return;
    try{const response=await fetch('/api/mfa/email',{credentials:'same-origin',cache:'no-store'}),data=await response.json();if(!response.ok||identityKey()!==key)return;mfaEnabled=Boolean(data.enabled);mfaStatus.textContent=mfaEnabled?'Ativada · código por e-mail':'Desativada';mfaButton.textContent=mfaEnabled?'Desativar':'Ativar';mfaButton.hidden=false;}catch{if(identityKey()===key)mfaStatus.textContent='Não foi possível consultar.';}
   }
-  mfaButton.addEventListener('click',()=>{mfaIdentity=identityKey();if(!mfaIdentity)return;mfaChallenge='';mfaPassword.value='';mfaCode.value='';mfaCodeLabel.hidden=true;mfaCodeLabel.style.display='none';mfaPassword.closest('label').hidden=false;mfaPassword.closest('label').style.display='';;mfaNotice.textContent='Confirme sua senha para receber o código.';mfaSubmit.textContent='Enviar código';mfaDialog.showModal();});
+  mfaButton.addEventListener('click',()=>{mfaIdentity=identityKey();if(!mfaIdentity)return;mfaChallenge='';mfaPassword.value='';mfaCode.value='';mfaPassword.required=true;mfaCode.required=false;mfaCodeLabel.hidden=true;mfaCodeLabel.style.display='none';mfaPassword.closest('label').hidden=false;mfaPassword.closest('label').style.display='';;mfaNotice.textContent='Confirme sua senha para receber o código.';mfaSubmit.textContent='Enviar código';mfaDialog.showModal();});
   mfaForm.addEventListener('submit',async e=>{
    e.preventDefault();if(mfaBusy||identityKey()!==mfaIdentity)return;mfaBusy=true;mfaSubmit.disabled=true;
    try{
@@ -270,7 +270,7 @@ function mount(){
     const body=mfaChallenge?{challenge:mfaChallenge,code:mfaCode.value}:{password:mfaPassword.value,action:mfaEnabled?'disable':'enable'};
     const response=await fetch(endpoint,{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify(body)}),data=await response.json();
     if(!response.ok)throw Error(data.error||'Não foi possível concluir.');
-    if(!mfaChallenge){mfaChallenge=data.challenge;mfaPassword.value='';mfaPassword.closest('label').hidden=true;mfaPassword.closest('label').style.display='none';mfaCodeLabel.hidden=false;mfaCodeLabel.style.display='';mfaNotice.textContent='Confira o e-mail. O código expira em cinco minutos.';mfaSubmit.textContent='Confirmar código';}
+    if(!mfaChallenge){mfaChallenge=data.challenge;mfaPassword.value='';mfaPassword.required=false;mfaCode.required=true;mfaPassword.closest('label').hidden=true;mfaPassword.closest('label').style.display='none';mfaCodeLabel.hidden=false;mfaCodeLabel.style.display='';mfaNotice.textContent='Confira o e-mail. O código expira em cinco minutos.';mfaSubmit.textContent='Confirmar código';}
     else{mfaDialog.close();mfaChallenge='';refreshMfa();}
    }catch(error){mfaNotice.textContent=error.message;}finally{mfaBusy=false;mfaSubmit.disabled=false;}
   });
