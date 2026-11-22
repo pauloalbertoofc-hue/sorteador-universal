@@ -23,3 +23,32 @@ body.su-integrated[data-su-theme="original"]{--su-surface:#151d28;--su-text:#edf
 
 /* Prevent legacy viewport-based resize observers from inflating the frame. */
 body.su-integrated #sorteador-embed{height:var(--su-embed-height,640px)!important;box-sizing:border-box}
+
+
+/* Released Classic: present SEO landing pages as part of the same product.
+   Scope to Classic so Original and unreleased themes retain their behavior. */
+@media (min-width: 701px){
+ body.su-integrated[data-su-theme="classic"] main{padding-top:26px}
+}
+body.su-integrated[data-su-theme="classic"] main{box-sizing:border-box;width:min(100%,1040px)}
+body.su-integrated[data-su-theme="classic"] .su-nav{margin:0 0 28px;padding:14px 20px;box-shadow:var(--su-shadow);position:relative}
+body.su-integrated[data-su-theme="classic"] .su-nav a{display:inline-flex;align-items:center;min-height:44px;color:#182f60;text-decoration:none}
+body.su-integrated[data-su-theme="classic"] .su-nav label{display:inline-flex;align-items:center;gap:10px}
+body.su-integrated[data-su-theme="classic"] .su-nav select{min-height:44px;margin:0}
+body.su-integrated[data-su-theme="classic"] main>.su-nav+a[href="/"]{display:none}
+body.su-integrated[data-su-theme="classic"] main>h1{font-size:clamp(2rem,4vw,2.85rem);letter-spacing:-.035em;line-height:1.14;margin:8px 0 16px;max-width:790px}
+body.su-integrated[data-su-theme="classic"] main>h1+p{font-size:1.075rem;color:var(--su-muted);margin:0 0 6px}
+body.su-integrated[data-su-theme="classic"] main>h1+p+p{color:var(--su-muted);margin:0 0 14px}
+body.su-integrated[data-su-theme="classic"] .inline-tool{box-shadow:var(--su-shadow);padding:clamp(18px,3vw,34px);margin-top:16px;overflow:hidden}
+body.su-integrated[data-su-theme="classic"] .inline-tool>h2{font-size:clamp(1.3rem,2.6vw,1.7rem);margin:0 0 8px}
+body.su-integrated[data-su-theme="classic"] .inline-tool>.muted{margin:0 0 20px}
+body.su-integrated[data-su-theme="classic"] .skip-tool{min-height:44px;box-sizing:border-box;display:inline-flex;align-items:center;padding:10px 18px;box-shadow:0 5px 14px #6243df22}
+body.su-integrated[data-su-theme="classic"] #sorteador-embed{border-color:var(--su-border)!important;border-radius:16px!important;background:var(--su-bg)!important}
+body.su-integrated[data-su-theme="classic"] main>h2{margin-top:36px}
+@media(max-width:540px){
+ body.su-integrated[data-su-theme="classic"] main{padding:14px 12px 40px}
+ body.su-integrated[data-su-theme="classic"] .su-nav{padding:10px 12px;margin-bottom:20px}
+ body.su-integrated[data-su-theme="classic"] .su-nav label{width:100%;justify-content:space-between}
+ body.su-integrated[data-su-theme="classic"] .inline-tool{padding:14px}
+ body.su-integrated[data-su-theme="classic"] main>h1{font-size:clamp(1.85rem,8vw,2.4rem)}
+}
