@@ -152,15 +152,15 @@ async function api(req,env,url,ctx){const path=url.pathname,method=req.method;
   return json({ok:true},201,{'set-cookie':await createSession(env,id)});
  }
  async function sendMfaCode(account,purpose,passwordSnapshot){
-  if(!env.RESET_EMAIL_API_KEY||!env.RESET_EMAIL_FROM)return null;
+  if(!env.RESET_EMAIL_API_KEY){console.warn('email-mfa-delivery','missing-api-key');return null;}if(!env.RESET_EMAIL_FROM){console.warn('email-mfa-delivery','missing-sender');return null;}
   const token=random(32),code=String(crypto.getRandomValues(new Uint32Array(1))[0]%1000000).padStart(6,'0');
   const now=Date.now(),digest=await sha(token),mac=await sha(token+':'+code);
   await env.DB.prepare('DELETE FROM email_mfa_challenges WHERE user_id=? AND purpose=?').bind(account.id,purpose).run();
   await env.DB.prepare('INSERT INTO email_mfa_challenges(challenge_hash,user_id,code_mac,password_hash_snapshot,expires_at,attempts,created_at,purpose) VALUES(?,?,?,?,?,0,?,?)').bind(digest,account.id,mac,passwordSnapshot,now+300000,now,purpose).run();
   try{
    const response=await fetch('https://api.resend.com/emails',{method:'POST',headers:{authorization:'Bearer '+env.RESET_EMAIL_API_KEY,'content-type':'application/json'},body:JSON.stringify({from:env.RESET_EMAIL_FROM,to:[account.email],subject:'Código de segurança — Sorteador Universal',text:'Seu código de segurança é '+code+'. Válido por 5 minutos. Se não solicitou, ignore esta mensagem.'})});
-   if(!response.ok)throw Error('delivery');
-  }catch{await env.DB.prepare('DELETE FROM email_mfa_challenges WHERE challenge_hash=?').bind(digest).run();return null;}
+   if(!response.ok){console.warn('email-mfa-delivery','provider-status',response.status);throw Error('delivery');}
+  }catch(error){console.warn('email-mfa-delivery','failed',error?.name||'unknown');await env.DB.prepare('DELETE FROM email_mfa_challenges WHERE challenge_hash=?').bind(digest).run();return null;}
   return token;
  }
  if(path==='/api/mfa/email/confirm'&&method==='POST'){
