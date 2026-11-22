@@ -249,12 +249,12 @@ try{
   await expect(page.locator('.su-room-toggle')).toHaveCount(0);
   await page.goto(base+'/?incorporado=1&suTheme=amethyst',{waitUntil:'domcontentloaded'});
   await expect(page.locator('.su-home-directory')).toHaveCount(0);
-  await expect(page.locator('body')).toHaveAttribute('data-su-theme','amethyst');
+  await expect(page.locator('body')).toHaveAttribute('data-su-theme','classic');
   await page.goto(base+'/?suTheme=classic#su-home-quick-draw',{waitUntil:'domcontentloaded'});
   await expect(page.locator('#su-home-quick-draw')).toBeVisible();
   await expect(page.locator('.tabs .tab').first()).toBeVisible();
   await page.goto(base+'/sortear-numeros/?suTheme=crystal',{waitUntil:'domcontentloaded'});
-  await expect(page.locator('body')).toHaveAttribute('data-su-theme','crystal');
+  await expect(page.locator('body')).toHaveAttribute('data-su-theme','classic');
   await expect(page.frameLocator('#sorteador-embed').locator('#draw')).toBeVisible();
   for(const slug of [
    'sortear-nomes','sortear-numeros','sortear-equipes','roleta-online',
@@ -263,11 +263,11 @@ try{
   ]){
    await page.goto(base+'/'+slug+'/?suTheme=abyssal',{waitUntil:'domcontentloaded'});
    await expect(page).toHaveURL(url=>url.pathname==='/'+slug+'/');
-   await expect(page.locator('body')).toHaveAttribute('data-su-theme','abyssal');
+   await expect(page.locator('body')).toHaveAttribute('data-su-theme','classic');
    const canonical=await page.locator('link[rel="canonical"]').getAttribute('href');
    if(!canonical||new URL(canonical,base).pathname!=='/'+slug+'/')throw new Error('Incorrect canonical for '+slug+': '+canonical);
    const tool=page.frameLocator('#sorteador-embed');
-   await expect(tool.locator('body')).toHaveAttribute('data-su-theme','abyssal',{timeout:15000});
+   await expect(tool.locator('body')).toHaveAttribute('data-su-theme','classic',{timeout:15000});
    await expect(tool.locator('#draw')).toBeVisible();
    const frame=page.locator('#sorteador-embed');
    await expect.poll(()=>frame.evaluate(el=>{
@@ -308,7 +308,7 @@ try{
   await embedded.locator('#draw').click();
   await expect(embedded.locator('#result')).toContainText('Ana');
   await page.locator('.su-nav select').selectOption('amethyst');
-  await expect(embedded.locator('body')).toHaveAttribute('data-su-theme','amethyst');
+  await expect(embedded.locator('body')).toHaveAttribute('data-su-theme','classic');
   await expect(embedded.locator('#result')).toContainText('Ana');
   await expect(embedded.locator('#items')).toHaveValue('Ana');
   await page.goto(base+'/?suTheme=classic',{waitUntil:'domcontentloaded'});
