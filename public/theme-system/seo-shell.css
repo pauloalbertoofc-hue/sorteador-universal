@@ -11,6 +11,9 @@ body.su-integrated:not([data-su-theme="original"]) h1,body.su-integrated:not([da
 body.su-integrated:not([data-su-theme="original"]) .muted,body.su-integrated:not([data-su-theme="original"]) footer{color:var(--su-muted)}
 body.su-integrated .inline-tool{background:var(--su-surface);border:1px solid var(--su-border);border-radius:20px;padding:clamp(14px,3vw,28px)}
 body.su-integrated .skip-tool,body.su-integrated .cta{background:var(--su-accent);color:var(--su-on-accent)}
+/* The generic landing-page link rule is more specific than the action rule above.
+   Keep the label readable on the accent background in every theme. */
+body.su-integrated:not([data-su-theme="original"]) a.skip-tool,body.su-integrated:not([data-su-theme="original"]) a.cta{color:var(--su-on-accent)}
 body.su-integrated footer{border-color:var(--su-border)}
 
 @media(max-width:540px){body.su-integrated .su-nav{align-items:flex-start}body.su-integrated .su-nav label{display:flex;flex-direction:column;gap:5px}body.su-integrated .su-nav select{margin:0}}
