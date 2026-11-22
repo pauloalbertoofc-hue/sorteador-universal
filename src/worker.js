@@ -151,16 +151,17 @@ async function api(req,env,url,ctx){const path=url.pathname,method=req.method;
   }
   return json({ok:true},201,{'set-cookie':await createSession(env,id)});
  }
+ let mfaDeliveryFailure='M00';
  async function sendMfaCode(account,purpose,passwordSnapshot){
-  if(!env.RESET_EMAIL_API_KEY){console.warn('email-mfa-delivery','missing-api-key');return null;}if(!env.RESET_EMAIL_FROM){console.warn('email-mfa-delivery','missing-sender');return null;}
+  if(!env.RESET_EMAIL_API_KEY){mfaDeliveryFailure='M01';console.warn('email-mfa-delivery','missing-api-key');return null;}if(!env.RESET_EMAIL_FROM){mfaDeliveryFailure='M02';console.warn('email-mfa-delivery','missing-sender');return null;}
   const token=random(32),code=String(crypto.getRandomValues(new Uint32Array(1))[0]%1000000).padStart(6,'0');
   const now=Date.now(),digest=await sha(token),mac=await sha(token+':'+code);
   await env.DB.prepare('DELETE FROM email_mfa_challenges WHERE user_id=? AND purpose=?').bind(account.id,purpose).run();
   await env.DB.prepare('INSERT INTO email_mfa_challenges(challenge_hash,user_id,code_mac,password_hash_snapshot,expires_at,attempts,created_at,purpose) VALUES(?,?,?,?,?,0,?,?)').bind(digest,account.id,mac,passwordSnapshot,now+300000,now,purpose).run();
   try{
    const response=await fetch('https://api.resend.com/emails',{method:'POST',headers:{authorization:'Bearer '+env.RESET_EMAIL_API_KEY,'content-type':'application/json'},body:JSON.stringify({from:env.RESET_EMAIL_FROM,to:[account.email],subject:'Código de segurança — Sorteador Universal',text:'Seu código de segurança é '+code+'. Válido por 5 minutos. Se não solicitou, ignore esta mensagem.'})});
-   if(!response.ok){console.warn('email-mfa-delivery','provider-status',response.status);throw Error('delivery');}
-  }catch(error){console.warn('email-mfa-delivery','failed',error?.name||'unknown');await env.DB.prepare('DELETE FROM email_mfa_challenges WHERE challenge_hash=?').bind(digest).run();return null;}
+   if(!response.ok){mfaDeliveryFailure='M03-'+response.status;console.warn('email-mfa-delivery','provider-status',response.status);throw Error('delivery');}
+  }catch(error){if(mfaDeliveryFailure==='M00')mfaDeliveryFailure='M04';console.warn('email-mfa-delivery','failed',error?.name||'unknown');await env.DB.prepare('DELETE FROM email_mfa_challenges WHERE challenge_hash=?').bind(digest).run();return null;}
   return token;
  }
  if(path==='/api/mfa/email/confirm'&&method==='POST'){
@@ -217,7 +218,7 @@ async function api(req,env,url,ctx){const path=url.pathname,method=req.method;
    if(!verified)return fail('Verifique seu e-mail primeiro.',403);
   }
   const challenge=await sendMfaCode(user,action,record.password_hash);
-  if(!challenge)return fail('Não foi possível enviar o código. Consulte os logs do Worker da preview (email-mfa-delivery).',503);
+  if(!challenge)return fail('Não foi possível enviar o código.'+(url.hostname==='design-unified-themes-and-seo-routes-sorteador-universal.paulo-alberto-ofc.workers.dev'?' ['+mfaDeliveryFailure+']':''),503);
   return json({challenge,expiresIn:300});
  }
  if(path==='/api/email/verification'&&method==='GET'){
