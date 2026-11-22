@@ -410,8 +410,27 @@ function setBusy(value){
  for(const id of ['accountLogin','accountRegister','accountLogout'])$(id).disabled=value;
  billingButtons();
 }
+const mfaLoginStyle=document.createElement('style');
+mfaLoginStyle.textContent=`
+dialog.su-mfa-login-dialog{box-sizing:border-box;width:min(440px,calc(100vw - 32px));max-width:none;max-height:calc(100dvh - 32px);overflow:auto;padding:0;border:1px solid #d8e3f6;border-radius:22px;background:#fff;color:#142a50;box-shadow:0 24px 80px #071b3a42;font-family:inherit}
+dialog.su-mfa-login-dialog::backdrop{background:rgba(10,28,61,.55);backdrop-filter:blur(3px)}
+dialog.su-mfa-login-dialog form{box-sizing:border-box;max-width:none!important;margin:0;padding:32px!important;display:flex;flex-direction:column;gap:18px;background:#fff;color:#142a50}
+dialog.su-mfa-login-dialog h2{font-size:clamp(1.4rem,4vw,1.75rem);line-height:1.2;margin:0;color:#102a53;font-weight:750}
+dialog.su-mfa-login-dialog p{margin:0;color:#506382;line-height:1.5}
+dialog.su-mfa-login-dialog label{display:block;font-size:.95rem;font-weight:650;color:#182e55}
+dialog.su-mfa-login-dialog input{box-sizing:border-box;display:block;width:100%;margin:9px 0 0!important;padding:15px 16px!important;border:1px solid #cbdaf1;border-radius:12px;background:#f8faff;color:#142a50;font-size:1.3rem;font-weight:650;letter-spacing:.2em;text-align:center;outline:none}
+dialog.su-mfa-login-dialog input:focus{border-color:#1763dc;box-shadow:0 0 0 3px #1763dc22}
+dialog.su-mfa-login-dialog [role=status]{min-height:1.3em;font-size:.9rem;color:#3b567e}
+dialog.su-mfa-login-dialog button{box-sizing:border-box;display:block;width:100%;min-height:48px;margin:0;padding:11px 16px;border:1px solid #1763dc;border-radius:11px;background:#1763dc;color:#fff;font:inherit;font-weight:650;cursor:pointer}
+dialog.su-mfa-login-dialog button.secondary{background:#fff;border-color:#d1def1;color:#142a50}
+dialog.su-mfa-login-dialog button:disabled{opacity:.55;cursor:wait}
+dialog.su-mfa-login-dialog button:focus-visible{outline:3px solid #87b6ff;outline-offset:2px}
+@media(max-width:480px){dialog.su-mfa-login-dialog form{padding:26px 22px!important}}
+`;
+document.head.append(mfaLoginStyle);
 const mfaLoginDialog=document.createElement('dialog');
 mfaLoginDialog.setAttribute('aria-labelledby','su-mfa-login-title');
+mfaLoginDialog.className='su-mfa-login-dialog';
 mfaLoginDialog.innerHTML='<form method="dialog" style="padding:24px;max-width:380px"><h2 id="su-mfa-login-title">Confirme seu acesso</h2><p>Enviamos um código de seis dígitos para seu e-mail. Ele expira em cinco minutos.</p><label>Código de segurança<input required inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" style="display:block;width:100%;padding:12px;margin:12px 0"></label><p role="status" aria-live="polite"></p><button type="submit" value="confirm">Confirmar código</button> <button type="button" class="secondary">Cancelar</button></form>';
 document.body.append(mfaLoginDialog);
 const mfaLoginForm=mfaLoginDialog.querySelector('form'),mfaLoginInput=mfaLoginForm.querySelector('input'),mfaLoginMessage=mfaLoginForm.querySelector('[role=status]'),mfaLoginSubmit=mfaLoginForm.querySelector('[type=submit]');
