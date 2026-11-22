@@ -290,24 +290,18 @@ try{
    el.dispatchEvent(new Event('input',{bubbles:true}));
    return {id:el.id,marker};
   });
-  await page.locator('.su-nav select').selectOption('ruby');
-  await expect(embedded.locator('body')).toHaveAttribute('data-su-theme','ruby');
+  // Unreleased appearances must not be selectable in the staged public rollout.
+  for(const theme of ['ruby','abyssal','amethyst']){
+   await expect(page.locator('.su-nav select option[value="'+theme+'"]')).toHaveCount(0);
+  }
   await expect(embedded.locator('body')).toHaveAttribute('data-su-visual-persistence','kept');
   const retained=await embedded.locator('input:not([type="hidden"]),textarea').first().inputValue();
-  if(retained!==inputState.marker)throw new Error('Theme change cleared entered draw data at '+width+'px');
-  for(const theme of ['abyssal','original','classic']){
-   await page.locator('.su-nav select').selectOption(theme);
-   await expect(embedded.locator('body')).toHaveAttribute('data-su-theme',theme);
-   await expect(embedded.locator('body')).toHaveAttribute('data-su-visual-persistence','kept');
-   const current=await embedded.locator('input:not([type="hidden"]),textarea').first().inputValue();
-   if(current!==inputState.marker)throw new Error('Theme sequence cleared entered draw data: '+theme+' at '+width+'px');
-  }
+  if(retained!==inputState.marker)throw new Error('Draw data lost in classic theme at '+width+'px');
   // Exercise an actual guest draw and verify its result after switching appearance.
   await embedded.locator('#items').fill('Ana');
   await embedded.locator('#winners').fill('1');
   await embedded.locator('#draw').click();
   await expect(embedded.locator('#result')).toContainText('Ana');
-  await page.locator('.su-nav select').selectOption('amethyst');
   await expect(embedded.locator('body')).toHaveAttribute('data-su-theme','classic');
   await expect(embedded.locator('#result')).toContainText('Ana');
   await expect(embedded.locator('#items')).toHaveValue('Ana');
