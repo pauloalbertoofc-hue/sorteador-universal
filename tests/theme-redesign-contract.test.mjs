@@ -1,14 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {SU_THEMES,SU_DEFAULT_THEME,isSuTheme,setSuTheme,getSuTheme,themeFromUrl,themedPublicHref} from '../public/theme-system/themes.mjs';
+import {SU_THEMES,SU_RELEASED_THEMES,SU_DEFAULT_THEME,isSuTheme,setSuTheme,getSuTheme,themeFromUrl,themedPublicHref} from '../public/theme-system/themes.mjs';
 
 const read=(path)=>readFileSync(new URL(path,import.meta.url),'utf8');
 const routes=['sortear-nomes','sortear-numeros','sortear-equipes','roleta-online','sorteio-rifa-online','cara-ou-coroa-online','sortear-aluno-online','dividir-turma-em-grupos'];
 
 test('seven unique themes with classic default and original option',()=>{
  assert.equal(SU_THEMES.length,7);assert.equal(new Set(SU_THEMES).size,7);
- assert.equal(SU_DEFAULT_THEME,'classic');assert.ok(isSuTheme('original'));assert.equal(isSuTheme('unknown'),false);
+ assert.deepEqual(SU_RELEASED_THEMES,['classic','original']);assert.equal(SU_DEFAULT_THEME,'classic');assert.ok(isSuTheme('original'));assert.equal(isSuTheme('unknown'),false);
  const attrs=new Map();const root={setAttribute:(k,v)=>attrs.set(k,v),getAttribute:k=>attrs.get(k)};
  assert.equal(setSuTheme(root,'ruby'),'ruby');assert.equal(getSuTheme(root),'ruby');
  assert.equal(setSuTheme(root,'not-a-theme'),'classic');
@@ -40,9 +40,11 @@ test('sitemap retains current SEO routes',()=>{
 
 test('selected theme follows only public routes without browser storage',()=>{
  const base='https://sorteador.shadownink.com/';
- assert.equal(themeFromUrl(base+'sortear-nomes/?suTheme=abyssal'),'abyssal');
+ assert.equal(themeFromUrl(base+'sortear-nomes/?suTheme=abyssal'),'classic');
+ assert.equal(themeFromUrl(base+'sortear-nomes/?suTheme=original'),'original');
  assert.equal(themeFromUrl(base+'sortear-nomes/?suTheme=invalid'),'classic');
- assert.equal(themedPublicHref('/roleta-online/','ruby',base),base+'roleta-online/?suTheme=ruby');
+ assert.equal(themedPublicHref('/roleta-online/','ruby',base),base+'roleta-online/');
+ assert.equal(themedPublicHref('/roleta-online/','original',base),base+'roleta-online/?suTheme=original');
  assert.equal(themedPublicHref('/roleta-online/?suTheme=ruby','classic',base),base+'roleta-online/');
  assert.equal(themedPublicHref('/amigo-secreto/','ruby',base),null);
  assert.equal(themedPublicHref('/?room=private','ruby',base),null);
