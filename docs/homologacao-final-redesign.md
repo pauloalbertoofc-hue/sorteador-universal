@@ -1,19 +1,32 @@
 # Homologação final — redesign unificado
 
-## Evidência automatizada
+## Evidência automatizada (22/11/2026)
 
-Commit e2182f3: quatro workflows GitHub Actions aprovados (SEO metadata, SEO landing pages and ads, free tools, theme redesign). Cobertura: sete temas, oito rotas, navegação por teclado, contraste do título, disclosures, tema no iframe e preservação do campo testado. O servidor estático e os estados simulados não comprovam autenticação, cobrança ou salas reais.
+Head verificado: `725aa0a22ac9d0449187142d1e469cccefbab5d5` (PR #84, aberto, em rascunho, não mesclado).
 
-## Homologação em ambiente de teste
+No GitHub, o último head apresentou oito checks verdes, incluindo **Theme redesign contracts** (push e pull_request), **Free tools quality checks**, **Secret Santa engine tests**, **SEO landing pages and ads regression**, **SEO metadata regression**, **Billing pilot gate** e **Workers Builds**. Os seis workflows de GitHub Actions consultados para esse SHA constavam como `completed/success`.
 
-- [ ] Conferir capturas finais em 390 e 1280 px, incluindo Original.
-- [ ] Realizar sorteios como visitante nas oito ferramentas e conferir resultados.
-- [ ] Criar conta de teste ou usar conta de homologação autorizada; entrar, sair e recarregar.
-- [ ] Conferir estado de assinatura e ausência de anúncios para conta Pro de teste; usar sandbox para checkout, sem cobrança real.
+A falha anterior no teste visual do tema Clássico (formulário `#form` visível quando deveria estar oculto) não reapareceu nesses checks. Isso valida o cenário automatizado, **não** substitui o teste manual em dispositivos e no ambiente Cloudflare.
+
+Cobertura automatizada: sete temas, rotas públicas, navegação por teclado, contraste do título, disclosures, tema no iframe e preservação de campos. O servidor estático e estados simulados não comprovam autenticação, cobrança, envio de e-mails nem salas reais.
+
+## Homologação manual ainda pendente
+
+- [ ] Comparar capturas finais em 390 e 1280 px, incluindo Original, Clássico e as páginas SEO; verificar também Android real.
+- [ ] Realizar sorteios como visitante nas oito ferramentas e conferir resultados e reset, inclusive após alternar tema.
+- [ ] Testar conta de homologação: login, segundo fator por e-mail, logout, recarga e login em nova sessão; não registrar códigos ou credenciais no PR.
+- [ ] Confirmar que a verificação de e-mail e a autenticação em duas etapas continuam funcionando após novo deploy da prévia.
+- [ ] Conferir estado da assinatura e ausência de anúncios para conta Pro de teste; usar sandbox para checkout, sem cobrança real.
 - [ ] Criar sala de teste, entrar em segundo dispositivo e conferir sincronização e compartilhamento.
 - [ ] Conferir consentimento de analytics, anúncios e links legais.
-- [ ] Conferir build Cloudflare e diff contra main, sem alterações no Amigo Secreto.
+- [ ] Conferir no painel Cloudflare que as variáveis, segredos e binding D1 da prévia persistem após deploy; validar o envio de e-mail sem expor o segredo.
+- [x] Confirmar build do Cloudflare Workers e checks do PR no SHA acima.
+- [ ] Revisar diff contra main, sem alterações indevidas no Amigo Secreto.
 - [ ] Obter autorização explícita para publicação.
+
+## Critérios de bloqueio
+
+Não mesclar se houver erro de login/segundo fator, perda de variáveis de ambiente, regressão de sorteios, falha de consentimento, quebra de rotas SEO ou divergência relevante entre mobile e desktop. Se qualquer teste manual falhar, registrar **rota, tema, dispositivo, ação e resultado observado**, sem anexar senhas, tokens ou códigos.
 
 ## Liberação
 
