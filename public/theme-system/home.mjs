@@ -5,7 +5,7 @@ function mount(){
  if(url.searchParams.get('incorporado')==='1'){
   if(url.searchParams.has('suTheme')){document.body.classList.add('su-home-themed');setSuTheme(document.body,themeFromUrl(location.href));}
   window.addEventListener('message',event=>{
-   if(event.origin!==location.origin||event.data?.type!=='su:set-embed-theme'||!SU_THEMES.includes(event.data.theme))return;
+   if(event.origin!==location.origin||event.data?.type!=='su:set-embed-theme'||!SU_RELEASED_THEMES.includes(event.data.theme))return;
    document.body.classList.add('su-home-themed');setSuTheme(document.body,event.data.theme);
   });
   return;
@@ -18,7 +18,7 @@ function mount(){
  const label=document.createElement('label');label.htmlFor='su-home-theme';label.textContent='Aparência';
  const select=document.createElement('select');select.id='su-home-theme';
  const names={classic:'01 — Clássico',modern:'02 — Moderno',amethyst:'03 — Ametista',ruby:'04 — Rubi',crystal:'05 — Cristal',abyssal:'06 — Abissal',original:'07 — Original'};
- for(const id of SU_THEMES)select.add(new Option(names[id],id));
+ for(const id of SU_RELEASED_THEMES)select.add(new Option(names[id],id));
  select.value=themeFromUrl(location.href);select.addEventListener('change',()=>setSuTheme(document.body,select.value));
  picker.append(label,select);top.append(picker);
  const section=document.createElement('section');section.className='su-home-directory';section.setAttribute('aria-label','Explorar ferramentas');
