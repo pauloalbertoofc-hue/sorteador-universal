@@ -217,7 +217,7 @@ async function api(req,env,url,ctx){const path=url.pathname,method=req.method;
    if(!verified)return fail('Verifique seu e-mail primeiro.',403);
   }
   const challenge=await sendMfaCode(user,action,record.password_hash);
-  if(!challenge)return fail('Não foi possível enviar o código.',503);
+  if(!challenge)return fail('Não foi possível enviar o código. Consulte os logs do Worker da preview (email-mfa-delivery).',503);
   return json({challenge,expiresIn:300});
  }
  if(path==='/api/email/verification'&&method==='GET'){
