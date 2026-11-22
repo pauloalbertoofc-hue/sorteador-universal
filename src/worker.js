@@ -353,6 +353,18 @@ async function api(req,env,url,ctx){const path=url.pathname,method=req.method;
   const account=await env.DB.prepare('SELECT created_at FROM users WHERE id=?').bind(user.id).first();
   return json({profile:{full_name:full,display_name:display,username:username||null,created_at:account?.created_at??null}});
  }
+ if(path==='/api/account/export'&&method==='GET'){
+  if(!user)return fail('Não autenticado',401);
+  const [account,profile,lists,sessions,mfa]=await Promise.all([
+   env.DB.prepare('SELECT id,email,created_at FROM users WHERE id=?').bind(user.id).first(),
+   env.DB.prepare('SELECT full_name,display_name,username FROM user_profiles WHERE user_id=?').bind(user.id).first(),
+   env.DB.prepare('SELECT id,name,list_type,items_json,created_at,updated_at FROM saved_lists WHERE user_id=? ORDER BY updated_at DESC').bind(user.id).all(),
+   env.DB.prepare('SELECT expires_at FROM sessions WHERE user_id=? AND expires_at>? ORDER BY expires_at DESC').bind(user.id,Date.now()).all(),
+   env.DB.prepare('SELECT enabled_at FROM user_email_mfa WHERE user_id=?').bind(user.id).first()
+  ]);
+  const payload={format:'sorteador-universal-account-export',version:1,exported_at:new Date().toISOString(),account,profile:profile||null,saved_lists:lists.results.map(row=>({id:row.id,name:row.name,type:row.list_type,items:JSON.parse(row.items_json),created_at:row.created_at,updated_at:row.updated_at})),security:{email_mfa_enabled:Boolean(mfa),email_mfa_enabled_at:mfa?.enabled_at??null,active_session_expirations:sessions.results.map(row=>row.expires_at)}};
+  return new Response(JSON.stringify(payload,null,2),{status:200,headers:{'content-type':'application/json; charset=utf-8','content-disposition':'attachment; filename="sorteador-universal-meus-dados.json"','cache-control':'private, no-store','x-content-type-options':'nosniff'}});
+ }
  if(path==='/api/me'&&method==='GET'){
   if(!user)return json({user:null,subscription:{active:false}});
   const subscription=await subscriptionState(env,user),billing=await billingInfo(env,user),now=Date.now();
