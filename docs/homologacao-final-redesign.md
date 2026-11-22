@@ -24,6 +24,40 @@ Cobertura automatizada: sete temas, rotas públicas, navegação por teclado, co
 - [ ] Revisar diff contra main, sem alterações indevidas no Amigo Secreto.
 - [ ] Obter autorização explícita para publicação.
 
+
+## Pré-publicação: banco D1 de produção (somente leitura primeiro)
+
+**Alvo:** binding `DB` em produção: `sorteador-universal-db`. **Não** confundir com `sorteador-universal-preview-db`. O repositório possui migrações `0010_password_resets.sql` a `0014_email_mfa.sql`; a existência desses arquivos **não comprova** sua aplicação no D1 de produção.
+
+1. No painel Cloudflare, abrir Workers & Pages → D1 → **sorteador-universal-db** e confirmar o banco selecionado.
+2. Antes de qualquer escrita, registrar backup/exportação recuperável do banco e seu horário. Não anexar dados pessoais ao PR.
+3. Executar **somente leitura** no console SQL do banco correto:
+   ```sql
+   SELECT name FROM sqlite_master
+   WHERE type='table' AND name IN (
+     'users','password_resets','user_profiles','user_avatars',
+     'email_verifications','user_email_mfa','email_mfa_challenges',
+     'd1_migrations'
+   ) ORDER BY name;
+   SELECT name FROM sqlite_master
+   WHERE type='index' AND tbl_name IN (
+     'password_resets','user_profiles','user_avatars',
+     'email_verifications','user_email_mfa','email_mfa_challenges'
+   ) ORDER BY name;
+   SELECT id, name, applied_at FROM d1_migrations ORDER BY id;
+   ```
+   Se a tabela `d1_migrations` não existir ou tiver esquema diferente, consultar `PRAGMA table_info(d1_migrations);` antes de adaptar a consulta; não executar inserts manuais no histórico.
+4. Comparar as tabelas **e colunas** efetivas com os arquivos `migrations/0010_*.sql` até `0014_*.sql` usando `PRAGMA table_info(nome_da_tabela);` para cada tabela presente. Conferir também chaves estrangeiras e índices; não presumir equivalência apenas pelo nome.
+5. Caso falte alguma estrutura, preparar plano específico e reversível para aplicar a migração correta, com confirmação do banco-alvo, backup e janela de manutenção. **Não** executar automaticamente `wrangler d1 migrations apply --remote` enquanto houver divergência entre esquema real e histórico de migrações.
+6. No painel do Worker de produção, confirmar a presença (sem revelar valores) de segredos e variáveis necessários para envio de e-mail, URLs de callback, faturamento e banco D1. `keep_vars: true` não substitui essa conferência; variáveis da prévia não devem ser presumidas na produção.
+7. Só após isso: testar login, MFA por e-mail, verificação, recuperação de senha, avatar e exportação de dados em conta de teste; não registrar tokens/códigos nos logs.
+
+**Bloqueio:** ausência de tabela/coluna, divergência do histórico, segredo de e-mail ausente ou envio de códigos falhando impede o merge/deploy. Nenhuma consulta SQL desta seção foi executada remotamente durante a preparação deste documento.
+
+## Estado da liberação gradual
+
+Os temas `classic` e `original` estão em `SU_RELEASED_THEMES`; `modern`, `amethyst`, `ruby`, `crystal` e `abyssal` permanecem no código, mas fora do seletor público. Publicar o sistema completo não depende de concluir esses cinco estilos.
+
 ## Critérios de bloqueio
 
 Não mesclar se houver erro de login/segundo fator, perda de variáveis de ambiente, regressão de sorteios, falha de consentimento, quebra de rotas SEO ou divergência relevante entre mobile e desktop. Se qualquer teste manual falhar, registrar **rota, tema, dispositivo, ação e resultado observado**, sem anexar senhas, tokens ou códigos.
