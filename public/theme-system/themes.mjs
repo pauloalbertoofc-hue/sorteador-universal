@@ -1,5 +1,6 @@
 /** Prototype-only theme controller. Do not import into live pages until reviewed. */
-export const SU_THEMES=Object.freeze(["classic","modern","amethyst","ruby","crystal","abyssal","original"]);
+// Only approved appearances are selectable in the public release. Other themes remain in source for staged rollout.
+export const SU_THEMES=Object.freeze(["classic","original"]);
 export const SU_DEFAULT_THEME="classic";
 export function isSuTheme(value){return SU_THEMES.includes(value)}
 export function setSuTheme(root,theme){if(!root||typeof root.setAttribute!=="function")throw new TypeError("A root element is required");const next=isSuTheme(theme)?theme:SU_DEFAULT_THEME;root.setAttribute("data-su-theme",next);return next}
