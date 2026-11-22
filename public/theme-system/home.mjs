@@ -1,4 +1,4 @@
-import{SU_THEMES,SU_DEFAULT_THEME,setSuTheme,themeFromUrl,enableThemeNavigation}from'./themes.mjs';
+import{SU_THEMES,SU_RELEASED_THEMES,SU_DEFAULT_THEME,setSuTheme,themeFromUrl,enableThemeNavigation}from'./themes.mjs';
 /** Additive homepage pilot; do not mount in embedded tools or private rooms. */
 function mount(){
  const url=new URL(location.href);
