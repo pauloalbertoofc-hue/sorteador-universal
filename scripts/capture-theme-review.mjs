@@ -281,6 +281,22 @@ try{
 
   }
   await page.goto(base+'/sortear-nomes/?suTheme=classic',{waitUntil:'domcontentloaded'});
+  // Classic SEO shell should read as a usable page, not a set of empty blocks.
+  const seoNav=page.locator('.su-nav');
+  await expect(seoNav).toBeVisible();
+  await expect(page.locator('.skip-tool')).toBeVisible();
+  await expect(page.locator('.skip-tool')).not.toBeEmpty();
+  await expect(page.locator('.inline-tool')).toBeVisible();
+  const seoLayout=await page.evaluate(()=>{
+   const nav=document.querySelector('.su-nav');
+   const panel=document.querySelector('.inline-tool');
+   const cta=document.querySelector('.skip-tool');
+   const navStyle=getComputedStyle(nav);
+   const panelStyle=getComputedStyle(panel);
+   const ctaStyle=getComputedStyle(cta);
+   return {navRadius:parseFloat(navStyle.borderTopLeftRadius),panelRadius:parseFloat(panelStyle.borderTopLeftRadius),ctaHeight:cta.getBoundingClientRect().height,ctaColor:ctaStyle.color,ctaBackground:ctaStyle.backgroundColor,overflow:document.documentElement.scrollWidth>innerWidth+2};
+  });
+  if(seoLayout.overflow||seoLayout.navRadius<8||seoLayout.panelRadius<8||seoLayout.ctaHeight<40||seoLayout.ctaColor===seoLayout.ctaBackground)throw new Error('Classic SEO presentation regression: '+JSON.stringify(seoLayout));
   const embedded=page.frameLocator('#sorteador-embed');
   await expect(embedded.locator('body')).toHaveAttribute('data-su-theme','classic');
   await embedded.locator('body').evaluate(body=>{body.dataset.suVisualPersistence='kept';});
