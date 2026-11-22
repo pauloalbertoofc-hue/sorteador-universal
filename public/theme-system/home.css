@@ -138,6 +138,9 @@ body.su-home-themed[data-su-theme="classic"] main[data-su-view="help"] > :not(.t
 body.su-home-themed[data-su-theme="classic"] main[data-su-view="privacy"] > :not(.top,.su-classic-back,#privacidade,.foot,script){display:none!important}
 body.su-home-themed[data-su-theme="classic"] main[data-su-view]:not([data-su-view="home"]) > .su-classic-back{display:inline-flex;align-items:center;min-height:44px;color:#1264d9;text-decoration:none;font-weight:650;margin:10px 0}
 
+/* Keep the legacy quick-draw form mounted but out of the catalogue view. */
+body.su-home-themed[data-su-theme="classic"] main[data-su-view="home"] #form{display:none!important}
+
 /* Classic tool workspace: preserve all existing inputs and draw handlers. */
 body.su-home-themed[data-su-theme="classic"] .panel{box-shadow:0 4px 20px #173d700b;border-radius:16px}
 body.su-home-themed[data-su-theme="classic"] #form .fields{gap:12px;align-items:start}
