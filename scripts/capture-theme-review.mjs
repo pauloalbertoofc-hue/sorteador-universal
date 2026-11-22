@@ -50,6 +50,7 @@ try{
     await page.screenshot({path:'artifacts/theme-review/'+name+'-'+theme+'-'+width+'-viewport.png',fullPage:false,animations:'disabled'});
    }
   }
+  page.on('pageerror',error=>console.log('CLASSIC_PAGE_ERROR',error.stack||error.message));
   await page.goto(base+'/?suTheme=classic',{waitUntil:'domcontentloaded'});
   // Validate the new classic views before testing legacy disclosures.
   await expect(page.locator('.su-classic-hero')).toBeVisible();
