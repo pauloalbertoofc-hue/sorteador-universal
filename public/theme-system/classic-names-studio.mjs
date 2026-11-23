@@ -1,0 +1,88 @@
+/* Isolated classic-mode names studio. Original remains on the existing page. */
+const root=document.querySelector('main');
+if(root&&!document.getElementById('su-classic-names')){
+ const section=document.createElement('section');section.id='su-classic-names';
+ section.innerHTML=`<div class="ns-intro"><h1>Sortear nomes</h1><p>Organize participantes, configure as regras e descubra os vencedores.</p></div>
+ <div class="ns-tabs" role="tablist" aria-label="Etapas do sorteio">
+ <button type="button" role="tab" data-tab="names" aria-selected="true">♙ Nomes</button>
+ <button type="button" role="tab" data-tab="settings" aria-selected="false">☷ Configurar</button>
+ <button type="button" role="tab" data-tab="result" aria-selected="false">♕ Resultado</button>
+ <button type="button" role="tab" data-tab="history" aria-selected="false">◷ Histórico</button></div>
+ <div class="ns-layout"><div class="ns-card">
+ <section class="ns-pane" data-pane="names"><h2>Participantes <small id="ns-total">0 nomes</small></h2><p>Digite ou cole um nome por linha.</p><label for="ns-list">Lista de participantes</label><textarea id="ns-list" placeholder="Ana&#10;Bruno&#10;Carla"></textarea><div class="ns-actions"><button type="button" class="ns-secondary" id="ns-save-template">Salvar modelo</button><button type="button" class="ns-secondary" id="ns-load-template">Carregar modelo</button></div><div class="ns-actions"><button type="button" class="ns-secondary" id="ns-paste">Colar lista</button><label class="ns-secondary" for="ns-file" style="cursor:pointer">Importar .txt/.csv</label><input id="ns-file" type="file" accept=".txt,.csv,text/plain,text/csv" hidden></div><div class="ns-actions"><button class="ns-primary" data-next="settings">Continuar →</button></div></section>
+ <section class="ns-pane" data-pane="settings" hidden><h2>Configurar sorteio</h2><p>Defina as regras antes de selecionar.</p><fieldset class="ns-mode"><legend>Modo de sorteio</legend><label><input type="radio" name="ns-mode" value="quick" checked> ⚡ Sorteio rápido</label><label><input type="radio" name="ns-mode" value="wheel"> ◉ Roleta animada</label></fieldset><div class="ns-field"><label for="ns-count">Quantidade de vencedores</label><input id="ns-count" type="number" min="1" max="100" value="1"></div><label class="ns-check"><input id="ns-repeat" type="checkbox"> Permitir repetição de nomes no mesmo sorteio</label><label class="ns-check"><input id="ns-remove" type="checkbox" checked> Remover sorteados das próximas rodadas</label><div class="ns-actions"><button class="ns-secondary" data-next="names">← Voltar</button><button class="ns-primary" id="ns-draw">Sortear agora</button></div></section>
+ <section class="ns-pane" data-pane="result" hidden><h2>Resultado do sorteio</h2><p>Os nomes selecionados aparecem aqui.</p><div id="ns-wheel-area" hidden><div class="ns-wheel-pointer" aria-hidden="true">▼</div><div class="ns-wheel" id="ns-wheel" role="img" aria-label="Roleta animada"></div><p id="ns-wheel-progress" aria-live="polite"></p></div><div class="ns-winner" aria-live="polite"><span>🏆 Vencedor(es)</span><strong id="ns-winners">Aguardando sorteio</strong></div><div class="ns-actions"><button class="ns-secondary" id="ns-copy">Copiar</button><button class="ns-secondary" id="ns-proof">Comprovante SHA-256</button><button class="ns-primary" data-next="settings">Nova rodada →</button></div></section>
+ <section class="ns-pane" data-pane="history" hidden><h2>Histórico de sorteios</h2><p>Resultados armazenados neste navegador.</p><ul class="ns-history" id="ns-history"></ul><div class="ns-actions"><button class="ns-secondary" id="ns-export">Exportar histórico CSV</button><button class="ns-secondary" id="ns-clear">Limpar histórico</button></div></section>
+ <p class="ns-status" id="ns-status" role="status"></p></div><aside class="ns-ad" aria-label="Área reservada para publicidade">Espaço publicitário responsivo<br>Integração AdSense pendente de validação</aside></div>`;
+ root.append(section);
+ const $=id=>section.querySelector('#'+id),panes=[...section.querySelectorAll('[data-pane]')],tabs=[...section.querySelectorAll('[data-tab]')];
+ const key='su-classic-names-history-v1';let history=[];try{history=JSON.parse(localStorage.getItem(key)||'[]');if(!Array.isArray(history))history=[]}catch{history=[]}
+ let winners=[],remaining=null,spinning=false,currentReceipt=null;
+ const names=()=> $('ns-list').value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+ const status=s=>$('ns-status').textContent=s;
+ const go=id=>{if(spinning&&id!=='result')return;panes.forEach(p=>p.hidden=p.dataset.pane!==id);tabs.forEach(t=>t.setAttribute('aria-selected',String(t.dataset.tab===id)));status('');};
+ const save=()=>{try{localStorage.setItem(key,JSON.stringify(history.slice(0,100)))}catch{status('Não foi possível salvar o histórico neste navegador.')}};
+ const renderHistory=()=>{$('ns-history').replaceChildren();if(!history.length){const li=document.createElement('li');li.textContent='Nenhum sorteio registrado ainda.';$('ns-history').append(li)}history.forEach(h=>{const li=document.createElement('li');li.textContent=new Date(h.date).toLocaleString('pt-BR')+' — '+h.winners.join(', ');$('ns-history').append(li)})};
+ const download=(name,body,type)=>{const url=URL.createObjectURL(new Blob([body],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
+ const randomIndex=max=>{if(!Number.isSafeInteger(max)||max<1||max>4294967296)throw new RangeError('Invalid draw range');const limit=Math.floor(4294967296/max)*max;const a=new Uint32Array(1);do{crypto.getRandomValues(a)}while(a[0]>=limit);return a[0]%max};
+ tabs.forEach(t=>t.addEventListener('click',()=>go(t.dataset.tab)));section.querySelectorAll('[data-next]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.next)));
+ $('ns-list').addEventListener('input',()=>{$('ns-total').textContent=names().length+' nomes';remaining=null});
+ $('ns-paste').addEventListener('click',async()=>{try{$('ns-list').value=await navigator.clipboard.readText();$('ns-list').dispatchEvent(new Event('input'))}catch{status('Cole a lista manualmente no campo acima.')}});
+ $('ns-file').addEventListener('change',async e=>{const f=e.target.files?.[0];if(!f)return;if(f.size>1024*1024){status('Arquivo muito grande (limite 1 MB).');return}const txt=await f.text();$('ns-list').value=txt.replace(/\r/g,'').replace(/,/g,'\n');$('ns-list').dispatchEvent(new Event('input'))});
+ const mode=()=>section.querySelector('input[name="ns-mode"]:checked').value;
+ section.querySelectorAll('input[name="ns-mode"]').forEach(r=>r.addEventListener('change',()=>{$('ns-draw').textContent=mode()==='wheel'?'Iniciar roleta':'Sortear agora'}));
+ const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+ const animateWheel=async(pool,chosen,index,total)=>{
+  const wheel=$('ns-wheel'),area=$('ns-wheel-area'),progress=$('ns-wheel-progress');
+  area.hidden=false;wheel.style.transition='none';wheel.style.transform='rotate(0deg)';
+  const entries=pool.length<=24?pool:pool.slice(0,24);
+  const visible=entries.includes(chosen)?entries:[...entries.slice(0,23),chosen];
+  const pos=visible.indexOf(chosen),slice=360/visible.length;
+  const colors=['#1468df','#7b4bdf','#e64b66','#10a97b','#f1a526','#1b8dbb'];
+  wheel.style.background='conic-gradient('+visible.map((_,i)=>colors[i%colors.length]+' '+(i*slice)+'deg '+((i+1)*slice)+'deg').join(',')+')';
+  wheel.setAttribute('aria-label','Roleta com '+visible.length+' setores; resultado definido antes da animação');
+  wheel.replaceChildren();
+  if(visible.length<=12)visible.forEach((name,i)=>{const label=document.createElement('span');label.className='ns-wheel-label';label.textContent=name;label.style.transform='translate(-50%,-50%) rotate('+(i*slice+slice/2)+'deg) translateY(-95px) rotate(90deg)';wheel.append(label)});
+  progress.textContent='Girando para selecionar '+(index+1)+' de '+total+'...';
+  await sleep(40);
+  const target=360*5-(pos*slice+slice/2);
+  wheel.style.transition='transform 3s cubic-bezier(.12,.75,.15,1)';
+  wheel.style.transform='rotate('+target+'deg)';
+  await sleep(3100);
+ };
+ $('ns-draw').addEventListener('click',async()=>{
+  if(spinning)return;
+  const all=names(),count=Number($('ns-count').value),repeat=$('ns-repeat').checked,remove=$('ns-remove').checked,selectedMode=mode();
+  if(!all.length||!Number.isInteger(count)||count<1||count>100){status('Informe participantes e uma quantidade válida (1 a 100).');return}
+  if(remaining===null)remaining=[...all];
+  const pool=remove?[...remaining]:[...all];
+  if(!repeat&&count>pool.length){status('A quantidade excede os nomes disponíveis sem repetição.');return}
+  if(!pool.length){status('Não há nomes disponíveis. Edite a lista para recomeçar.');return}
+  const copy=[...pool],picked=[],animationPools=[];
+  for(let i=0;i<count;i++){const source=repeat?pool:copy;const index=randomIndex(source.length);picked.push(source[index]);animationPools.push([...source]);if(!repeat)copy.splice(index,1)}
+  spinning=true;$('ns-draw').disabled=true;
+  try{
+   winners=[];$('ns-winners').textContent='Aguardando resultado...';$('ns-wheel-area').hidden=selectedMode!=='wheel';go('result');
+   if(selectedMode==='wheel'){
+    for(let i=0;i<picked.length;i++){await animateWheel(animationPools[i],picked[i],i,picked.length);winners.push(picked[i]);$('ns-winners').textContent=winners.join(' • ')}
+   }else{winners=[...picked];$('ns-winners').textContent=winners.join(' • ')}
+   if(remove){const removed=[...picked];remaining=pool.filter(n=>{const index=removed.indexOf(n);if(index===-1)return true;removed.splice(index,1);return false})}
+   const entry={date:new Date().toISOString(),winners:[...winners],count,repeat,remove,mode:selectedMode};
+   const bytes=crypto.getRandomValues(new Uint8Array(16));const id=[...bytes].map(b=>b.toString(16).padStart(2,'0')).join('');
+   currentReceipt={format:'sorteador-universal-receipt',version:1,id,createdAt:entry.date,mode:'names',label:selectedMode==='wheel'?'Roleta de nomes':'Sorteio de nomes',result:winners.join(', '),fields:{count:String(count),repeat,remove,drawMode:selectedMode,participants:all.join('\\n')}};
+   history.unshift(entry);history=history.slice(0,100);save();renderHistory();
+  }finally{spinning=false;$('ns-draw').disabled=false}
+ });
+ $('ns-copy').addEventListener('click',async()=>{if(!winners.length)return;try{await navigator.clipboard.writeText(winners.join('\n'));status('Resultado copiado.')}catch{status('Não foi possível copiar automaticamente.')}});
+ const canonical=r=>JSON.stringify({format:'sorteador-universal-receipt',version:1,id:r.id,createdAt:r.createdAt,mode:r.mode,label:r.label,result:r.result,fields:r.fields});
+ $('ns-proof').addEventListener('click',async()=>{if(!currentReceipt){status('Faça um sorteio primeiro.');return}try{const bytes=new TextEncoder().encode(canonical(currentReceipt));const hash=[...new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))].map(b=>b.toString(16).padStart(2,'0')).join('');download('sorteador-comprovante-'+currentReceipt.id.slice(0,12)+'.json',JSON.stringify({...currentReceipt,sha256:hash},null,2),'application/json');status('Comprovante gerado. O hash verifica a integridade dos dados, não a imparcialidade do sorteio.')}catch{status('Não foi possível gerar o comprovante.')}});
+ $('ns-export').addEventListener('click',()=>{const quote=s=>'"'+String(s).replace(/"/g,'""')+'"';download('historico-nomes.csv','data,vencedores\n'+history.map(h=>quote(h.date)+','+quote(h.winners.join('; '))).join('\n'),'text/csv;charset=utf-8')});
+ $('ns-clear').addEventListener('click',()=>{if(!confirm('Apagar o histórico de sorteios deste navegador?'))return;history=[];save();renderHistory()});
+ const templateKey='su-classic-names-templates-v1';
+ const getTemplates=()=>{try{const list=JSON.parse(localStorage.getItem(templateKey)||'[]');return Array.isArray(list)?list:[]}catch{return []}};
+ $('ns-save-template').addEventListener('click',()=>{const name=prompt('Nome do modelo:');if(!name?.trim())return;const templates=getTemplates();if(templates.length>=20){status('Limite de 20 modelos atingido.');return}templates.push({name:name.trim().slice(0,80),names:$('ns-list').value,count:$('ns-count').value,repeat:$('ns-repeat').checked,remove:$('ns-remove').checked,mode:mode()});try{localStorage.setItem(templateKey,JSON.stringify(templates));status('Modelo salvo neste navegador.')}catch{status('Não foi possível salvar o modelo.')}});
+ $('ns-load-template').addEventListener('click',()=>{const templates=getTemplates();if(!templates.length){status('Nenhum modelo salvo neste navegador.');return}const answer=prompt('Escolha o número do modelo:\\n'+templates.map((t,i)=>(i+1)+'. '+t.name).join('\\n'));if(answer===null)return;const n=Number(answer);if(!Number.isInteger(n)||n<1||n>templates.length){status('Modelo inválido.');return}const t=templates[n-1];$('ns-list').value=t.names;$('ns-count').value=t.count;$('ns-repeat').checked=t.repeat;$('ns-remove').checked=t.remove;const radio=section.querySelector('input[name="ns-mode"][value="'+(t.mode==='wheel'?'wheel':'quick')+'"]');radio.checked=true;radio.dispatchEvent(new Event('change'));$('ns-list').dispatchEvent(new Event('input'));status('Modelo carregado: '+t.name)});
+ renderHistory();
+ const sync=()=>{const classic=document.body.getAttribute('data-su-theme')==='classic';document.body.classList.toggle('su-names-studio',classic);section.hidden=!classic};
+ new MutationObserver(sync).observe(document.body,{attributes:true,attributeFilter:['data-su-theme']});sync();
+}
