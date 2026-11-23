@@ -292,7 +292,7 @@ try{
   const studioLayout=await page.evaluate(()=>({overflow:document.documentElement.scrollWidth>innerWidth+2}));
   if(studioLayout.overflow)throw new Error('Classic names studio horizontal overflow');
   const names=page.locator('#ns-list');
-  await names.fill('Ana\\nBruno');
+  await names.fill('Ana\nBruno');
   await page.locator('#su-classic-names [data-next="settings"]').click();
   await expect(page.locator('#su-classic-names [data-pane="settings"]')).toBeVisible();
   await page.locator('#ns-draw').click();
