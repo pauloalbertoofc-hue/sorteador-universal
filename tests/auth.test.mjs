@@ -48,10 +48,11 @@ before(async () => {
   }));
   await mf.ready;
   db = await mf.getD1Database('DB');
-  for (const file of ['migrations/preview/0001_initial.sql', 'migrations/preview/0002_billing_safety.sql']) {
+  for (const file of ['migrations/preview/0001_initial.sql', 'migrations/preview/0002_billing_safety.sql', 'migrations/preview/0014_email_mfa.sql']) {
     const sql = (await readFile(file, 'utf8')).replace(/^--.*$/gm, '');
     for (const statement of sql.split(';').filter(s => s.trim())) await db.prepare(statement).run();
   }
+  await db.prepare('CREATE TABLE IF NOT EXISTS draw_room_rate_limits (key TEXT PRIMARY KEY, hits INTEGER NOT NULL, expires_at INTEGER NOT NULL)').run();
   // Static asset server plus API proxy: browser cookies and SW run unmocked.
   server = createServer(async (req, res) => {
     try {
@@ -444,4 +445,47 @@ test('browser: controlled expiry closes Pro and restores ads without a page relo
   await expect(page.locator('#proStudio')).toBeHidden();
   await expect(page.locator('#adArea')).toBeVisible();
   await expect(page.locator('#subscriptionState')).toHaveText('Período Pro encerrado — renovação cancelada');
+});
+
+test('email MFA: login cannot bypass enabled second factor when delivery is unavailable', async () => {
+  const user=await register();
+  const identity=await db.prepare('SELECT id FROM users WHERE email=?').bind(user.email).first();
+  await db.prepare('INSERT INTO user_email_mfa(user_id,enabled_at) VALUES(?,?)').bind(identity.id,Date.now()).run();
+  const response=await request('/api/login',{body:{email:user.email,password:user.password}});
+  assert.equal(response.status,503);
+  assert.equal(response.headers.get('set-cookie'),null);
+  const sessions=await db.prepare('SELECT COUNT(*) AS n FROM sessions WHERE user_id=?').bind(identity.id).first();
+  assert.equal(sessions.n,1,'only the registration session may exist');
+});
+
+test('email MFA: one-time code grants exactly one session, rejects replay and incorrect codes', async () => {
+  const user=await register();
+  const identity=await db.prepare('SELECT id,password_hash FROM users WHERE email=?').bind(user.email).first();
+  await db.prepare('INSERT INTO user_email_mfa(user_id,enabled_at) VALUES(?,?)').bind(identity.id,Date.now()).run();
+  const challenge='a'.repeat(64),code='123456';
+  await db.prepare('INSERT INTO email_mfa_challenges(challenge_hash,user_id,code_mac,password_hash_snapshot,expires_at,attempts,created_at,purpose) VALUES(?,?,?,?,?,0,?,?)')
+    .bind(hash(challenge),identity.id,hash(challenge+':'+code),identity.password_hash,Date.now()+300000,Date.now(),'login').run();
+  const bad=await request('/api/mfa/email/confirm',{body:{challenge,code:'000000'}});
+  assert.equal(bad.status,403);
+  const success=await request('/api/mfa/email/confirm',{body:{challenge,code}});
+  assert.equal(success.status,200);
+  assert.match(success.headers.get('set-cookie')||'',/su_session=/);
+  const replay=await request('/api/mfa/email/confirm',{body:{challenge,code}});
+  assert.equal(replay.status,403);
+  const sessions=await db.prepare('SELECT COUNT(*) AS n FROM sessions WHERE user_id=?').bind(identity.id).first();
+  assert.equal(sessions.n,2);
+});
+
+test('email MFA: expired code and changed password cannot create a session', async () => {
+  const user=await register();
+  const identity=await db.prepare('SELECT id,password_hash FROM users WHERE email=?').bind(user.email).first();
+  await db.prepare('INSERT INTO user_email_mfa(user_id,enabled_at) VALUES(?,?)').bind(identity.id,Date.now()).run();
+  for(const [challenge,expires,snapshot] of [['b'.repeat(64),Date.now()-1,identity.password_hash],['c'.repeat(64),Date.now()+300000,'pbkdf2$stale$hash']]){
+   await db.prepare('INSERT INTO email_mfa_challenges(challenge_hash,user_id,code_mac,password_hash_snapshot,expires_at,attempts,created_at,purpose) VALUES(?,?,?,?,?,0,?,?)')
+     .bind(hash(challenge),identity.id,hash(challenge+':123456'),snapshot,expires,Date.now(),'login').run();
+   const response=await request('/api/mfa/email/confirm',{body:{challenge,code:'123456'}});
+   assert.equal(response.status,403);
+  }
+  const sessions=await db.prepare('SELECT COUNT(*) AS n FROM sessions WHERE user_id=?').bind(identity.id).first();
+  assert.equal(sessions.n,1);
 });

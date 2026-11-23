@@ -1,0 +1,59 @@
+/* Shared visual tokens for future integration. Not loaded by production pages yet. */
+:root,[data-su-theme="classic"]{--su-bg:#f5f7fd;--su-surface:#ffffff;--su-text:#172448;--su-muted:#52617d;--su-border:#dce3f1;--su-accent:#6243df;--su-on-accent:#ffffff;--su-focus:#285fd4;--su-radius:16px;--su-shadow:0 10px 32px rgba(34,45,87,.08)}
+[data-su-theme="modern"]{--su-bg:#f9f7fd;--su-surface:#ffffff;--su-text:#30274c;--su-muted:#655a7a;--su-border:#e6dff2;--su-accent:#ad428a;--su-on-accent:#fff;--su-focus:#7d2fb8}
+[data-su-theme="amethyst"]{--su-bg:#11152c;--su-surface:#202747;--su-text:#f5f3ff;--su-muted:#c6c4df;--su-border:#465074;--su-accent:#b59aff;--su-on-accent:#17112d;--su-focus:#d4c7ff;--su-shadow:0 12px 34px rgba(0,0,0,.3)}
+[data-su-theme="ruby"]{--su-bg:#14151b;--su-surface:#26232b;--su-text:#fff4f5;--su-muted:#d8bfc6;--su-border:#55404b;--su-accent:#f17691;--su-on-accent:#2a0d19;--su-focus:#ffadc0;--su-shadow:0 12px 34px rgba(0,0,0,.28)}
+[data-su-theme="crystal"]{--su-bg:#eaf4fa;--su-surface:#fff;--su-text:#223a57;--su-muted:#4e657c;--su-border:#c9dfec;--su-accent:#5868bc;--su-on-accent:#fff;--su-focus:#3651a0}
+[data-su-theme="abyssal"]{--su-bg:#071c2a;--su-surface:#103349;--su-text:#e8f9ff;--su-muted:#b0d4e1;--su-border:#376578;--su-accent:#6de2df;--su-on-accent:#06303a;--su-focus:#a5ffff;--su-shadow:0 12px 34px rgba(0,0,0,.28)}
+/* Original is deliberately unstyled: legacy page CSS remains authoritative. */
+[data-su-theme="original"]{}
+.su-shell{background:var(--su-bg);color:var(--su-text);min-height:100vh}
+.su-surface{background:var(--su-surface);border:1px solid var(--su-border);border-radius:var(--su-radius,16px);box-shadow:var(--su-shadow,none)}
+.su-muted{color:var(--su-muted)}
+.su-action{background:var(--su-accent);color:var(--su-on-accent);border:0;border-radius:12px;padding:.8rem 1.2rem;cursor:pointer;font:inherit}
+.su-shell :focus-visible{outline:3px solid var(--su-focus);outline-offset:3px}
+@media(prefers-reduced-motion:reduce){.su-shell *, .su-shell *::before,.su-shell *::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* Decorative identity only: opaque surfaces retain the established text contrast. */
+body:is(.su-home-themed,.su-integrated)[data-su-theme="modern"]{background-image:radial-gradient(ellipse at 95% 0%,#e9d7fa 0%,transparent 55%),radial-gradient(ellipse at 0% 20%,#fbe2ef 0%,transparent 45%)}
+body:is(.su-home-themed,.su-integrated)[data-su-theme="amethyst"]{background-image:radial-gradient(ellipse at 80% 0%,#39305c 0%,transparent 55%)}
+body:is(.su-home-themed,.su-integrated)[data-su-theme="ruby"]{background-image:radial-gradient(ellipse at 85% 0%,#542638 0%,transparent 50%)}
+body:is(.su-home-themed,.su-integrated)[data-su-theme="crystal"]{background-image:linear-gradient(145deg,transparent 45%,#ffffff90 45%,transparent 65%),radial-gradient(ellipse at 90% 0%,#c8e7f8,transparent 65%)}
+body:is(.su-home-themed,.su-integrated)[data-su-theme="abyssal"]{background-image:radial-gradient(ellipse at 50% 0%,#175263 0%,transparent 55%),linear-gradient(150deg,transparent 62%,#123c5055 62%,transparent 85%)}
+body.su-home-themed[data-su-theme="modern"] .su-home-grid a{border-radius:24px;box-shadow:0 6px 18px #69457c0d}
+body.su-home-themed[data-su-theme="amethyst"] .su-home-grid a{border-top:2px solid #9b83de;box-shadow:0 8px 22px #080a2060}
+body.su-home-themed[data-su-theme="ruby"] .su-home-grid a{border-left:3px solid #e06b86;border-radius:10px}
+body.su-home-themed[data-su-theme="crystal"] .su-home-grid a{border-radius:8px 24px 8px 24px;box-shadow:inset 0 0 0 2px #edf7ff,0 8px 24px #356c9420}
+body.su-home-themed[data-su-theme="abyssal"] .su-home-grid a{border-radius:24px 8px 24px 8px;border-top-color:#6de2df;box-shadow:inset 0 0 18px #6de2df0c,0 8px 24px #00151d60}
+
+/* Compact consent presentation only; consent choices and analytics logic are untouched. */
+@media(max-width:600px){
+ #su-analytics-choice{padding:10px 12px!important;bottom:8px!important;left:8px!important;right:8px!important;font-size:13px!important;line-height:1.35!important}
+ #su-analytics-choice p{margin:0 0 8px!important}
+ #su-analytics-choice button{flex:1 1 120px;min-height:44px;padding:8px!important;font-size:13px!important}
+ #su-analytics-choice button:focus-visible{outline:3px solid #a5d4ff;outline-offset:2px}
+}
+
+
+/* Password recovery shares the active theme without changing the legacy login. */
+.su-recovery{box-sizing:border-box;width:min(440px,calc(100% - 32px));max-width:calc(100% - 32px);max-height:calc(100dvh - 32px);overflow:auto;margin:auto;padding:clamp(20px,5vw,32px);border:1px solid var(--su-border,#dce3f1);border-radius:var(--su-radius,16px);background:var(--su-surface,#fff);color:var(--su-text,#172448);box-shadow:0 24px 80px #0005;text-align:left}
+.su-recovery:not([open]),.su-recovery [hidden]{display:none!important}
+.su-recovery::backdrop{background:rgba(12,22,44,.65)}
+.su-recovery form{display:grid;gap:14px;margin:0;min-width:0}
+.su-recovery h2,.su-recovery p{margin:0;overflow-wrap:anywhere}
+.su-recovery h2{font-size:1.4rem;line-height:1.3}
+.su-recovery p{color:var(--su-muted,#52617d);line-height:1.5}
+.su-recovery label{display:grid;gap:6px;font-weight:600;min-width:0}
+.su-recovery input{box-sizing:border-box;width:100%;min-width:0;min-height:48px;padding:12px;border:1px solid var(--su-border,#dce3f1);border-radius:10px;background:var(--su-bg,#f5f7fd);color:var(--su-text,#172448);font:inherit;font-size:16px}
+.su-recovery button{box-sizing:border-box;min-height:44px;width:100%;padding:10px 16px;border:1px solid transparent;border-radius:10px;font:inherit;font-weight:600;cursor:pointer;background:var(--su-accent,#6243df);color:var(--su-on-accent,#fff)}
+.su-recovery button.secondary{border-color:var(--su-border,#dce3f1);background:var(--su-surface,#fff);color:var(--su-text,#172448)}
+.su-recovery button:disabled{opacity:.65;cursor:wait}
+.su-recovery [role=status]:empty{display:none}
+button.su-forgot-password{display:block;width:fit-content;max-width:100%;min-height:44px;margin:4px 0 8px auto;padding:6px 0;border:0;background:transparent;color:var(--su-text,#172448);font:inherit;font-size:.875rem;text-decoration:underline;text-underline-offset:3px;box-shadow:none;cursor:pointer}
+.su-recovery :focus-visible,button.su-forgot-password:focus-visible{outline:3px solid var(--su-focus,#285fd4);outline-offset:3px}
+
+/* Inline account registration and readable feedback across themes. */
+body.su-home-themed #accountGuest [hidden]{display:none!important}
+body.su-home-themed #accountGuest #accountMessage{color:var(--su-text,#172448)!important;background:var(--su-bg,#f5f7fd);border:1px solid var(--su-border,#dce3f1);border-radius:8px;padding:10px 12px;margin:8px 0 0;line-height:1.5;overflow-wrap:anywhere;min-height:0}
+body.su-home-themed #accountGuest #accountMessage:empty{display:none}
+body.su-home-themed #accountGuest .account-actions button{min-height:44px}

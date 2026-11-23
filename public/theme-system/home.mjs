@@ -1,0 +1,531 @@
+import{SU_THEMES,SU_RELEASED_THEMES,SU_DEFAULT_THEME,setSuTheme,themeFromUrl,enableThemeNavigation}from'./themes.mjs';
+/** Additive homepage pilot; do not mount in embedded tools or private rooms. */
+function mount(){
+ const url=new URL(location.href);
+ if(url.searchParams.get('incorporado')==='1'){
+  if(url.searchParams.has('suTheme')){document.body.classList.add('su-home-themed');setSuTheme(document.body,themeFromUrl(location.href));}
+  window.addEventListener('message',event=>{
+   if(event.origin!==location.origin||event.data?.type!=='su:set-embed-theme'||!SU_RELEASED_THEMES.includes(event.data.theme))return;
+   document.body.classList.add('su-home-themed');setSuTheme(document.body,event.data.theme);
+  });
+  return;
+ }
+ if(url.searchParams.has('room')||url.searchParams.has('evento')||url.searchParams.has('event'))return;
+ const main=document.querySelector('main.wrap'),top=main?.querySelector('.top'),header=main?.querySelector('header');
+ if(!main||!top||!header||main.querySelector('.su-home-directory'))return;
+ document.body.classList.add('su-home-themed');setSuTheme(document.body,themeFromUrl(location.href));
+ const picker=document.createElement('div');picker.className='su-home-themes';
+ const label=document.createElement('label');label.htmlFor='su-home-theme';label.textContent='Aparência';
+ const select=document.createElement('select');select.id='su-home-theme';
+ const names={classic:'01 — Clássico',modern:'02 — Moderno',amethyst:'03 — Ametista',ruby:'04 — Rubi',crystal:'05 — Cristal',abyssal:'06 — Abissal',original:'07 — Original'};
+ for(const id of SU_RELEASED_THEMES)select.add(new Option(names[id],id));
+ select.value=themeFromUrl(location.href);select.addEventListener('change',()=>setSuTheme(document.body,select.value));
+ picker.append(label,select);top.append(picker);
+ const section=document.createElement('section');section.className='su-home-directory';section.setAttribute('aria-label','Explorar ferramentas');
+ const heading=document.createElement('h2');heading.textContent='Escolha uma ferramenta';section.append(heading);
+ const intro=document.createElement('p');intro.className='su-home-directory-intro';intro.textContent='Acesse diretamente a ferramenta que você precisa ou use o sorteador rápido nesta página.';section.append(intro);
+ const nav=document.createElement('nav');nav.className='su-home-grid';nav.setAttribute('aria-label','Catálogo de ferramentas');
+ const items=[['/sortear-nomes/','Sorteio de nomes','Selecione participantes'],['/sortear-numeros/','Sorteio de números','Defina um intervalo'],['/roleta-online/','Roleta online','Gire para decidir'],['/sortear-equipes/','Sortear equipes','Monte grupos'],['/sorteio-rifa-online/','Sorteio de rifa','Sorteie números'],['/cara-ou-coroa-online/','Cara ou coroa','Decida rapidamente'],['/sortear-aluno-online/','Sortear aluno','Dinâmicas de aula'],['/dividir-turma-em-grupos/','Dividir turma','Organize os grupos']];
+ for(const [href,name,description] of items){const a=document.createElement('a');a.href=href;const strong=document.createElement('strong');strong.textContent=name;const small=document.createElement('span');small.textContent=description;a.append(strong,small);nav.append(a)}
+ section.append(nav);
+ const duplicateDirectory=main.querySelector('.tool-directory');
+ if(duplicateDirectory){duplicateDirectory.hidden=true;duplicateDirectory.setAttribute('aria-hidden','true');}
+ const shortcut=document.createElement('a');shortcut.className='su-home-quick-link';shortcut.href='#su-home-quick-draw';shortcut.textContent='Usar sorteador rápido nesta página';section.append(shortcut);
+ const quickTabs=main.querySelector('.tabs');if(quickTabs)quickTabs.id='su-home-quick-draw';
+ header.after(section); 
+ // Classic reference pilot: real navigation and a compact illustrated hero.
+ const art=document.createElement('div');art.className='su-classic-art';art.setAttribute('aria-hidden','true');
+ art.innerHTML='<svg viewBox="0 0 360 260" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="suDieTop" x2=".7" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#dceaff"/></linearGradient><linearGradient id="suDieLeft" x2="1" y2="1"><stop stop-color="#f7fbff"/><stop offset="1" stop-color="#a8c8ef"/></linearGradient><linearGradient id="suDieRight" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f4f9ff"/><stop offset="1" stop-color="#719bd5"/></linearGradient><radialGradient id="suDieHalo"><stop stop-color="#fff"/><stop offset="1" stop-color="#cbdfff"/></radialGradient><filter id="suDieBlur"><feGaussianBlur stdDeviation="8"/></filter><radialGradient id="suDiePip"><stop stop-color="#102746"/><stop offset=".75" stop-color="#173b6c"/><stop offset="1" stop-color="#7394bd"/></radialGradient></defs><path d="M33 170Q-5 100 86 49T281 23Q350 68 328 155T202 238Q79 255 33 170" fill="url(#suDieHalo)" opacity=".8"/><ellipse cx="187" cy="222" rx="101" ry="15" fill="#254e91" opacity=".29" filter="url(#suDieBlur)"/><g transform="rotate(-12 180 130)" stroke="#729bd1" stroke-width="1.4" stroke-linejoin="round"><path d="M91 64Q83 69 84 80L84 168Q84 179 94 185L164 226Q173 231 181 225L181 121Z" fill="url(#suDieLeft)"/><path d="M181 121L279 64Q289 69 289 80L289 160Q289 171 278 178L181 225Q172 230 172 218L172 132Z" fill="url(#suDieRight)"/><path d="M91 64L178 20Q187 15 197 21L279 64Q290 70 280 77L191 126Q180 132 169 126L91 79Q79 72 91 64Z" fill="url(#suDieTop)"/><path d="M96 67L180 25Q187 22 195 26L272 67" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/><path d="M91 86V164Q91 172 98 177" fill="none" stroke="#fff" stroke-width="3" opacity=".75"/><g fill="url(#suDiePip)" stroke="#fff" stroke-width=".8"><ellipse cx="139" cy="62" rx="10" ry="6" transform="rotate(-8 139 62)"/><ellipse cx="185" cy="80" rx="10" ry="6"/><ellipse cx="231" cy="62" rx="10" ry="6"/><ellipse cx="107" cy="104" rx="7" ry="11" transform="rotate(-24 107 104)"/><ellipse cx="147" cy="194" rx="7" ry="11" transform="rotate(-24 147 194)"/><ellipse cx="127" cy="149" rx="7" ry="11" transform="rotate(-24 127 149)"/><ellipse cx="204" cy="139" rx="8" ry="11" transform="rotate(25 204 139)"/><ellipse cx="264" cy="107" rx="8" ry="11" transform="rotate(25 264 107)"/><ellipse cx="234" cy="149" rx="8" ry="11" transform="rotate(25 234 149)"/><ellipse cx="204" cy="189" rx="8" ry="11" transform="rotate(25 204 189)"/><ellipse cx="264" cy="157" rx="8" ry="11" transform="rotate(25 264 157)"/></g></g><g stroke="#4285d9" stroke-width="4" stroke-linecap="round"><path d="M66 53 54 37M79 39 75 18M49 70 30 65"/></g></svg>';
+ const hero=document.createElement('div');hero.className='su-classic-copy';
+ hero.innerHTML='<span class="su-classic-eyebrow">Sorteios, roletas e muito mais</span><h2>O que você quer sortear hoje?</h2><p>Ferramentas simples, rápidas e confiáveis para organizar sorteios e atividades em grupo.</p><div class="su-classic-actions"><a href="#su-catalog">Explorar ferramentas →</a><a href="#ajuda">Como funciona</a></div>';
+ const heroLayout=document.createElement('div');heroLayout.className='su-classic-hero';heroLayout.append(hero,art);header.append(heroLayout);
+// Load the interactive hero only when the classic theme is selected.
+ let classicDieRequested=false;
+ const loadClassicDie=()=>{
+  if(classicDieRequested||document.body.dataset.suTheme!=='classic')return;
+  classicDieRequested=true;
+  import('./classic-die.mjs').then(m=>m.mountClassicDie(art)).catch(()=>{});
+ };
+ select.addEventListener('change',loadClassicDie);loadClassicDie();
+
+ section.id='su-catalog';
+ const menu=document.createElement('nav');menu.className='su-classic-menu';menu.setAttribute('aria-label','Navegação principal');menu.innerHTML='<a href="#su-catalog">Ferramentas</a><a href="#roomStudio" data-su-open=".su-room-toggle">Salas</a><a href="#su-plans">Planos</a><a href="#ajuda">Ajuda</a><a href="#conta">Minha conta</a>';top.insertBefore(menu,picker);
+ menu.addEventListener('click',event=>{const a=event.target.closest('a[data-su-open]');if(a){const b=main.querySelector(a.dataset.suOpen);if(b?.getAttribute('aria-expanded')==='false')b.click();}});
+ const svgIcon=paths=>'<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+paths+'</svg>';
+ const people='<circle cx="12" cy="7" r="3"/><path d="M6 21v-3a6 6 0 0 1 12 0v3zM5 5a3 3 0 0 0 0 6M19 5a3 3 0 0 1 0 6M4 14a5 5 0 0 0-3 5M20 14a5 5 0 0 1 3 5"/>';
+ const glyphs=[people,'<rect x="2" y="5" width="20" height="14" rx="3"/><path d="M6 10l2-2v8M11 9q5-3 4 2l-4 5h5M18 8h3l-2 4 2 2-2 2"/>','<circle cx="12" cy="12" r="10"/><path d="M12 2v20M2 12h20M5 5l14 14M19 5 5 19"/>',people,'<path d="M3 7 18 3l3 5a3 3 0 0 0 1 6l-16 5-3-5a3 3 0 0 0 0-7zM14 5l4 11" stroke-dasharray="0"/>','<circle cx="12" cy="12" r="10"/><path d="M8 17V7l6 3-6 4M16 7v10"/>','<path d="m2 9 10-5 10 5-10 5zM6 11v6q6 5 12 0v-6M22 9v8"/>',people];
+ [...nav.children].forEach((a,i)=>{const glyph=document.createElement('span');glyph.className='su-classic-glyph';glyph.setAttribute('aria-hidden','true');glyph.innerHTML=svgIcon(glyphs[i]);a.prepend(glyph);});
+ const logo=top.querySelector('.logo');if(logo){const mark=document.createElement('span');mark.className='su-classic-mark';mark.setAttribute('aria-hidden','true');mark.innerHTML=svgIcon('<path d="m12 2 9 5v10l-9 5-9-5V7zM3 7l9 5 9-5M12 12v10"/><g fill="currentColor" stroke="none"><circle cx="12" cy="6" r="1.3"/><circle cx="7" cy="12" r="1.3"/><circle cx="17" cy="12" r="1.3"/><circle cx="7" cy="16" r="1.3"/><circle cx="17" cy="17" r="1.3"/></g>');logo.after(mark);}
+ const menuButton=document.createElement('button');menuButton.type='button';menuButton.className='su-classic-menu-button';menuButton.textContent='Menu';menu.id='su-classic-menu';menuButton.setAttribute('aria-controls',menu.id);menuButton.setAttribute('aria-expanded','false');menu.addEventListener('keydown',e=>{if(e.key==='Escape'){menu.classList.remove('su-menu-open');menuButton.setAttribute('aria-expanded','false');menuButton.focus();}});menuButton.addEventListener('click',()=>{const open=menuButton.getAttribute('aria-expanded')!=='true';menuButton.setAttribute('aria-expanded',String(open));menu.classList.toggle('su-menu-open',open)});top.insertBefore(menuButton,menu);
+
+ const profile=document.createElement('button');profile.type='button';profile.className='su-classic-profile';profile.setAttribute('aria-label','Minha conta');profile.setAttribute('aria-expanded','false');profile.setAttribute('aria-controls','su-profile-popover');
+ const guestIcon=svgIcon('<circle cx="12" cy="12" r="10"/><circle cx="12" cy="9" r="3"/><path d="M5 19a7 7 0 0 1 14 0"/>');profile.innerHTML=guestIcon;top.append(profile);
+ const pop=document.createElement('nav');pop.id='su-profile-popover';pop.className='su-profile-popover';pop.setAttribute('aria-label','Opções da conta');pop.hidden=true;top.append(pop);
+ const closeProfile=(focus=false)=>{pop.hidden=true;profile.setAttribute('aria-expanded','false');if(focus)profile.focus();};
+ profile.addEventListener('click',()=>{if(!pop.hidden){closeProfile();return;}pop.hidden=false;profile.setAttribute('aria-expanded','true');});
+ document.addEventListener('pointerdown',e=>{if(!pop.contains(e.target)&&!profile.contains(e.target))closeProfile();});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!pop.hidden)closeProfile(true);});
+ pop.addEventListener('click',e=>{const action=e.target.closest('[data-profile-action]');if(!action)return;closeProfile();if(action.dataset.profileAction==='logout')document.querySelector('#accountLogout')?.click();if(action.dataset.profileAction==='settings'){if(menuButton.getAttribute('aria-expanded')!=='true')menuButton.click();select.focus();}});
+ const backdrop=document.createElement('button');backdrop.type='button';backdrop.className='su-classic-backdrop';backdrop.setAttribute('aria-label','Fechar menu');top.append(backdrop);
+ const close=document.createElement('button');close.type='button';close.className='su-classic-menu-close';close.setAttribute('aria-label','Fechar menu');close.textContent='×';menu.prepend(close);
+ const drawerLink=(href,title,icon)=>'<a href="'+href+'">'+svgIcon(icon)+'<span>'+title+'</span></a>';
+ const drawerHeading=title=>'<p class="su-drawer-heading">'+title+'</p>';
+ const shortcuts=items.map(([href,title],i)=>drawerLink(href,title,glyphs[i])).join('');
+ menu.innerHTML='';
+ const brand=document.createElement('div');brand.className='su-drawer-brand';brand.innerHTML='<strong>Sorteador Universal</strong>';brand.prepend(top.querySelector('.su-classic-mark')?.cloneNode(true)||document.createElement('span'));brand.append(close);menu.append(brand);
+ const links=document.createElement('div');links.className='su-drawer-links';
+ links.innerHTML=drawerHeading('Navegação')+drawerLink('#su-catalog','Início','<path d="m3 10 9-7 9 7v11h-6v-7H9v7H3z"/>')+'<details class="su-drawer-tools"><summary>'+svgIcon('<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>')+'<span>Ferramentas</span><span class="su-drawer-chevron" aria-hidden="true">›</span></summary><div>'+shortcuts+drawerLink('/amigo-secreto/','Amigo secreto','<rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13M3 12h18M12 8C2 8 6-1 12 8c6-9 10 0 0 0"/>')+drawerLink('#su-home-quick-draw','Sorteador rápido','<path d="m13 2-9 12h7l-1 8 10-12h-8z"/>')+'</div></details>'+drawerLink('#roomStudio','Salas compartilhadas',people)+drawerHeading('Conta e serviços')+drawerLink('#conta','Minha conta','<circle cx="12" cy="7" r="3"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/>')+drawerLink('#su-home-history','Histórico','<circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/>')+drawerLink('#su-plans','Planos e assinatura','<rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20"/>')+drawerHeading('Preferências')+drawerLink('#ajuda','Ajuda e suporte','<circle cx="12" cy="12" r="10"/><path d="M9 8a3 3 0 1 1 3 4v2M12 18h.01"/>');
+ menu.append(links);
+ const updateDrawerActive=()=>{const current=location.hash||'#su-catalog';menu.querySelectorAll('a').forEach(a=>{if(a.getAttribute('href')===current)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});};
+ window.addEventListener('hashchange',updateDrawerActive);updateDrawerActive();
+  menuButton.innerHTML=svgIcon('<path d="M3 6h18M3 12h18M3 18h18"/>');menuButton.setAttribute('aria-label','Menu');
+ const closeDrawer=()=>{menu.classList.remove('su-menu-open');menuButton.setAttribute('aria-expanded','false');menuButton.focus();};
+ close.addEventListener('click',closeDrawer);backdrop.addEventListener('click',closeDrawer);
+ menu.addEventListener('click',e=>{if(e.target.closest('a')){menu.classList.remove('su-menu-open');menuButton.setAttribute('aria-expanded','false');}});
+ const relocatePicker=()=>{if(document.body.dataset.suTheme==='classic')menu.append(picker);else top.append(picker);};
+ select.addEventListener('change',relocatePicker);relocatePicker();
+ const room=main.querySelector('#roomStudio');
+ if(room){
+  const toggle=document.createElement('button');
+  toggle.type='button';toggle.className='su-room-toggle';toggle.setAttribute('aria-controls','roomStudio');
+  const roomActive=room.querySelector('#roomActive');
+  const hasActiveRoom=()=>Boolean(roomActive&&!roomActive.hidden);
+  let expanded=hasActiveRoom();
+  const render=()=>{
+   room.hidden=!expanded;
+   toggle.setAttribute('aria-expanded',String(expanded));
+   toggle.textContent=expanded?'Ocultar salas compartilhadas':'Criar ou acessar sala compartilhada';
+  };
+  toggle.addEventListener('click',()=>{expanded=!expanded;render()});
+  room.before(toggle);render();
+  const banner=document.createElement('section');banner.className='su-classic-room-banner';
+  banner.innerHTML='<div><h2>Sorteiem juntos, de onde estiverem</h2><p>Crie uma sala compartilhada, convide participantes e acompanhe o sorteio com seu grupo.</p><a href="#roomStudio">Criar ou acessar sala →</a></div><svg aria-hidden="true" viewBox="0 0 240 120" fill="none"><circle cx="120" cy="60" r="53" fill="#ffffff" opacity=".12"/><path d="M33 91Q33 62 62 62T91 91M149 91Q149 62 178 62T207 91" fill="#a9d2ff"/><circle cx="62" cy="45" r="17" fill="#d9eaff"/><circle cx="178" cy="45" r="17" fill="#d9eaff"/><path d="M83 104Q83 64 120 64T157 104" fill="white"/><circle cx="120" cy="42" r="23" fill="white"/><path d="M62 18L120 9L178 18" stroke="white" opacity=".5" stroke-dasharray="4 6"/></svg>';
+  banner.querySelector('a').addEventListener('click',()=>{if(!expanded){expanded=true;render();}});
+  toggle.before(banner);
+
+  if(roomActive){
+   const observer=new MutationObserver(()=>{
+    if(hasActiveRoom()&&!expanded){expanded=true;render()}
+   });
+   observer.observe(roomActive,{attributes:true,attributeFilter:['hidden']});
+  }
+ }
+ const account=main.querySelector('#conta');
+ if(account){
+  const toggle=document.createElement('button');
+  toggle.type='button';toggle.className='su-account-toggle';toggle.setAttribute('aria-controls','conta');
+  const member=account.querySelector('#accountMember');
+  let expanded=Boolean(member&&!member.hidden)||url.hash==='#conta';
+  const render=()=>{
+   account.hidden=!expanded;
+   toggle.setAttribute('aria-expanded',String(expanded));
+   toggle.textContent=expanded?'Ocultar minha conta':'Minha conta e assinatura';
+  };
+  toggle.addEventListener('click',()=>{expanded=!expanded;render()});
+  account.before(toggle);render();
+  if(member)new MutationObserver(()=>{
+   if(!member.hidden&&!expanded){expanded=true;render()}
+  }).observe(member,{attributes:true,attributeFilter:['hidden']});
+  window.addEventListener('hashchange',()=>{
+   if(location.hash==='#conta'&&!expanded){expanded=true;render()}
+  });
+ }
+ const history=main.querySelector('.history');
+ if(history){
+  const toggle=document.createElement('button');
+  toggle.type='button';toggle.className='su-history-toggle';toggle.setAttribute('aria-controls','su-home-history');
+  history.id='su-home-history';
+  const entries=history.querySelector('#history');
+  const hasEntries=()=>Boolean(entries?.querySelector('.history-item-actions'));
+  let expanded=hasEntries()||url.hash==='#su-home-history';
+  const render=()=>{
+   history.hidden=!expanded;
+   toggle.setAttribute('aria-expanded',String(expanded));
+   toggle.textContent=expanded?'Ocultar histórico':'Ver histórico recente';
+  };
+  toggle.addEventListener('click',()=>{expanded=!expanded;render()});
+  history.before(toggle);render();
+  if(entries)new MutationObserver(()=>{
+   if(hasEntries()&&!expanded){expanded=true;render()}
+  }).observe(entries,{childList:true});
+  window.addEventListener('hashchange',()=>{
+   if(location.hash==='#su-home-history'&&!expanded){expanded=true;render()}
+  });
+ }
+ // Classic navigation separates the exploration page from the quick draw and legal/help content.
+ const plans=document.createElement('section');plans.id='su-plans';plans.className='su-classic-plans';plans.innerHTML='<h2>Escolha seu plano</h2><p>Faça sorteios gratuitamente ou conheça o Estúdio Pro.</p><div class="su-plan-grid"><article><h3>Gratuito</h3><strong>R$ 0</strong><ul><li>Sorteios sem cadastro</li><li>Histórico local</li><li>Publicidade</li></ul><a href="#su-catalog">Explorar ferramentas</a></article><article><h3>Pro</h3><strong>R$ 4,90/mês</strong><ul><li>Sem anúncios com assinatura ativa</li><li>Estúdio Pro e listas salvas</li><li>Cobrança recorrente pelo Mercado Pago, quando disponível</li></ul><a href="#conta">Consultar assinatura</a></article></div>';main.querySelector('.foot').before(plans);
+ const views={'#su-home-quick-draw':'draw','#ajuda':'help','#privacidade':'privacy','#roomStudio':'rooms','#conta':'account','#su-register':'account','#su-lists':'account','#su-subscription':'account','#su-plans':'plans','#su-home-history':'history'};
+ const back=document.createElement('a');back.className='su-classic-back';back.href='#su-catalog';back.textContent='← Voltar ao início';top.after(back);
+ const side=document.createElement('nav');side.className='su-classic-account-nav';side.setAttribute('aria-label','Menu da conta');
+ side.innerHTML='<strong>Minha área</strong><a href="#conta">Minha conta</a><a href="#su-home-history">Histórico</a><a href="#su-plans">Plano e assinatura</a><a href="#roomStudio">Salas compartilhadas</a><a href="#ajuda">Ajuda</a>';
+ back.after(side);
+ if(account){
+  const overview=document.createElement('div');overview.className='su-classic-account-overview';
+  const title=document.createElement('h2');title.textContent='Minha conta';
+  const intro=document.createElement('p');intro.textContent='Gerencie seu perfil, histórico e assinatura.';
+  const card=document.createElement('div');card.className='su-classic-profile-card';
+  card.innerHTML='<span class="su-personal-avatar" aria-hidden="true"></span><div><strong></strong><small></small></div>';
+  const update=()=>{const member=account.querySelector('#accountMember');const signed=member&&!member.hidden;card.querySelector('strong').textContent=signed?(account.querySelector('#accountIdentity').textContent||'Minha conta'):'Visitante';card.querySelector('small').textContent=signed?'Conta pessoal':'Entre ou crie sua conta';};
+  overview.append(title,intro,card);account.prepend(overview);
+  intro.textContent='Gerencie suas informações pessoais, segurança e acesso.';
+  const details=document.createElement('div');details.className='su-personal-details';
+  const glyphs={user:'<circle cx="12" cy="7" r="3"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/>',mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',lock:'<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',plan:'<rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20"/>',shield:'<path d="M12 2 3 6v6c0 5 5 9 9 10 4-1 9-5 9-10V6Z"/>',download:'<path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/>',trash:'<path d="M3 6h18M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7m4-7v7"/>',clock:'<circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/>'};
+  const row=(icon,label,value,action='')=>'<div class="su-personal-row">'+svgIcon(glyphs[icon])+'<div><strong>'+label+'</strong><small>'+value+'</small></div>'+action+'</div>';
+  details.innerHTML='<section><h3>Informações da conta</h3>'+row('user','Nome completo','Ainda não cadastrado')+row('user','Nome de exibição','Ainda não cadastrado')+row('user','Nome de usuário','Ainda não cadastrado')+row('mail','E-mail cadastrado','')+row('clock','Membro desde','Não disponível')+'</section><section><h3>Segurança da conta</h3>'+row('lock','Alterar senha','Disponível futuramente nesta área')+row('mail','Verificação de e-mail','Estado não disponível')+row('shield','Dispositivos conectados','Ainda não disponível')+row('shield','Autenticação em duas etapas','Ainda não disponível')+'</section><section><h3>Plano atual</h3>'+row('plan','Plano','')+'<a href="#su-subscription">Gerenciar assinatura ›</a></section><section><h3>Privacidade e dados</h3>'+row('download','Exportar meus dados','Baixe uma cópia em JSON dos seus dados de conta.','<button type="button" class="su-personal-export">Baixar dados</button>')+row('trash','Excluir minha conta','Consulte a política para solicitar exclusão.')+'<a href="#privacidade">Privacidade e solicitações ›</a></section><button type="button" class="su-personal-logout">Sair da conta</button>';
+  overview.append(details);
+  details.querySelector('.su-personal-export').addEventListener('click',async event=>{
+   const button=event.currentTarget;if(button.disabled)return;button.disabled=true;button.textContent='Preparando…';
+   try{
+    const response=await fetch('/api/account/export',{credentials:'same-origin',cache:'no-store'});
+    if(!response.ok)throw Error('Não foi possível exportar os dados. Entre novamente e tente outra vez.');
+    const data=await response.blob(),url=URL.createObjectURL(data),link=document.createElement('a');
+    link.href=url;link.download='sorteador-universal-meus-dados.json';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
+   }catch(error){window.alert(error.message||'Falha ao exportar os dados.');}
+   finally{button.disabled=false;button.textContent='Baixar dados';}
+  });
+  details.querySelector('.su-personal-logout').addEventListener('click',()=>account.querySelector('#accountLogout').click());
+  const syncDetails=()=>{const identity=account.querySelector('#accountIdentity').textContent.trim();details.querySelectorAll('.su-personal-row small')[3].textContent=identity||'Não informado';details.querySelectorAll('.su-personal-row small')[9].textContent=account.querySelector('#subscriptionState').textContent||'Consulte sua assinatura';card.querySelector('strong').textContent=identity||'Minha conta';card.querySelector('small').textContent='Conta pessoal';card.querySelector('.su-personal-avatar').textContent=(identity.match(/[\p{L}\p{N}]/u)?.[0]||'U').toUpperCase();};
+  new MutationObserver(syncDetails).observe(account.querySelector('#accountMember'),{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['hidden']});syncDetails();
+
+  const refreshProfile=()=>{const signed=!account.querySelector('#accountMember').hidden;const identity=account.querySelector('#accountIdentity').textContent.trim();main.dataset.suSigned=String(signed);profile.innerHTML=signed?'':guestIcon;if(signed)profile.textContent=(identity.match(/[\p{L}\p{N}]/u)?.[0]||'U').toUpperCase();profile.classList.toggle('su-profile-signed',signed);
+   pop.innerHTML='<strong>Minha conta</strong><small></small><hr>'+(signed?'<a href="#conta" data-profile-action="route">Minha conta</a><a href="#su-home-history" data-profile-action="route">Histórico de sorteios</a><a href="#su-lists" data-profile-action="route">Listas salvas</a><a href="#roomStudio" data-profile-action="route">Minhas salas</a><a href="#su-subscription" data-profile-action="route">Assinatura e planos</a>':'<a class="su-profile-primary" href="#conta" data-profile-action="route">Entrar na minha conta</a><a href="#su-register" data-profile-action="route">Criar conta</a><a href="#su-home-history" data-profile-action="route">Histórico</a>')+'<button type="button" data-profile-action="settings">Configurações</button><a href="#ajuda" data-profile-action="route">Ajuda</a>'+(signed?'<hr><button type="button" data-profile-action="logout">Sair da conta</button>':'');pop.querySelector('small').textContent=signed?(identity||'Minha conta'):'Visitante';if(signed){pop.querySelector('strong').textContent='Minha conta';const head=document.createElement('div');head.className='su-pop-identity';const initial=document.createElement('span');initial.className='su-personal-avatar';initial.textContent=profile.textContent;const info=document.createElement('div');info.append(pop.querySelector('strong'),pop.querySelector('small'));head.append(initial,info);pop.prepend(head);const icons=[glyphs.user,glyphs.clock,glyphs.plan,glyphs.user,glyphs.plan,glyphs.shield,glyphs.user,glyphs.lock];pop.querySelectorAll('a,button').forEach((el,i)=>el.insertAdjacentHTML('afterbegin',svgIcon(icons[i]||glyphs.user)));}
+  };
+  new MutationObserver(refreshProfile).observe(account.querySelector('#accountMember'),{attributes:true,attributeFilter:['hidden'],childList:true,subtree:true,characterData:true});refreshProfile();
+  // Personal profile data is isolated from billing and cleared at authentication changes.
+  const edit=document.createElement('button');edit.type='button';edit.className='su-edit-personal';edit.textContent='Editar informações';edit.disabled=true;card.append(edit);
+  const editor=document.createElement('dialog');editor.className='su-personal-editor';editor.setAttribute('aria-labelledby','su-edit-title');
+  editor.innerHTML='<form><h2 id="su-edit-title">Editar informações</h2><label>Nome completo<input name="full_name" maxlength="100" autocomplete="name"></label><label>Nome de exibição<input name="display_name" maxlength="60" autocomplete="nickname"></label><label>Nome de usuário<input name="username" maxlength="30" pattern="[a-zA-Z0-9_]{3,30}" autocomplete="username"></label><p role="status" aria-live="polite"></p><button type="submit">Salvar alterações</button> <button type="button" class="secondary">Cancelar</button></form>';
+  document.body.append(editor);
+  const form=editor.querySelector('form'),status=editor.querySelector('[role=status]'),save=editor.querySelector('[type=submit]');
+  let personal=null,personalKey='',personalEpoch=0;
+  const identityKey=()=>account.querySelector('#accountMember').hidden?'':account.querySelector('#accountIdentity').textContent.trim();
+  const passwordRow=details.querySelectorAll('.su-personal-row')[5];
+  const passwordButton=document.createElement('button');passwordButton.type='button';passwordButton.className='su-edit-personal';passwordButton.textContent='Alterar senha';passwordRow.querySelector('small').textContent='Atualize sua senha com segurança.';passwordRow.append(passwordButton);
+  const passwordDialog=document.createElement('dialog');passwordDialog.className='su-personal-editor';passwordDialog.setAttribute('aria-labelledby','su-password-title');
+  passwordDialog.innerHTML='<form><h2 id="su-password-title">Alterar senha</h2><p>Os demais dispositivos serão desconectados.</p><label>Senha atual<input required type="password" name="currentPassword" autocomplete="current-password" maxlength="128"></label><label>Nova senha<input required type="password" name="newPassword" autocomplete="new-password" minlength="10" maxlength="128"></label><label>Confirmar nova senha<input required type="password" name="confirmPassword" autocomplete="new-password" minlength="10" maxlength="128"></label><label><input type="checkbox" data-show-password> Mostrar senhas</label><p role="status" aria-live="polite"></p><button type="submit">Alterar senha</button><button type="button" class="secondary">Cancelar</button></form>';
+  document.body.append(passwordDialog);
+  const passwordForm=passwordDialog.querySelector('form'),passwordStatus=passwordDialog.querySelector('[role=status]'),passwordSubmit=passwordForm.querySelector('[type=submit]'),passwordClose=passwordForm.querySelector('.secondary'),passwordShow=passwordForm.querySelector('[data-show-password]');
+  let passwordBusy=false,passwordEpoch=0,passwordIdentity='';
+  function resetPasswordForm(){passwordForm.reset();for(const field of passwordForm.querySelectorAll('input[name]'))field.type='password';passwordStatus.textContent='';passwordSubmit.disabled=false;passwordClose.disabled=false;passwordClose.textContent='Cancelar';passwordBusy=false;}
+  passwordButton.addEventListener('click',()=>{if(!identityKey())return;passwordEpoch++;passwordIdentity=identityKey();resetPasswordForm();passwordDialog.showModal();});
+  passwordShow.addEventListener('change',()=>{for(const field of passwordForm.querySelectorAll('input[name]'))field.type=passwordShow.checked?'text':'password';});
+  passwordClose.addEventListener('click',()=>{if(!passwordBusy)passwordDialog.close();});
+  passwordDialog.addEventListener('cancel',e=>{if(passwordBusy)e.preventDefault();});
+  passwordDialog.addEventListener('close',()=>{if(!passwordDialog.open){passwordEpoch++;resetPasswordForm();}});
+  new MutationObserver(()=>{if(passwordDialog.open&&identityKey()!==passwordIdentity){passwordEpoch++;passwordDialog.close();resetPasswordForm();}}).observe(account.querySelector('#accountMember'),{attributes:true,attributeFilter:['hidden'],childList:true,subtree:true,characterData:true});
+  passwordForm.addEventListener('submit',async e=>{
+   e.preventDefault();if(passwordBusy||!identityKey()||identityKey()!==passwordIdentity)return;
+   const {currentPassword,newPassword,confirmPassword}=Object.fromEntries(new FormData(passwordForm));
+   if(newPassword!==confirmPassword){passwordStatus.textContent='As novas senhas não coincidem.';return;}
+   if(currentPassword===newPassword){passwordStatus.textContent='Escolha uma senha diferente da atual.';return;}
+   const epoch=++passwordEpoch;passwordBusy=true;passwordSubmit.disabled=passwordClose.disabled=true;passwordStatus.textContent='Alterando senha…';let success=false;
+   try{const response=await fetch('/api/password/change',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({currentPassword,newPassword})});const data=await response.json();if(epoch!==passwordEpoch||identityKey()!==passwordIdentity||!passwordDialog.open)return;if(!response.ok)throw Error(data.error||'Não foi possível alterar a senha.');resetPasswordForm();success=true;passwordStatus.textContent='Senha alterada com sucesso.';passwordClose.textContent='Concluir';}
+   catch(error){if(epoch===passwordEpoch&&passwordDialog.open)passwordStatus.textContent=error.message||'Não foi possível alterar a senha.';}
+   finally{if(epoch===passwordEpoch){passwordBusy=false;passwordSubmit.disabled=success;passwordClose.disabled=false;}}
+  });
+  const sessionRow=details.querySelectorAll('.su-personal-row')[7];
+  const sessionButton=document.createElement('button');sessionButton.type='button';sessionButton.className='su-edit-personal';sessionButton.textContent='Gerenciar sessões';sessionRow.querySelector('small').textContent='Consulte e encerre outros acessos.';sessionRow.append(sessionButton);
+  const sessionDialog=document.createElement('dialog');sessionDialog.className='su-personal-editor';sessionDialog.setAttribute('aria-labelledby','su-session-title');
+  sessionDialog.innerHTML='<form><h2 id="su-session-title">Sessões ativas</h2><p>Gerencie os acessos à sua conta.</p><div data-session-list></div><p role="status" aria-live="polite"></p><button type="button" data-session-all>Encerrar todas as outras sessões</button><button type="button" class="secondary">Concluir</button></form>';
+  document.body.append(sessionDialog);
+  const sessionList=sessionDialog.querySelector('[data-session-list]'),sessionStatus=sessionDialog.querySelector('[role=status]'),sessionAll=sessionDialog.querySelector('[data-session-all]');
+  let sessionEpoch=0,sessionIdentity='',sessionBusy=false;
+  const sessionValid=e=>e===sessionEpoch&&sessionDialog.open&&identityKey()===sessionIdentity;
+  async function loadSessions(e){
+   sessionList.replaceChildren();sessionAll.disabled=true;sessionStatus.textContent='Carregando sessões…';
+   try{
+    const response=await fetch('/api/sessions',{credentials:'same-origin',cache:'no-store'}),data=await response.json();
+    if(!sessionValid(e))return;if(!response.ok||!Array.isArray(data.sessions))throw Error('Não foi possível consultar as sessões.');
+    const sessions=data.sessions.slice().sort((a,b)=>Number(b.current)-Number(a.current));
+    for(const s of sessions){
+     const item=document.createElement('div');item.className='su-personal-row';
+     const info=document.createElement('div'),name=document.createElement('strong'),date=document.createElement('small');
+     name.textContent=s.current?'Sessão atual':'Outra sessão';date.textContent='Expira em '+new Intl.DateTimeFormat('pt-BR',{dateStyle:'medium',timeStyle:'short'}).format(new Date(s.expires_at));info.append(name,date);item.append(info);
+     if(!s.current){const end=document.createElement('button');end.type='button';end.className='secondary';end.textContent='Encerrar';end.addEventListener('click',()=>revokeSessions({id:s.id}));item.append(end);}
+     sessionList.append(item);
+    }
+    sessionAll.disabled=!sessions.some(s=>!s.current);sessionStatus.textContent=sessions.some(s=>!s.current)?'':'Nenhuma outra sessão ativa.';
+   }catch(error){if(sessionValid(e))sessionStatus.textContent='Não foi possível consultar as sessões.';}
+  }
+  async function revokeSessions(body){
+   if(sessionBusy||!sessionValid(sessionEpoch)||!window.confirm(body.others?'Encerrar todas as outras sessões?':'Encerrar esta sessão?'))return;
+   const e=sessionEpoch;sessionBusy=true;sessionAll.disabled=true;sessionList.querySelectorAll('button').forEach(b=>b.disabled=true);
+   try{const response=await fetch('/api/sessions',{method:'DELETE',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify(body)});if(!sessionValid(e))return;if(!response.ok)throw Error();await loadSessions(e);}
+   catch{if(sessionValid(e)){await loadSessions(e);if(sessionValid(e))sessionStatus.textContent='Não foi possível encerrar a sessão.';}}
+   finally{if(sessionValid(e))sessionBusy=false;}
+  }
+  sessionDialog.querySelector('form').addEventListener('submit',e=>e.preventDefault());
+  sessionButton.addEventListener('click',()=>{if(!identityKey())return;sessionIdentity=identityKey();sessionBusy=false;sessionDialog.showModal();loadSessions(++sessionEpoch);});
+  sessionAll.addEventListener('click',()=>revokeSessions({others:true}));
+  sessionDialog.querySelector('.secondary').addEventListener('click',()=>sessionDialog.close());
+  sessionDialog.addEventListener('close',()=>{if(!sessionDialog.open){sessionEpoch++;sessionList.replaceChildren();sessionStatus.textContent='';sessionBusy=false;}});
+  new MutationObserver(()=>{if(sessionDialog.open&&identityKey()!==sessionIdentity){sessionEpoch++;sessionDialog.close();sessionList.replaceChildren();}}).observe(account.querySelector('#accountMember'),{attributes:true,attributeFilter:['hidden'],childList:true,subtree:true,characterData:true});
+  const mfaRow=details.querySelectorAll('.su-personal-row')[8];
+  const mfaStatus=mfaRow.querySelector('small'),mfaButton=document.createElement('button');
+  mfaButton.type='button';mfaButton.className='su-edit-personal';mfaButton.textContent='Configurar';mfaRow.append(mfaButton);
+  const mfaDialog=document.createElement('dialog');mfaDialog.className='su-personal-editor';mfaDialog.setAttribute('aria-labelledby','su-mfa-title');
+  mfaDialog.innerHTML='<form><h2 id="su-mfa-title">Autenticação por e-mail</h2><p>Ao entrar, confirme um código enviado ao e-mail cadastrado.</p><label>Senha atual<input type="password" required autocomplete="current-password" maxlength="128"></label><label hidden>Código de 6 dígitos<input inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6"></label><p role="status" aria-live="polite"></p><button type="submit">Continuar</button><button type="button" class="secondary">Cancelar</button></form>';
+  document.body.append(mfaDialog);
+  const mfaForm=mfaDialog.querySelector('form'),mfaPassword=mfaForm.querySelector('input[type=password]'),mfaCode=mfaForm.querySelector('input[inputmode=numeric]'),mfaCodeLabel=mfaCode.closest('label'),mfaNotice=mfaForm.querySelector('[role=status]'),mfaSubmit=mfaForm.querySelector('[type=submit]');
+  let mfaEnabled=false,mfaChallenge='',mfaBusy=false,mfaIdentity='';
+  async function refreshMfa(){
+   const key=identityKey();mfaButton.hidden=true;mfaStatus.textContent='Consultando…';if(!key)return;
+   try{const response=await fetch('/api/mfa/email',{credentials:'same-origin',cache:'no-store'}),data=await response.json();if(!response.ok||identityKey()!==key)return;mfaEnabled=Boolean(data.enabled);mfaStatus.textContent=mfaEnabled?'Ativada · código por e-mail':'Desativada';mfaButton.textContent=mfaEnabled?'Desativar':'Ativar';mfaButton.hidden=false;}catch{if(identityKey()===key)mfaStatus.textContent='Não foi possível consultar.';}
+  }
+  mfaButton.addEventListener('click',()=>{mfaIdentity=identityKey();if(!mfaIdentity)return;mfaChallenge='';mfaPassword.value='';mfaCode.value='';mfaPassword.required=true;mfaCode.required=false;mfaCodeLabel.hidden=true;mfaCodeLabel.style.display='none';mfaPassword.closest('label').hidden=false;mfaPassword.closest('label').style.display='';;mfaNotice.textContent='Confirme sua senha para receber o código.';mfaSubmit.textContent='Enviar código';mfaDialog.showModal();});
+  mfaForm.addEventListener('submit',async e=>{
+   e.preventDefault();if(mfaBusy||identityKey()!==mfaIdentity)return;mfaBusy=true;mfaSubmit.disabled=true;
+   try{
+    const endpoint=mfaChallenge?'/api/mfa/email/confirm':'/api/mfa/email/request';
+    const body=mfaChallenge?{challenge:mfaChallenge,code:mfaCode.value}:{password:mfaPassword.value,action:mfaEnabled?'disable':'enable'};
+    const response=await fetch(endpoint,{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify(body)}),data=await response.json();
+    if(!response.ok)throw Error(data.error||'Não foi possível concluir.');
+    if(!mfaChallenge){mfaChallenge=data.challenge;mfaPassword.value='';mfaPassword.required=false;mfaCode.required=true;mfaPassword.closest('label').hidden=true;mfaPassword.closest('label').style.display='none';mfaCodeLabel.hidden=false;mfaCodeLabel.style.display='';mfaNotice.textContent='Confira o e-mail. O código expira em cinco minutos.';mfaSubmit.textContent='Confirmar código';}
+    else{mfaDialog.close();mfaChallenge='';refreshMfa();}
+   }catch(error){mfaNotice.textContent=error.message;}finally{mfaBusy=false;mfaSubmit.disabled=false;}
+  });
+  mfaDialog.querySelector('.secondary').addEventListener('click',()=>mfaDialog.close());
+  mfaDialog.addEventListener('close',()=>{mfaChallenge='';mfaPassword.value='';mfaCode.value='';});
+  new MutationObserver(()=>{if(!account.querySelector('#accountMember').hidden)refreshMfa();else{mfaButton.hidden=true;if(mfaDialog.open)mfaDialog.close();}}).observe(account.querySelector('#accountMember'),{attributes:true,attributeFilter:['hidden']});
+  refreshMfa();
+  const verifyRow=details.querySelectorAll('.su-personal-row')[6];
+  const verifyStatus=verifyRow.querySelector('small'),verifyButton=document.createElement('button');verifyButton.type='button';verifyButton.className='su-edit-personal';verifyButton.textContent='Verificar e-mail';verifyRow.append(verifyButton);
+  let verifyEpoch=0,verifyIdentity='',verifyBusy=false;
+  async function refreshVerification(){
+   const key=identityKey(),e=++verifyEpoch;verifyIdentity=key;verifyBusy=false;verifyButton.hidden=true;verifyButton.disabled=true;verifyStatus.style.color='';verifyStatus.textContent='Estado não disponível';if(!key)return;
+   try{const response=await fetch('/api/email/verification',{credentials:'same-origin',cache:'no-store'}),data=await response.json();if(e!==verifyEpoch||identityKey()!==key)return;if(!response.ok)throw Error();verifyStatus.style.color=data.verified?'#15803d':'';verifyStatus.textContent=data.verified?'✓ Endereço verificado':'E-mail ainda não verificado';verifyButton.hidden=Boolean(data.verified);verifyButton.disabled=false;}catch{if(e===verifyEpoch&&identityKey()===key)verifyStatus.textContent='Verificação temporariamente indisponível.';}
+  }
+  verifyButton.addEventListener('click',async()=>{
+   const e=verifyEpoch,key=identityKey();if(!key||key!==verifyIdentity||verifyBusy)return;verifyBusy=true;verifyButton.disabled=true;
+   try{const response=await fetch('/api/email/verification/request',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:'{}'}),data=await response.json();if(e!==verifyEpoch||identityKey()!==key)return;if(!response.ok)throw Error(data.error||'Não foi possível enviar o e-mail.');verifyStatus.style.color=data.verified?'#15803d':'';verifyStatus.textContent=data.verified?'✓ Endereço verificado':'Link enviado. Confira sua caixa de entrada.';verifyButton.hidden=Boolean(data.verified);verifyButton.textContent='Reenviar e-mail';}
+   catch(error){if(e===verifyEpoch&&identityKey()===key)verifyStatus.textContent=error.message;}
+   finally{if(e===verifyEpoch){verifyBusy=false;verifyButton.disabled=false;}}
+  });
+  new MutationObserver(()=>{if(identityKey()!==verifyIdentity){verifyButton.textContent='Verificar e-mail';refreshVerification();}}).observe(account.querySelector('#accountMember'),{attributes:true,attributeFilter:['hidden'],childList:true,subtree:true,characterData:true});
+  refreshVerification();
+  const verificationDialog=document.createElement('dialog');verificationDialog.className='su-personal-editor';verificationDialog.setAttribute('aria-labelledby','su-verify-title');
+  verificationDialog.innerHTML='<form><h2 id="su-verify-title">Confirmar e-mail</h2><p role="status" aria-live="polite">Confirme que deseja validar seu endereço.</p><button type="submit">Confirmar meu e-mail</button><button type="button" class="secondary">Fechar</button></form>';
+  document.body.append(verificationDialog);
+  let verificationToken='',verificationBusy=false;
+  const verificationForm=verificationDialog.querySelector('form'),verificationSubmit=verificationForm.querySelector('[type=submit]'),verificationMessage=verificationForm.querySelector('[role=status]');
+  function consumeVerificationLink(){if(verificationBusy)return;const token=window.suTakeVerificationToken?.()||location.hash.match(/^#su-verify=([a-f0-9]{64})$/)?.[1];if(!token)return;verificationToken=token;window.history.replaceState(null,'',location.pathname+location.search+'#conta');verificationSubmit.hidden=false;verificationForm.querySelector('.secondary').textContent='Fechar';verificationSubmit.disabled=false;verificationMessage.textContent='Confirme que deseja validar seu endereço.';if(!verificationDialog.open)verificationDialog.showModal();}
+  verificationForm.addEventListener('submit',async e=>{e.preventDefault();if(!verificationToken||verificationBusy)return;verificationBusy=true;verificationSubmit.disabled=true;try{const response=await fetch('/api/email/verification/confirm',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({token:verificationToken})}),data=await response.json();if(!response.ok)throw Error(data.error||'Link inválido ou expirado.');verificationToken='';verificationMessage.textContent='E-mail confirmado com sucesso.';verificationSubmit.hidden=true;verificationForm.querySelector('.secondary').textContent='Concluir';refreshVerification();}catch(error){verificationMessage.textContent=error.message;verificationSubmit.disabled=false;}finally{verificationBusy=false;}});
+  verificationForm.querySelector('.secondary').addEventListener('click',()=>{if(!verificationBusy)verificationDialog.close();});
+  verificationDialog.addEventListener('cancel',e=>{if(verificationBusy)e.preventDefault();});
+  verificationDialog.addEventListener('close',()=>{if(!verificationDialog.open)verificationToken='';});
+  window.addEventListener('hashchange',consumeVerificationLink);consumeVerificationLink();
+  function paintPersonal(){
+   if(!personal||!identityKey())return;
+   const fields=details.querySelectorAll('.su-personal-row small');
+   const stamp=typeof personal.created_at==='string'?personal.created_at.trim():'';
+   const date=/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(stamp)?new Date(stamp.replace(' ','T')+'Z'):new Date(stamp);
+   fields[4].textContent=stamp&&Number.isFinite(date.getTime())?new Intl.DateTimeFormat('pt-BR',{day:'numeric',month:'long',year:'numeric',timeZone:'America/Sao_Paulo'}).format(date):'Não disponível';
+   ['full_name','display_name','username'].forEach((name,i)=>fields[i].textContent=personal[name]||'Ainda não cadastrado');
+   const name=personal.display_name||personal.full_name||identityKey();
+   card.querySelector('strong').textContent=name;
+   const initial=(name.match(/[\p{L}\p{N}]/u)?.[0]||'U').toUpperCase();
+   card.querySelector('.su-personal-avatar').textContent=initial;profile.textContent=initial;
+   const head=pop.querySelector('.su-pop-identity');if(head){head.querySelector('strong').textContent=name;head.querySelector('.su-personal-avatar').textContent=initial;}
+   if(typeof avatarKey!=='undefined')paintAvatar();
+  }
+  async function loadPersonal(){
+   const key=identityKey();
+   if(key===personalKey){paintPersonal();return;}
+   personalKey=key;personal=null;const epoch=++personalEpoch;edit.disabled=true;
+   if(editor.open)editor.close();
+   details.querySelectorAll('.su-personal-row small').forEach((field,i)=>{if(i<3)field.textContent='Ainda não cadastrado';if(i===4)field.textContent='Não disponível';});
+   if(!key)return;
+   try{const response=await fetch('/api/profile',{credentials:'same-origin',cache:'no-store'});if(!response.ok)throw Error();const data=await response.json();if(epoch!==personalEpoch||identityKey()!==key)return;personal=data.profile;edit.disabled=false;paintPersonal();}
+   catch{if(epoch===personalEpoch&&identityKey()===key){edit.disabled=false;personalKey='';}}
+  }
+  edit.addEventListener('click',()=>{if(!identityKey())return;if(!personal){loadPersonal();return;}form.reset();for(const name of ['full_name','display_name','username'])form.elements.namedItem(name).value=personal[name]||'';status.textContent='';save.disabled=false;editor.showModal();});
+  editor.querySelector('.secondary').addEventListener('click',()=>editor.close());
+  form.addEventListener('submit',async event=>{
+   event.preventDefault();if(!personal||!identityKey())return;const epoch=personalEpoch,key=identityKey();save.disabled=true;status.textContent='Salvando…';
+   try{const body=Object.fromEntries(new FormData(form));const response=await fetch('/api/profile',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify(body)});const data=await response.json();if(epoch!==personalEpoch||key!==identityKey())return;if(!response.ok)throw Error(data.error||'Não foi possível salvar.');personal=data.profile;paintPersonal();status.textContent='Informações salvas.';}
+   catch(error){if(epoch===personalEpoch)status.textContent=error.message||'Não foi possível salvar.';}
+   finally{if(epoch===personalEpoch)save.disabled=false;}
+  });
+  new MutationObserver(loadPersonal).observe(account.querySelector('#accountMember'),{attributes:true,attributeFilter:['hidden'],childList:true,subtree:true,characterData:true});loadPersonal();
+  // Avatar state follows the authenticated identity, never local storage.
+  const photoButton=document.createElement('button');photoButton.type='button';photoButton.className='su-edit-personal';photoButton.innerHTML=svgIcon('<path d="m15 5 4 4M4 20l4-1L20 7l-4-4L4 15z"/>');photoButton.setAttribute('aria-label','Alterar fotografia de perfil');photoButton.title='Alterar fotografia';photoButton.style.cssText='position:absolute;right:-4px;bottom:-4px;width:32px;height:32px;min-width:0;padding:6px;border-radius:50%;display:grid;place-items:center;z-index:1';photoButton.disabled=true;
+  const photoAnchor=document.createElement('span');photoAnchor.style.cssText='position:relative;display:inline-flex;flex:none;align-self:center';const cardAvatar=card.querySelector('.su-personal-avatar');cardAvatar.before(photoAnchor);photoAnchor.append(cardAvatar,photoButton);edit.textContent='Editar perfil';
+  const photoDialog=document.createElement('dialog');photoDialog.className='su-personal-editor su-avatar-sheet';photoDialog.setAttribute('aria-label','Fotografia de perfil');
+  photoDialog.innerHTML='<form><span class="su-avatar-handle" aria-hidden="true"></span><h2>Fotografia de perfil</h2><div class="su-crop-toolbar" hidden><button type="button" data-crop-back>‹ Voltar</button><strong>Ajustar fotografia</strong><button type="submit" data-crop-save disabled>Salvar</button></div><img alt="Prévia da fotografia" hidden style="width:96px;height:96px;border-radius:50%;object-fit:cover;margin:auto"><input hidden type="file" accept="image/jpeg,image/png,image/webp"><input hidden type="file" accept="image/*" capture="user" data-camera><button type="button" data-gallery>'+svgIcon('<rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="2"/><path d="m3 17 6-6 4 4 3-3 5 5"/>')+'Escolher imagem</button><button type="button" data-take>'+svgIcon('<path d="M4 7h4l2-3h4l2 3h4v13H4z"/><circle cx="12" cy="13" r="3"/>')+'Tirar fotografia</button><button type="button" data-remove>'+svgIcon('<path d="M3 6h18M9 6V3h6v3M5 6l1 14h12l1-14M10 10v6m4-6v6"/>')+'Remover fotografia atual</button><p role="status" aria-live="polite"></p><button type="button" data-close>Cancelar</button></form>';
+  const avatarStyle=document.createElement('style');avatarStyle.textContent='.su-avatar-sheet form{gap:12px}.su-avatar-sheet form>button[data-gallery],.su-avatar-sheet form>button[data-take],.su-avatar-sheet form>button[data-remove]{display:flex;align-items:center;gap:14px;text-align:left;background:transparent;color:inherit;border:0;box-shadow:none;min-height:48px;padding:12px}.su-avatar-sheet form>button[data-remove]{color:#c93040}.su-avatar-sheet button svg{width:22px;height:22px;flex:none}.su-avatar-sheet button:disabled{opacity:.45}.su-avatar-sheet input[hidden],.su-avatar-sheet img[hidden]{display:none!important}.su-avatar-handle{display:none}@media(max-width:640px){dialog.su-avatar-sheet{position:fixed;inset:auto 0 0;margin:0;width:100%;max-width:100%;max-height:90dvh;border-radius:24px 24px 0 0;padding:20px 20px calc(16px + env(safe-area-inset-bottom));box-sizing:border-box;overflow:auto}.su-avatar-handle{display:block;width:36px;height:4px;border-radius:4px;background:currentColor;opacity:.35;margin:0 auto 8px}}';avatarStyle.textContent+=`
+.su-avatar-sheet{max-width:min(440px,calc(100% - 32px));max-height:90dvh;overflow:auto}
+.su-avatar-sheet[open]{animation:su-avatar-enter .2s ease-out}
+.su-avatar-sheet form h2{margin:0 0 8px;text-align:center;font-size:1.2rem}
+.su-avatar-sheet form>img{display:block;margin:4px auto 12px!important}
+.su-avatar-sheet form>button[data-gallery],.su-avatar-sheet form>button[data-take],.su-avatar-sheet form>button[data-remove]{border-radius:12px;font-weight:500}
+.su-avatar-sheet form>button:not(:disabled):focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.su-avatar-sheet form>button[data-gallery]:hover,.su-avatar-sheet form>button[data-take]:hover{background:color-mix(in srgb,currentColor 7%,transparent)}
+.su-avatar-sheet form>button[data-remove]:hover{background:color-mix(in srgb,#c93040 8%,transparent)}
+.su-avatar-sheet form>p[role=status]{margin:4px 0;font-size:.85rem;line-height:1.45}
+.su-avatar-sheet form>p[role=status]:empty{display:none}
+.su-avatar-sheet form>button[type=submit]:disabled{display:none}
+.su-avatar-sheet form>button[data-close]{background:transparent;color:inherit;border:1px solid color-mix(in srgb,currentColor 18%,transparent);box-shadow:none}
+.su-avatar-sheet section label{display:grid;gap:4px;font-size:.85rem;font-weight:500}
+.su-avatar-sheet section input[type=range]{width:100%;padding:0;min-height:28px;accent-color:currentColor}
+.su-avatar-sheet section canvas{cursor:grab;box-shadow:0 0 0 2px color-mix(in srgb,currentColor 15%,transparent)}
+.su-avatar-sheet section canvas:active{cursor:grabbing}
+.su-avatar-sheet section button[data-rotate]{background:transparent;color:inherit;border:1px solid color-mix(in srgb,currentColor 18%,transparent);box-shadow:none}
+@keyframes su-avatar-enter{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:640px){dialog.su-avatar-sheet{max-width:100%;max-height:92dvh}.su-avatar-sheet[open]{animation:su-avatar-mobile-enter .23s ease-out}}
+@keyframes su-avatar-mobile-enter{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.su-avatar-sheet[open]{animation:none}}
+`;avatarStyle.textContent+=`
+.su-avatar-sheet .su-crop-toolbar[hidden]{display:none!important}
+.su-avatar-sheet .su-crop-toolbar{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;position:sticky;top:0;z-index:2;background:var(--su-surface,#fff);padding:8px 0}
+.su-crop-toolbar strong{text-align:center;font-size:.95rem}
+.su-crop-toolbar button{padding:8px;min-height:40px;font-size:.9rem}
+.su-avatar-sheet.su-crop-active form>h2,.su-avatar-sheet.su-crop-active form>button[data-gallery],.su-avatar-sheet.su-crop-active form>button[data-take],.su-avatar-sheet.su-crop-active form>button[data-remove],.su-avatar-sheet.su-crop-active form>button[data-close]{display:none!important}
+.su-avatar-sheet section details{font-size:.85rem}
+.su-avatar-sheet section details label{margin-top:8px}
+.su-avatar-sheet section summary{cursor:pointer;padding:8px 0}
+@media(max-width:640px){dialog.su-avatar-sheet.su-crop-active{height:92dvh}.su-avatar-sheet.su-crop-active canvas{max-width:min(256px,42dvh)}}
+`;document.head.append(avatarStyle);
+  document.body.append(photoDialog);
+  const photoForm=photoDialog.querySelector('form'),photoInput=photoDialog.querySelector('input'),photoPreview=photoDialog.querySelector('img'),photoStatus=photoDialog.querySelector('[role=status]'),photoSave=photoDialog.querySelector('[data-crop-save]'),photoRemove=photoDialog.querySelector('[data-remove]');
+  let avatarKey='',avatarEpoch=0,avatarUrl='',pendingPhoto=null,pendingUrl='',selectionEpoch=0,avatarBusy=false;
+  function clearPending(){selectionEpoch++;pendingPhoto=null;if(pendingUrl)URL.revokeObjectURL(pendingUrl);pendingUrl='';photoInput.value='';photoSave.disabled=true;photoPreview.hidden=true;photoPreview.removeAttribute('src');}
+  function paintAvatar(){
+   if(!avatarKey||avatarKey!==identityKey())return;
+   for(const el of [profile,card.querySelector('.su-personal-avatar'),pop.querySelector('.su-personal-avatar')]){
+    if(!el)continue;
+    if(!avatarUrl){if(el.querySelector('img[data-account-avatar]'))el.textContent=(avatarKey.match(/[\p{L}\p{N}]/u)?.[0]||'U').toUpperCase();continue;}
+    let img=el.querySelector('img[data-account-avatar]');if(!img){img=document.createElement('img');img.dataset.accountAvatar='';img.alt='';img.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:50%;display:block';el.replaceChildren(img);}img.src=avatarUrl;
+   }
+  }
+  function setAvatar(blob){if(avatarUrl)URL.revokeObjectURL(avatarUrl);avatarUrl=blob?URL.createObjectURL(blob):'';paintPersonal();paintAvatar();}
+  async function loadAvatar(){
+   const key=identityKey();if(key===avatarKey){if(!key){photoButton.disabled=true;return;}paintPersonal();paintAvatar();return;}
+   avatarKey=key;const epoch=++avatarEpoch;avatarBusy=false;setPhotoBusy(false);resetCrop();photoButton.disabled=true;clearPending();if(photoDialog.open)photoDialog.close();setAvatar(null);
+   if(!key)return;
+   try{const response=await fetch('/api/profile/avatar',{credentials:'same-origin',cache:'no-store'});if(!response.ok&&response.status!==404)throw Error();const blob=response.ok?await response.blob():null;if(epoch!==avatarEpoch||key!==identityKey())return;setAvatar(blob);}
+   catch{if(epoch===avatarEpoch)avatarKey='';}
+   finally{if(epoch===avatarEpoch)photoButton.disabled=!identityKey();}
+  }
+  photoButton.addEventListener('click',()=>{if(!identityKey()||avatarBusy)return;if(avatarKey!==identityKey()){loadAvatar();return;}clearPending();photoStatus.textContent='';photoDialog.querySelector('[data-close]').textContent='Cancelar';photoRemove.disabled=!avatarUrl;if(avatarUrl){photoPreview.src=avatarUrl;photoPreview.hidden=false;}photoDialog.showModal();});
+  photoDialog.querySelector('[data-close]').addEventListener('click',()=>{if(!avatarBusy)photoDialog.close();});photoDialog.addEventListener('cancel',e=>{if(avatarBusy)e.preventDefault();});
+  photoDialog.addEventListener('close',()=>{if(!photoDialog.open)clearPending();});
+  const cameraInput=photoDialog.querySelector('[data-camera]');const galleryButton=photoDialog.querySelector('[data-gallery]'),takeButton=photoDialog.querySelector('[data-take]');galleryButton.addEventListener('click',()=>{if(!avatarBusy)photoInput.click();});takeButton.addEventListener('click',()=>{if(!avatarBusy)cameraInput.click();});
+  const crop=document.createElement('section');crop.hidden=true;crop.style.cssText='display:grid;gap:10px';crop.innerHTML='<canvas width="256" height="256" aria-label="Prévia circular do enquadramento" style="width:min(100%,256px);aspect-ratio:1;border-radius:50%;margin:auto;touch-action:none"></canvas><label>Zoom<input type="range" min="1" max="3" step=".05" value="1"></label><details><summary>Ajustes avançados</summary><label>Posição horizontal<input type="range" min="-100" max="100" value="0"></label><label>Posição vertical<input type="range" min="-100" max="100" value="0"></label></details><button type="button" data-rotate>Girar 90°</button>';photoPreview.after(crop);crop.style.display='none';
+  const cropCanvas=crop.querySelector('canvas'),cropCtx=cropCanvas.getContext('2d'),[zoom,panX,panY]=crop.querySelectorAll('input');let cropBitmap=null,angle=0,renderEpoch=0;
+  function resetCrop(){photoDialog.classList.remove('su-crop-active');const bar=photoDialog.querySelector('.su-crop-toolbar');if(bar)bar.hidden=true;pointers.clear();gesture=null;renderEpoch++;cropBitmap?.close();cropBitmap=null;crop.hidden=true;crop.style.display='none';zoom.value='1';panX.value=panY.value='0';angle=0;}
+  async function renderCrop(){if(!cropBitmap||!photoDialog.open||avatarBusy)return;const seq=++renderEpoch,epoch=selectionEpoch;pendingPhoto=null;photoSave.disabled=true;const w=cropBitmap.width,h=cropBitmap.height,turned=angle%180!==0,rw=turned?h:w,rh=turned?w:h,scale=256/Math.min(w,h)*Number(zoom.value),dx=(rw*scale-256)*Number(panX.value)/200,dy=(rh*scale-256)*Number(panY.value)/200;cropCtx.setTransform(1,0,0,1,0,0);cropCtx.fillStyle='#fff';cropCtx.fillRect(0,0,256,256);cropCtx.translate(128+dx,128+dy);cropCtx.rotate(angle*Math.PI/180);cropCtx.drawImage(cropBitmap,-w*scale/2,-h*scale/2,w*scale,h*scale);cropCtx.setTransform(1,0,0,1,0,0);await new Promise(resolve=>setTimeout(resolve,100));if(seq!==renderEpoch||epoch!==selectionEpoch||!photoDialog.open||avatarBusy)return;let blob;for(const q of [.85,.7,.5,.3]){blob=await new Promise(resolve=>cropCanvas.toBlob(resolve,'image/jpeg',q));if(seq!==renderEpoch||epoch!==selectionEpoch||!photoDialog.open)return;if(blob&&blob.size<=65536)break;}if(!blob||blob.size>65536){photoStatus.textContent='Não foi possível preparar a imagem.';return;}pendingPhoto=blob;photoSave.disabled=avatarBusy;photoStatus.textContent='Arraste a imagem ou use dois dedos para ampliar. Depois, salve.';}
+  for(const field of [zoom,panX,panY])field.addEventListener('input',renderCrop);crop.querySelector('[data-rotate]').addEventListener('click',()=>{angle=(angle+90)%360;panX.value=panY.value='0';renderCrop();});
+  const pointers=new Map();let gesture=null;
+  function gestureState(){const pts=[...pointers.values()];if(!pts.length)return null;const a=pts[0],b=pts[1]||a;return {x:(a.x+b.x)/2,y:(a.y+b.y)/2,d:pts.length>1?Math.max(1,Math.hypot(a.x-b.x,a.y-b.y)):0};}
+  const clamp=(v,min,max)=>Math.min(max,Math.max(min,v));
+  cropCanvas.addEventListener('pointerdown',e=>{if(!cropBitmap||avatarBusy||pointers.size>=2||e.button!==0)return;e.preventDefault();cropCanvas.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});gesture=gestureState();});
+  cropCanvas.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId)||!cropBitmap||avatarBusy)return;e.preventDefault();pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});const next=gestureState(),prev=gesture;gesture=next;if(!prev||!next)return;const rect=cropCanvas.getBoundingClientRect();if(!rect.width)return;const w=cropBitmap.width,h=cropBitmap.height,turned=angle%180!==0,rw=turned?h:w,rh=turned?w:h,oldScale=256/Math.min(w,h)*Number(zoom.value),oldX=(rw*oldScale-256)*Number(panX.value)/200,oldY=(rh*oldScale-256)*Number(panY.value)/200;const z=prev.d&&next.d?clamp(Number(zoom.value)*next.d/prev.d,1,3):Number(zoom.value);zoom.value=String(z);const scale=256/Math.min(w,h)*Number(zoom.value),ratio=scale/oldScale,k=256/rect.width,mx=(prev.x-rect.left)*k-128,my=(prev.y-rect.top)*k-128;const dx=mx+(oldX-mx)*ratio+(next.x-prev.x)*k,dy=my+(oldY-my)*ratio+(next.y-prev.y)*k;panX.value=String(rw*scale>256?clamp(dx*200/(rw*scale-256),-100,100):0);panY.value=String(rh*scale>256?clamp(dy*200/(rh*scale-256),-100,100):0);renderCrop();});
+  function releasePointer(e){pointers.delete(e.pointerId);gesture=gestureState();}
+  for(const type of ['pointerup','pointercancel','lostpointercapture'])cropCanvas.addEventListener(type,releasePointer);
+  photoDialog.addEventListener('close',()=>{if(!photoDialog.open)resetCrop();});
+  async function selectPhoto(event){
+   const file=event.currentTarget.files?.[0];event.currentTarget.value='';if(!file||avatarBusy)return;clearPending();resetCrop();const seq=selectionEpoch,epoch=avatarEpoch;
+   if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>10485760){photoStatus.textContent='Escolha JPEG, PNG ou WebP de até 10 MB.';return;}
+   try{const bitmap=await createImageBitmap(file);if(seq!==selectionEpoch||epoch!==avatarEpoch||!photoDialog.open){bitmap.close();return;}cropBitmap=bitmap;photoDialog.classList.add('su-crop-active');photoDialog.querySelector('.su-crop-toolbar').hidden=false;photoPreview.hidden=true;crop.hidden=false;crop.style.display='grid';await renderCrop();}
+   catch{if(seq===selectionEpoch&&epoch===avatarEpoch)photoStatus.textContent='Não foi possível preparar a imagem.';}
+  }
+  photoDialog.querySelector('[data-crop-back]').addEventListener('click',()=>{if(avatarBusy)return;clearPending();resetCrop();photoStatus.textContent='';if(avatarUrl){photoPreview.src=avatarUrl;photoPreview.hidden=false;}});
+  photoInput.addEventListener('change',selectPhoto);cameraInput.addEventListener('change',selectPhoto);
+  function setPhotoBusy(busy){for(const el of crop.querySelectorAll('input,button'))el.disabled=busy;photoInput.disabled=cameraInput.disabled=galleryButton.disabled=takeButton.disabled=photoDialog.querySelector('[data-close]').disabled=busy;}
+  async function writeAvatar(remove){
+   if(avatarBusy||!avatarKey||avatarKey!==identityKey()||(!remove&&!pendingPhoto))return;
+   const epoch=avatarEpoch,key=avatarKey,blob=pendingPhoto;avatarBusy=true;setPhotoBusy(true);photoSave.disabled=photoRemove.disabled=true;photoStatus.textContent='Salvando…';
+   try{const response=await fetch('/api/profile/avatar',{method:remove?'DELETE':'POST',credentials:'same-origin',...(remove?{}:{headers:{'content-type':'image/jpeg'},body:blob})});if(!response.ok)throw Error();if(epoch!==avatarEpoch||key!==identityKey())return;setAvatar(remove?null:blob);clearPending();resetCrop();if(avatarUrl){photoPreview.src=avatarUrl;photoPreview.hidden=false;}photoStatus.textContent=remove?'Fotografia removida.':'Fotografia salva.';photoDialog.querySelector('[data-close]').textContent='Concluir';}
+   catch{if(epoch===avatarEpoch)photoStatus.textContent='Não foi possível concluir. Tente novamente.';}
+   finally{if(epoch===avatarEpoch){avatarBusy=false;setPhotoBusy(false);photoRemove.disabled=!avatarUrl;photoSave.disabled=!pendingPhoto;}}
+  }
+  photoForm.addEventListener('submit',e=>{e.preventDefault();writeAvatar(false);});photoRemove.addEventListener('click',()=>writeAvatar(true));
+  new MutationObserver(loadAvatar).observe(account.querySelector('#accountMember'),{attributes:true,attributeFilter:['hidden'],childList:true,subtree:true,characterData:true});loadAvatar();
+
+
+  const auth=document.createElement('div');auth.className='su-auth-intro';auth.innerHTML='<h2>Acesse sua conta</h2><p>Entre para acessar os recursos da sua conta.</p>';account.querySelector('#accountGuest').prepend(auth);
+  const authHero=document.createElement('section');authHero.className='su-auth-hero';authHero.innerHTML='<strong>Sorteador Universal</strong><h2>Entrar na minha conta</h2><p>Acesse seu histórico, listas salvas, salas e muito mais.</p><div class="su-auth-die" aria-hidden="true">'+svgIcon('<path d="m12 2 9 5v10l-9 5-9-5V7zM3 7l9 5 9-5M12 12v10"/><g fill="currentColor" stroke="none"><circle cx="12" cy="6" r="1"/><circle cx="7" cy="12" r="1"/><circle cx="17" cy="16" r="1"/></g>')+'</div>';account.querySelector('#accountGuest').before(authHero);
+  const authDie=authHero.querySelector('.su-auth-die');let authDieMounted=false;
+  const mountAuthDie=()=>{if(authDieMounted||!authDie.getBoundingClientRect().width)return;authDieMounted=true;import('./classic-die.mjs').then(m=>m.mountClassicDie(authDie)).catch(()=>{authDieMounted=false;});};
+  new ResizeObserver(mountAuthDie).observe(authDie);
+  authHero.querySelector('strong').prepend(authDie.querySelector('svg').cloneNode(true));
+
+  const password=account.querySelector('#accountPassword'),email=account.querySelector('#accountEmail');
+  const guest=account.querySelector('#accountGuest');
+  const recovery=document.createElement('dialog');recovery.className='su-recovery';recovery.setAttribute('aria-labelledby','su-recovery-title');recovery.innerHTML='<form><h2 id="su-recovery-title">Recuperar senha</h2><p>Informe seu e-mail para receber as instruções.</p><label>E-mail<input type="email" required autocomplete="email" maxlength="254"></label><label hidden>Nova senha<input type="password" autocomplete="new-password" minlength="10" maxlength="128"></label><p role="status" aria-live="polite"></p><button type="submit">Enviar instruções</button> <button type="button" class="secondary">Voltar</button></form>';
+  document.body.append(recovery);
+  const rf=recovery.querySelector('form'),re=recovery.querySelector('input[type=email]'),rp=recovery.querySelector('input[type=password]'),rs=recovery.querySelector('[role=status]'),rb=recovery.querySelector('[type=submit]');
+  let resetToken='',recoveryEpoch=0;
+  function openRecovery(token=''){recoveryEpoch++;rb.disabled=false;rb.hidden=false;rp.disabled=false;resetToken=token;rf.reset();rs.textContent='';re.value=email.value;re.parentElement.hidden=!!token;re.required=!token;rp.parentElement.hidden=!token;rp.required=!!token;recovery.querySelector('h2').textContent=token?'Criar nova senha':'Recuperar senha';recovery.querySelector('h2+p').textContent=token?'Escolha uma senha com pelo menos 10 caracteres.':'Informe seu e-mail para receber as instruções.';rb.textContent=token?'Redefinir senha':'Enviar instruções';re.autofocus=!token;rp.autofocus=!!token;if(!recovery.open)recovery.showModal();const field=token?rp:re,epoch=recoveryEpoch;field.focus({preventScroll:true});requestAnimationFrame(()=>{if(recovery.open&&epoch===recoveryEpoch)field.focus({preventScroll:true});});}
+  const forgot=document.createElement('button');forgot.type='button';forgot.className='su-forgot-password';forgot.textContent='Esqueceu sua senha?';guest.querySelector('.account-actions').before(forgot);forgot.addEventListener('click',()=>openRecovery());
+  recovery.querySelector('[type=button]').addEventListener('click',()=>recovery.close());
+  recovery.addEventListener('close',()=>{if(recovery.open)return;recoveryEpoch++;resetToken='';rf.reset();if(forgot.getClientRects().length)forgot.focus();});
+  rf.addEventListener('submit',async e=>{
+   e.preventDefault();if(!recovery.open||rb.disabled||rb.hidden)return;
+   const epoch=recoveryEpoch,token=resetToken;rb.disabled=true;rs.textContent='Processando…';
+   const current=()=>recovery.open&&epoch===recoveryEpoch;
+   try{
+    const response=await fetch(token?'/api/password/reset':'/api/password/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(token?{token,password:rp.value}:{email:re.value})});
+    const data=await response.json().catch(()=>null);if(!current())return;
+    if(!response.ok||!data?.ok){rs.textContent=typeof data?.error==='string'?data.error:'Não foi possível concluir. Tente novamente.';return;}
+    rs.textContent=token?'Senha redefinida. Volte para entrar.':data.message;rp.value='';
+    if(token){resetToken='';rb.hidden=true;rp.disabled=true;recovery.querySelector('[type=button]').focus();}
+   }catch{if(current())rs.textContent='Não foi possível conectar. Tente novamente.';}
+   finally{if(current())rb.disabled=false;}
+  });
+  function consumeRecoveryLink(){const incomingReset=location.hash.match(/^#su-reset=([a-f0-9]{64})$/);if(incomingReset){window.history.replaceState(null,'',location.pathname+location.search+'#conta');openRecovery(incomingReset[1]);}}
+  window.addEventListener('hashchange',consumeRecoveryLink);
+  const initialRecoveryToken=window.suTakeRecoveryToken?.();
+  if(initialRecoveryToken)openRecovery(initialRecoveryToken);else consumeRecoveryLink();
+
+  const wrapField=(input,art)=>{const wrap=document.createElement('span');wrap.className='su-auth-field';input.before(wrap);wrap.innerHTML='<span class="su-auth-field-icon" aria-hidden="true">'+svgIcon(art)+'</span>';wrap.append(input);return wrap;};
+  wrapField(email,'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>');
+  const passwordWrap=wrapField(password,'<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>');
+  const reveal=document.createElement('button');reveal.type='button';reveal.className='su-auth-reveal';reveal.setAttribute('aria-pressed','false');reveal.setAttribute('aria-label','Mostrar senha');const eye='<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>';reveal.innerHTML=svgIcon(eye);passwordWrap.append(reveal);reveal.addEventListener('click',()=>{const show=password.type==='password';password.type=show?'text':'password';reveal.setAttribute('aria-label',show?'Ocultar senha':'Mostrar senha');reveal.setAttribute('aria-pressed',String(show));reveal.innerHTML=svgIcon(eye+(show?'<path d="m3 3 18 18"/>':''));});
+
+
+
+  const loginButton=guest.querySelector('#accountLogin'),registerButton=guest.querySelector('#accountRegister'),message=account.querySelector('#accountMessage');
+  const confirmation=document.createElement('label');confirmation.hidden=true;confirmation.textContent='Confirme sua senha';
+  const confirmPassword=document.createElement('input');confirmPassword.type='password';confirmPassword.autocomplete='new-password';confirmPassword.minLength=10;confirmPassword.maxLength=128;confirmation.append(confirmPassword);guest.querySelector('.account-form').append(confirmation);
+  const switchLogin=document.createElement('button');switchLogin.type='button';switchLogin.className='secondary';switchLogin.textContent='Já possui uma conta? Entrar';switchLogin.hidden=true;guest.querySelector('.account-actions').append(switchLogin);
+  let registering=false;
+  function setRegisterMode(value){registering=value;confirmation.hidden=!value;switchLogin.hidden=!value;loginButton.hidden=value;forgot.hidden=value;registerButton.textContent=value?'Cadastrar':'Criar conta';auth.querySelector('h2').textContent=value?'Crie sua conta':'Acesse sua conta';auth.querySelector('p').textContent=value?'Cadastre seu e-mail e escolha uma senha.':'Entre para acessar os recursos da sua conta.';authHero.querySelector('h2').textContent=value?'Crie sua conta':'Entrar na minha conta';password.autocomplete=value?'new-password':'current-password';confirmPassword.value='';message.textContent='';}
+  registerButton.addEventListener('click',event=>{if(!registering){event.preventDefault();event.stopImmediatePropagation();setRegisterMode(true);email.focus();return;}if(!email.validity.valid||!email.value.trim()||password.value.length<10||password.value.length>128||password.value!==confirmPassword.value){event.preventDefault();event.stopImmediatePropagation();message.textContent=password.value!==confirmPassword.value?'As senhas não coincidem.':'Informe um e-mail válido e uma senha de 10 a 128 caracteres.';return;}confirmPassword.value='';},true);
+  switchLogin.addEventListener('click',()=>{if(registerButton.disabled)return;setRegisterMode(false);email.focus();});
+  const syncAuthRoute=()=>{if(location.hash==='#su-register')setRegisterMode(true);else if(location.hash==='#conta'&&registering)setRegisterMode(false);};
+  window.addEventListener('hashchange',syncAuthRoute);syncAuthRoute();
+  guest.addEventListener('keydown',event=>{if(event.key==='Enter'&&event.target.matches('input')){event.preventDefault();(registering?registerButton:loginButton).click();}});
+  const memberStatus=account.querySelector('#accountMember');
+  const placeMessage=()=>{if(memberStatus.hidden){guest.append(message);}else{account.append(message);if(registering)setRegisterMode(false);}};
+  new MutationObserver(placeMessage).observe(memberStatus,{attributes:true,attributeFilter:['hidden']});placeMessage();
+  message.setAttribute('aria-live','polite');
+  const member=account.querySelector('#accountMember');if(member)new MutationObserver(update).observe(member,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['hidden']});update();
+  side.innerHTML='<strong>Minha área</strong>'+[['#conta','Meus dados','<circle cx="12" cy="7" r="3"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/>'],['#su-home-history','Histórico de sorteios','<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>'],['#roomStudio','Minhas salas',people],['#su-lists','Listas salvas',people],['#su-subscription','Assinatura e planos','<rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20"/>'],['#ajuda','Ajuda','<circle cx="12" cy="12" r="10"/><path d="M9 8a3 3 0 1 1 3 4v2M12 18h.01"/>']].map(([href,label,icon])=>'<a href="'+href+'">'+svgIcon(icon)+'<span>'+label+'</span><i aria-hidden="true">›</i></a>').join('');
+ }
+
+
+ const syncView=()=>{
+  const view=views[location.hash]||'home';
+  main.dataset.suView=view;main.dataset.suAccountRoute=location.hash.slice(1);closeProfile();
+  // Keep the quick-draw controls alive, but hide them on the classic catalogue.
+  // Explicit inline display avoids theme-specific CSS precedence issues in visual checks.
+  const quickForm=main.querySelector('#form');
+  if(quickForm)quickForm.style.display=(document.body.getAttribute('data-su-theme')==='classic'&&view==='home')?'none':'';
+
+  side.querySelectorAll('a').forEach(a=>{if(a.hash===location.hash)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
+  const control=({rooms:'.su-room-toggle',account:'.su-account-toggle',history:'.su-history-toggle'})[view];
+  const toggle=control&&main.querySelector(control);
+  if(toggle?.getAttribute('aria-expanded')==='false')toggle.click();
+  menu.classList.remove('su-menu-open');menuButton.setAttribute('aria-expanded','false');
+  if(document.body.getAttribute('data-su-theme')==='classic'&&view!=='home'){
+   const target=main.querySelector(location.hash);
+   if(view==='account')requestAnimationFrame(()=>window.scrollTo(0,0));else requestAnimationFrame(()=>target?.scrollIntoView({block:'start'}));
+  }
+ };
+ window.addEventListener('hashchange',syncView);
+ select.addEventListener('change',syncView);
+ syncView();
+ enableThemeNavigation(document,()=>document.body.getAttribute('data-su-theme'));
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
