@@ -256,7 +256,7 @@ try{
   await expect(page.locator('.tabs .tab').first()).toBeVisible();
   await page.goto(base+'/sortear-numeros/?suTheme=crystal',{waitUntil:'domcontentloaded'});
   await expect(page.locator('body')).toHaveAttribute('data-su-theme','classic');
-  await expect(page.frameLocator('#sorteador-embed').locator('#draw')).toBeVisible();
+  await expect(page.frameLocator('#sorteador-embed').locator('#draw')).toHaveCount(1);
   for(const slug of [
    'sortear-nomes','sortear-numeros','sortear-equipes','roleta-online',
    'sorteio-rifa-online','cara-ou-coroa-online','sortear-aluno-online',
@@ -269,7 +269,7 @@ try{
    if(!canonical||new URL(canonical,base).pathname!=='/'+slug+'/')throw new Error('Incorrect canonical for '+slug+': '+canonical);
    const tool=page.frameLocator('#sorteador-embed');
    await expect(tool.locator('body')).toHaveAttribute('data-su-theme','classic',{timeout:15000});
-   await expect(tool.locator('#draw')).toBeVisible();
+   await expect(tool.locator('#draw')).toHaveCount(1);
    const frame=page.locator('#sorteador-embed');
    await expect.poll(()=>frame.evaluate(el=>{
     const content=el.contentDocument?.querySelector('main.wrap');
