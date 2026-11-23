@@ -243,7 +243,8 @@ try{
   if(!toolFocus)throw new Error('Tool catalog keyboard focus indicator missing at '+width+'px');
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(url=>url.pathname==='/sortear-nomes/');
-  await expect(page.locator('#sorteador-embed')).toBeVisible();
+  await expect(page.locator('#su-classic-names')).toBeVisible();
+  await expect(page.locator('#sorteador-embed')).toBeHidden();
   await page.goto(base+'/?room=visual-contract&suTheme=ruby',{waitUntil:'domcontentloaded'});
   await expect(page.locator('.su-home-directory')).toHaveCount(0);
   await expect(page.locator('.su-room-toggle')).toHaveCount(0);
@@ -284,19 +285,25 @@ try{
   // Classic SEO shell should read as a usable page, not a set of empty blocks.
   const seoNav=page.locator('.su-nav');
   await expect(seoNav).toBeVisible();
+  await expect(page.locator('#su-classic-names')).toBeVisible();
+  await expect(page.locator('#su-classic-names [data-tab="names"]')).toBeVisible();
+  await expect(page.locator('.skip-tool')).toBeHidden();
+  await expect(page.locator('.inline-tool')).toBeHidden();
+  const studioLayout=await page.evaluate(()=>({overflow:document.documentElement.scrollWidth>innerWidth+2}));
+  if(studioLayout.overflow)throw new Error('Classic names studio horizontal overflow');
+  const names=page.locator('#ns-list');
+  await names.fill('Ana\\nBruno');
+  await page.locator('#su-classic-names [data-next="settings"]').click();
+  await expect(page.locator('#su-classic-names [data-pane="settings"]')).toBeVisible();
+  await page.locator('#ns-draw').click();
+  await expect(page.locator('#ns-winners')).toContainText(/Ana|Bruno/);
+  await page.locator('#su-classic-names [data-tab="history"]').click();
+  await expect(page.locator('#ns-history li').first()).toContainText(/Ana|Bruno/);
+  // Original mode must retain its existing embedded tool and SEO content.
+  await page.goto(base+'/sortear-nomes/?suTheme=original',{waitUntil:'domcontentloaded'});
+  await expect(page.locator('#su-classic-names')).toBeHidden();
   await expect(page.locator('.skip-tool')).toBeVisible();
-  await expect(page.locator('.skip-tool')).not.toBeEmpty();
   await expect(page.locator('.inline-tool')).toBeVisible();
-  const seoLayout=await page.evaluate(()=>{
-   const nav=document.querySelector('.su-nav');
-   const panel=document.querySelector('.inline-tool');
-   const cta=document.querySelector('.skip-tool');
-   const navStyle=getComputedStyle(nav);
-   const panelStyle=getComputedStyle(panel);
-   const ctaStyle=getComputedStyle(cta);
-   return {navRadius:parseFloat(navStyle.borderTopLeftRadius),panelRadius:parseFloat(panelStyle.borderTopLeftRadius),ctaHeight:cta.getBoundingClientRect().height,ctaColor:ctaStyle.color,ctaBackground:ctaStyle.backgroundColor,overflow:document.documentElement.scrollWidth>innerWidth+2};
-  });
-  if(seoLayout.overflow||seoLayout.navRadius<8||seoLayout.panelRadius<8||seoLayout.ctaHeight<40||seoLayout.ctaColor===seoLayout.ctaBackground)throw new Error('Classic SEO presentation regression: '+JSON.stringify(seoLayout));
   const embedded=page.frameLocator('#sorteador-embed');
   await expect(embedded.locator('body')).toHaveAttribute('data-su-theme','classic');
   await embedded.locator('body').evaluate(body=>{body.dataset.suVisualPersistence='kept';});
