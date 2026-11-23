@@ -305,7 +305,7 @@ try{
   await expect(page.locator('.skip-tool')).toBeVisible();
   await expect(page.locator('.inline-tool')).toBeVisible();
   const embedded=page.frameLocator('#sorteador-embed');
-  await expect(embedded.locator('body')).toHaveAttribute('data-su-theme','classic');
+  await expect(embedded.locator('body')).toHaveAttribute('data-su-theme','original');
   await embedded.locator('body').evaluate(body=>{body.dataset.suVisualPersistence='kept';});
   const inputState=await embedded.locator('input:not([type="hidden"]),textarea').first().evaluate(el=>{
    const marker='su-theme-persistence-check';
@@ -325,7 +325,7 @@ try{
   await embedded.locator('#winners').fill('1');
   await embedded.locator('#draw').click();
   await expect(embedded.locator('#result')).toContainText('Ana');
-  await expect(embedded.locator('body')).toHaveAttribute('data-su-theme','classic');
+  await expect(embedded.locator('body')).toHaveAttribute('data-su-theme','original');
   await expect(embedded.locator('#result')).toContainText('Ana');
   await expect(embedded.locator('#items')).toHaveValue('Ana');
   await page.goto(base+'/?suTheme=classic',{waitUntil:'domcontentloaded'});
